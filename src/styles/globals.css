@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #0ea5e9;
+  --color-surface: #f8fafc;
+  /* Semantic tokens */
+  --color-success: #059669;
+  --color-success-light: #d1fae5;
+  --color-warning: #d97706;
+  --color-warning-light: #fef3c7;
+  --color-error: #dc2626;
+  --color-error-light: #fee2e2;
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+}
+
+body {
+  @apply bg-surface-50 text-gray-900 antialiased;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Design system: buttons — hover/focus/active, transition */
+.btn {
+  @apply inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-[transform,opacity,colors] duration-[var(--duration-fast)] focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+}
+.btn:hover:not(:disabled) {
+  @apply brightness-[1.02];
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.btn-primary {
+  @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+}
+.btn-secondary {
+  @apply btn bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500;
+}
+.btn-ghost {
+  @apply btn bg-transparent hover:bg-gray-100 focus:ring-gray-400;
+}
+.btn-danger {
+  @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+}
+
+/* Button loading state */
+.btn-loading {
+  @apply pointer-events-none opacity-70;
+}
+.spinner {
+  @apply h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent;
+}
+
+/* Design system: inputs */
+.input {
+  @apply block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder-gray-400 transition-colors duration-[var(--duration-fast)] focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500;
+}
+
+/* Design system: cards — hover lift, transition */
+.card {
+  @apply rounded-2xl border border-gray-200 bg-white shadow-sm transition-[box-shadow,transform] duration-[var(--duration-normal)];
+}
+.card-hover:hover {
+  @apply shadow-md;
+}
+.card-hover-lift:hover {
+  @apply -translate-y-0.5 shadow-md;
+}
+
+/* Headings use display font */
+h1, h2, h3 {
+  @apply font-display;
+}
+
+/* Nav active indicator (animated pill/underline) */
+@media (prefers-reduced-motion: no-preference) {
+  .nav-item-active-indicator {
+    @apply transition-all duration-fast ease-out;
+  }
+}
+
+/* Skeleton loading */
+.skeleton {
+  @apply animate-pulse rounded bg-gray-200;
+}
+
+/* Success / error feedback keyframes */
+@keyframes success-flash {
+  0% { opacity: 1; box-shadow: 0 0 0 0 theme("colors.emerald.400"); }
+  50% { box-shadow: 0 0 0 8px transparent; }
+  100% { opacity: 1; box-shadow: none; }
+}
+@keyframes error-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+.animate-success-flash {
+  animation: success-flash var(--duration-slow) ease-out;
+}
+.animate-error-shake {
+  animation: error-shake 0.3s ease-in-out;
+}
+
+/* Few-slots pulse (subtle); disabled when reduced-motion */
+@keyframes few-slots-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .animate-few-slots-pulse {
+    animation: few-slots-pulse 2s ease-in-out infinite;
+  }
+}

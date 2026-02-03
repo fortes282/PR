@@ -1,0 +1,302 @@
+Act as a senior frontend architect. Generate ONLY the frontend for a multi-role PWA web app called “Pristav Radosti” (Rehab Center Management).
+Do not implement a backend. Instead, create a clear backend integration blueprint (API contracts, endpoints, payloads, auth flow) and wire the frontend to a mock API layer that can later be swapped to real HTTP calls.
+Language: TypeScript. UI: Tailwind. Framework: Next.js App Router.
+0) Output requirements (non-negotiable)
+Generate a runnable Next.js app (App Router) with PWA support and role-based navigation.
+All data access must go through a single abstraction: src/lib/api/ (a “data gateway”).
+Provide two implementations:
+MockApiClient (in-memory, deterministic seed data)
+HttpApiClient (real REST calls) but leave it disabled by default (no backend required to run).
+Add high-quality code comments everywhere the future backend will connect:
+what endpoint will exist
+request/response shapes
+authentication headers
+error handling expectations
+Include API contract types in src/lib/contracts/ (Zod + TS inferred types).
+Include a backend preparation guide in README.md:
+which endpoints to implement
+what each endpoint must return
+which pages depend on which endpoints
+auth/token handling
+Provide role-based demo login (no real auth):
+a “Switch Role” dev panel (or login screen) that sets a role in local storage/cookie
+also prepare the real auth integration points with comments
+1) Project structure
+Create:
+/apps/web
+  src/
+    app/
+      (public)/
+        login/
+        verify/
+      (client)/
+        client/
+          dashboard/
+          book/
+          appointments/
+          credits/
+          reports/
+          settings/
+          waitlist/
+      (reception)/
+        reception/
+          calendar/
+          appointments/[id]/
+          clients/
+          clients/[id]/
+          waitlist/
+          billing/
+      (employee)/
+        employee/
+          calendar/
+          colleagues/
+          appointments/[id]/
+          clients/[id]/reports/
+      (admin)/
+        admin/
+          users/
+          services/
+          rooms/
+          settings/
+          stats/
+      notifications/
+      layout.tsx
+      page.tsx
+    components/
+      layout/
+      nav/
+      calendar/
+      tables/
+      forms/
+      modals/
+      files/
+      badges/
+    lib/
+      api/
+        index.ts
+        mock/
+          mockClient.ts
+          mockDb.ts
+          seed.ts
+        http/
+          httpClient.ts
+      auth/
+        session.ts
+        rbac.ts
+      contracts/
+        auth.ts
+        users.ts
+        services.ts
+        rooms.ts
+        appointments.ts
+        credits.ts
+        billing.ts
+        notifications.ts
+        reports.ts
+        waitlist.ts
+        settings.ts
+        stats.ts
+      utils/
+        date.ts
+        money.ts
+        csv.ts
+    styles/
+  public/
+  next.config.js
+  tailwind.config.ts
+  README.md
+(If you’re not using a monorepo, just generate a single Next.js project, but keep the folder structure above.)
+2) Core domain rules (frontend must enforce in UI)
+Even without backend, implement UI logic + mock behaviors:
+2.1 Roles
+Roles:
+ADMIN
+RECEPTION
+EMPLOYEE
+CLIENT
+Frontend must:
+show different nav menus
+block routes (RBAC guard)
+hide unauthorized actions
+2.2 Booking window
+booking window is 60 days ahead (from “today”), configurable in Settings page (admin only) in mock mode.
+Client booking UI must disable days beyond window.
+2.3 Appointment cancellation / refund explanation
+global freeCancelHours (e.g., 48)
+cancel modal must show:
+whether refund would apply (if paid and within time)
+reason required for reception refunds
+2.4 Credits
+Client cannot top up credits.
+Reception/admin can adjust credits.
+Booking flow:
+if enough credits => mark appointment as PAID and deduct
+else => mark UNPAID (to be billed later)
+2.5 Billing report (V1)
+Reception page “Billing” shows:
+monthly report listing UNPAID appointments
+totals per client
+export CSV (frontend utility)
+“Mark as invoiced” (mock updates status to INVOICED)
+2.6 Waitlist suggestions (MVP)
+Provide a waitlist list and a “suggestions” panel that displays recommended clients for a freed slot.
+You can keep scoring simple/deterministic in mock mode, but the UI must be ready to display:
+score reasons
+priority buckets
+2.7 Therapy reports (files)
+Employee can upload a file (mock store as metadata only; for dev you can store in memory and show it).
+Client can download (mock: generate a dummy PDF blob or download placeholder text).
+Show visibleToClient toggle.
+2.8 Notifications inbox
+Notifications list page with read/unread
+“Send offer” in waitlist triggers a notification in mock DB
+Manual broadcast UI (admin/reception) can send to segment (mock)
+3) UI/UX requirements
+Minimal, clean Tailwind UI
+Responsive
+Reusable components
+Loading/empty/error states on every page
+Use a consistent design system:
+buttons, inputs, modal, toast
+Calendar:
+Week view for reception and employee
+Client “book” view can be simplified (day list + available slots)
+4) Data contracts (Zod + TS)
+In src/lib/contracts/* define:
+enums: Role, AppointmentStatus, PaymentStatus, ServiceType, RoomType, NotificationChannel
+Zod schemas for key DTOs:
+Appointment, Service, Room, CreditAccount, CreditTransaction, BillingReport, Notification, TherapyReportFile, WaitingListEntry, Settings
+Must export type from Zod inference for use across the app.
+5) API Gateway (the most important part)
+5.1 Interface
+Create src/lib/api/index.ts that exports api implementing:
+auth.login(roleOrCredentials)
+auth.me()
+users.list(...), users.update(...)
+services.list/create/update
+rooms.list/create/update
+appointments.list/create/update/cancel/complete
+credits.get(clientId), credits.adjust(clientId, ...)
+billing.generateMonthly(period), billing.getReport(id), billing.exportCsv(id), billing.markInvoiced(appointmentIds)
+waitlist.create/list/suggestions/notify
+reports.upload/list/download/updateVisibility
+notifications.list/send/read
+settings.get/update
+stats.occupancy/cancellations/clientTags
+5.2 MockApiClient
+Implement in-memory “DB” in src/lib/api/mock/mockDb.ts plus seed.ts.
+Deterministic seed:
+admin, receptionist, 3 therapists, 10 clients
+services, rooms
+sample appointments
+unpaid old >60 days
+waitlist entries
+Mock client must simulate:
+cancellations and refunds
+credits deduction
+marking invoiced
+generating a billing report
+5.3 HttpApiClient (disabled by default)
+Implement HttpApiClient with fetch calls but keep feature-flagged:
+NEXT_PUBLIC_API_MODE=mock|http (default mock)
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001 (example)
+IMPORTANT: Add code comments for backend
+For every method, include a comment block like:
+/**
+ * BACKEND CONTRACT (to implement later):
+ * POST /appointments/:id/cancel
+ * Headers: Authorization: Bearer <accessToken>
+ * Body: { refund?: boolean, reason?: string }
+ * Returns: { appointment: Appointment, creditTransaction?: CreditTransaction }
+ * Errors:
+ *  - 403 if RBAC denies
+ *  - 409 if already cancelled
+ */
+Do this consistently across the gateway.
+6) Auth & RBAC (frontend-only now, backend-ready)
+Implement src/lib/auth/session.ts:
+store a session in cookie/localStorage (mock)
+session includes userId, role, accessToken placeholder
+Implement src/lib/auth/rbac.ts:
+can(role, action) mapping
+route guard for layouts (client), (reception), (employee), (admin)
+Add comments for real backend:
+JWT access/refresh
+token refresh strategy
+401 handling
+7) Pages to implement (MVP screens)
+Public
+/login: role-based dev login + future credential login form
+/verify: placeholder for email/SMS verification (just UI + comments)
+Client
+Dashboard: next appointment, credits, quick actions
+Book: available slots (based on services + bookingWindowDays)
+Appointments list + cancel modal
+Credits page: balance + transactions
+Reports list + download
+Settings: notification preferences (mock toggles)
+Waitlist: create/edit entry
+Reception
+Calendar week view with filters (service/therapist)
+Appointment detail: reschedule, cancel with refund choice
+Clients list: search + tags
+Client detail: profile + credits adjust + timeline + reports
+Waitlist: list + suggestions + notify
+Billing: monthly report + export CSV + mark invoiced
+Employee
+My calendar + blocks
+Colleagues read-only view
+Appointment detail + internal notes
+Upload therapy report for a client
+Admin
+Users management
+Services management
+Rooms management
+Settings (bookingWindowDays, freeCancelHours)
+Stats pages (basic charts placeholders; can be tables)
+Notifications
+Inbox: list + mark read
+8) Components
+Implement shared components:
+AppShell with sidebar/topbar
+RoleSwitcher dev panel (only in mock mode)
+DataTable (sortable)
+Modal / ConfirmDialog
+Toast notifications
+CalendarWeekView component
+AppointmentCard, ClientCard
+CreditAdjustForm
+FileUpload component
+9) PWA requirements
+manifest.json with name/icons/theme color
+Service worker setup
+Offline fallback page or banner
+Cache static assets + last successful appointments list
+10) README backend preparation plan (must write)
+In README.md, include:
+Backend endpoints list (exact routes + payload shapes)
+Auth strategy (JWT + refresh, Authorization header)
+RBAC responsibilities (server authoritative)
+How to switch from mock to http
+Which pages call which endpoints
+Error conventions (problem+json recommended)
+File upload expectations (S3 presigned URLs suggested)
+11) Quality checks
+TypeScript strict true
+ESLint configured
+Basic unit tests for key pure functions:
+cancellation refund decision
+booking window guard
+billing report totals from appointments
+12) Step-by-step generation order
+Generate in this order:
+Next.js project + Tailwind + PWA setup
+Contracts (Zod schemas + types)
+API gateway interface + mock implementation + seed
+Auth + RBAC guards
+Layout + navigation
+Pages per role
+Components
+Utilities (CSV export, date helpers)
+README with backend blueprint
+Again: do NOT build a backend. The app must run fully with mock data.

@@ -1,0 +1,175 @@
+1) Goal of the Algorithm
+The algorithm continuously collects events related to client behavior within the application and uses them to:
+Automatically generate behavioral tags
+Examples: frequently cancels, highly reliable, last-minute client, frequently ill, responds quickly to prompts, reliable substitute.
+Personalize notifications (what to send, to whom, when, how often, and via which channel) in order to:
+minimize spam,
+maximize responses (substitutes, last-minute slot filling, reactions to freed appointments),
+account for individual client habits (responds quickly/slowly, prefers mornings/evenings, ignores push notifications, reacts to SMS, etc.).
+2) Data to Collect (Behavioral Telemetry)
+A) Reservation-Related Events
+booking_created (reservation created)
+booking_cancelled (who cancelled, when, reason, how many hours before the appointment)
+booking_rescheduled (appointment rescheduled)
+booking_no_show (client did not attend)
+booking_completed (appointment completed)
+waitlist_joined / waitlist_left
+substitute_offer_received (substitute offer received)
+substitute_offer_accepted / declined / expired
+slot_freed + slot_claimed (slot released and who claimed it)
+B) Notification / Prompt Responses
+notification_sent (channel: push/email/SMS/in-app, template, priority)
+notification_opened
+notification_clicked
+notification_converted (action taken: booked / signed up as substitute / confirmed)
+notification_muted / opt_out (notification type disabled)
+response_time (time from notification sent to action)
+C) Application Activity
+login / session_start
+screen visits (reservations, credits, messages)
+message_read / message_sent (if communication exists)
+form submissions / confirmation of rules
+D) Contextual and Stable Attributes
+client type (VIP/standard, new membership)
+availability (typical days/times when the client books)
+therapeutic preferences (therapist, service type)
+credit behavior (sufficient credit / frequently zero balance)
+Note: Data collection must comply with GDPR — only data with a legitimate purpose and a clearly defined retention period may be stored.
+3) Metric Calculation (Derived from Events)
+Metrics are calculated over time windows: last 30 / 90 / 180 days, plus lifetime totals.
+Each metric is weighted by recency (more recent behavior has higher importance).
+Key Metrics
+Reliability / Attendance
+attendance_rate = completed / scheduled
+no_show_rate = no_show / scheduled
+late_cancel_rate = cancellations < X hours before / scheduled
+avg_cancel_lead_time_hours
+Cancellations / Changes
+cancel_frequency = cancellations / month
+reschedule_frequency = reschedules / month
+Responsiveness to Prompts
+cta_open_rate = opened / sent
+cta_click_rate = clicked / sent
+cta_conversion_rate = converted / sent
+median_response_time_minutes
+substitute_accept_rate = accepted / offers_received
+last_minute_fill_rate = times_claimed_freed_slot / opportunities_seen
+Preferences & Timing
+most frequent booking days and hours
+best-performing channel (push vs email vs SMS)
+frequency tolerance (after how many ignored notifications response drops)
+4) Scoring – “Behavior Profile”
+Recommendation: use multiple partial scores (0–100) and derive both tags and notification strategies from them.
+Example Scores
+ReliabilityScore
+positive weight for high attendance_rate
+negative weight for no_show_rate
+negative weight for late_cancel_rate
+CancellationRiskScore
+frequent cancellations
+short cancellation notice
+frequent rescheduling
+ReactivityScore
+notification conversion rate
+fast response time
+acceptance of substitute offers
+FillHelperScore
+frequently claims freed slots
+reacts well to last-minute offers
+ChannelAffinity
+separate scores for push / email / SMS
+Initial implementation can be heuristic-based (rules + weights), later evolving into ML models (logistic regression / gradient boosting) once sufficient data is available.
+5) Tagging (Automatic Behavioral Labels)
+A tag represents an interpretation of metrics based on defined thresholds.
+Each tag includes:
+name,
+reason (why it was assigned),
+validity period (e.g. 90 days),
+confidence (0–1) or strength (low / medium / high).
+Example Tag Rules
+Frequently Cancels
+cancel_frequency ≥ 2/month or late_cancel_rate > 25%
+Excellent Attendance
+attendance_rate ≥ 95% and no_show_rate < 2%
+Frequently Ill
+cancellations with reason “illness” ≥ N (if reasons are tracked),
+or a pattern of repeated short-notice cancellations
+Last-Minute Client
+avg_booking_lead_time < 24h or frequently claims freed slots
+Super Substitute
+substitute_accept_rate > 40% and median_response_time < 15 min
+Ignores Notifications
+open_rate < 5% and conversion_rate ≈ 0 after a sufficient number of messages
+Important: Tags must be explainable (e.g. “Assigned because the client cancelled 4 times less than 12 hours before the appointment in the last 30 days”).
+6) Notification Personalization – What Gets Adjusted
+The algorithm does more than a simple “send / don’t send” decision. It configures:
+A) Targeting
+Example for a freed appointment:
+prioritize clients with high FillHelperScore and matching availability
+exclude clients who consistently do not respond or have opted out
+B) Frequency & Limits (Anti-Spam)
+max_notifications_per_day/week per client
+cooldown periods (e.g. reduce frequency after 3 ignored prompts)
+escalation only when necessary (e.g. SMS only for top responders)
+C) Channel & Format
+reacts to push → send push
+ignores push but reacts to email → email
+SMS as a last step (or only for clients with high SMS conversion)
+D) Timing
+send during time windows when the client typically reacts (e.g. 18:00–21:00)
+for last-minute slots, send immediately but only to relevant segments
+E) Content (Copy & CTA)
+Super substitutes: short message, single “Take slot” CTA
+Hesitant clients: more details (therapist, price, cancellation rules)
+Frequent cancellers: gentle rule reminders or confirmation prompts
+7) Typical Scenarios
+Scenario 1: A Slot Becomes Available Tomorrow at 10:00
+system creates an opportunity event
+selects a client segment:
+high FillHelperScore
+matching availability / preferred time
+sufficient credit
+sends notifications:
+first wave: top 10 clients via push
+if no response within 10 minutes: second wave
+SMS only if the slot is critical and only to clients with high SMS affinity
+Scenario 2: Client Frequently Cancels at the Last Minute
+tag: Frequently Cancels
+reminder strategy adjusted:
+more reminders (e.g. 48h + 24h + 3h)
+optional appointment confirmation (if UX allows)
+report visible to reception for potential manual handling
+Scenario 3: Client Is Reliable but Does Not Respond to Prompts
+tags: Excellent Attendance, Low Reactivity
+substitute prompts sent minimally
+standard appointment reminders remain active
+8) Administration & “How to Use It” (Documentation)
+8.1 Configuration (Admin Panel)
+tag thresholds (e.g. late cancellation < 12h)
+metric windows (30 / 90 days)
+score weights
+per-channel limits (push/email/SMS)
+campaign definitions (freed slots, substitutes, reminders)
+do-not-disturb hours
+8.2 Client Overview (Profile)
+Display:
+active tags + reason + date
+scores (Reliability, Reactivity, etc.)
+notification response history
+recommended communication channel
+recommended notification frequency
+8.3 Notification Log
+For each reservation:
+list of sent notifications (time, channel, template, delivery status)
+open / click / conversion data
+8.4 Manual Override
+Reception/admin can:
+manually add/remove tags (with a note)
+define exceptions (e.g. “do not send last-minute offers”)
+freeze the profile (e.g. long-term client pause)
+8.5 Monitoring
+Dashboard showing:
+last-minute slot fill rate
+prompt conversion rates
+notifications per client (anti-spam control)
+list of “top substitute” clients
