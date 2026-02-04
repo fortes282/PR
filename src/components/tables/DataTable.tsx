@@ -2,7 +2,7 @@
 
 type Column<T> = {
   key: string;
-  header: string;
+  header: React.ReactNode;
   render?: (row: T) => React.ReactNode;
   sortable?: boolean;
 };

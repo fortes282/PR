@@ -34,11 +34,12 @@ This document describes all application features by role and area. It is maintai
 ### Credits (`/client/credits`)
 - Current balance and transaction history. Read-only for client.
 
+### Settings (`/client/settings`)
+- **Granular notification preferences**: Per-channel toggles for e-mail (1st/2nd reminder, marketing), SMS (reminder, marketing), push (appointment reminder, marketing). Saved via user update.
+- **Push notifikace**: “Povolit push notifikace” subscribes the client to Web Push (using admin-configured VAPID key); “Zrušit push” unsubscribes.
+
 ### Reports / Documents (`/client/reports`)
 - List of therapy reports/documents. Empty state when none.
-
-### Settings (`/client/settings`)
-- Client-specific settings.
 
 ### Waitlist (`/client/waitlist`)
 - Client view of waitlist entry if applicable.
@@ -68,6 +69,7 @@ This document describes all application features by role and area. It is maintai
 
 ### Clients (`/reception/clients`)
 - Client list and client detail (including reservations and credits).
+- **Bulk communication**: Select clients via checkboxes (or “select all”); send **e-mail** or **SMS** to selected clients in bulk (modal: subject + message for e-mail, message for SMS).
 
 ### Waitlist (`/reception/waitlist`)
 - Manage waitlist entries and suggestions.
@@ -111,6 +113,10 @@ This document describes all application features by role and area. It is maintai
 ### Settings (`/admin/settings`)
 - **Free cancel hours** (general).
 - **Fakturace**: Invoice number prefix and next number, default due days, **invoice issuer / header** (name, street, city, zip, country, IČO, DIČ). See [docs/billing-and-financial-management.md](billing-and-financial-management.md).
+- **Oznámení – odesílatel e-mailů**: Sender e-mail address and name for all notification e-mails.
+- **SMS – FAYN brána**: FAYN SMS gateway integration ([dokumentace](https://smsapi.fayn.cz/mex/api-docs/)): enable/disable, API URL, username; password is set on the backend.
+- **Rezervace – načasování připomínek**: When to send 1st and 2nd reservation reminder e-mail and optional SMS (hours before appointment).
+- **Push notifikace**: Web Push (VAPID) configuration: enable, VAPID public key, TTL, require interaction, icon/badge URLs.
 
 ### Stats (`/admin/stats`)
 - Occupancy, cancellations, client tags statistics.

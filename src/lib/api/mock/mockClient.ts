@@ -34,7 +34,13 @@ import type {
   InvoiceStatus,
 } from "@/lib/contracts/invoices";
 import type { BankTransaction, BankTransactionListParams } from "@/lib/contracts/bank-transactions";
-import type { Notification, NotificationSendBody } from "@/lib/contracts/notifications";
+import type {
+  Notification,
+  NotificationSendBody,
+  NotificationBulkSendBody,
+  PushSubscription,
+  PushSubscribeBody,
+} from "@/lib/contracts/notifications";
 import type {
   TherapyReportFile,
   ReportUploadResult,
@@ -45,6 +51,7 @@ import type { Settings, SettingsUpdate } from "@/lib/contracts/settings";
 import type { OccupancyStat, CancellationStat, ClientTagStat } from "@/lib/contracts/stats";
 import type { BehaviorEvaluationRecord, SentCommunication, SentCommunicationListParams, ClientRecommendation } from "@/lib/contracts/admin-background";
 import { computeRecommendations } from "@/lib/behavior/recommendations";
+import { canRefund } from "@/lib/cancellation";
 import { addDays, subDays, startOfDay, addMonths, getDayOfWeek, parseTimeHHmm, setHours, setMinutes, monthKey } from "@/lib/utils/date";
 
 let seeded = false;
@@ -478,12 +485,9 @@ export class MockApiClient implements ApiClient {
       if (a.status === "CANCELLED") throw new Error("Already cancelled");
       const service = db.services.get(a.serviceId);
       const price = service?.priceCzk ?? 0;
-      const start = new Date(a.startAt);
-      const now = new Date();
-      const hoursUntil = (start.getTime() - now.getTime()) / (1000 * 60 * 60);
       const freeCancelHours = db.settings.freeCancelHours;
-      const canRefund = a.paymentStatus === "PAID" && hoursUntil >= freeCancelHours;
-      const doRefund = body?.refund ?? canRefund;
+      const eligibleRefund = canRefund(a.paymentStatus, a.startAt, freeCancelHours);
+      const doRefund = body?.refund ?? eligibleRefund;
       const updated: Appointment = {
         ...a,
         status: "CANCELLED",
@@ -899,6 +903,65 @@ export class MockApiClient implements ApiClient {
         n.read = true;
         db.notifications.set(id, n);
       }
+    },
+    sendBulk: async (body: NotificationBulkSendBody): Promise<{ sent: number }> => {
+      ensureSeed();
+      let sent = 0;
+      for (const clientId of body.clientIds) {
+        const user = db.users.get(clientId);
+        if (!user) continue;
+        const n: Notification = {
+          id: nextId("n"),
+          userId: clientId,
+          channel: body.channel,
+          message: body.message,
+          title: body.title ?? (body.channel === "EMAIL" ? body.subject : undefined),
+          read: false,
+          createdAt: new Date().toISOString(),
+        };
+        db.notifications.set(n.id, n);
+        sent += 1;
+      }
+      return { sent };
+    },
+  };
+
+  pushSubscriptions = {
+    subscribe: async (body: PushSubscribeBody): Promise<PushSubscription> => {
+      ensureSeed();
+      const userId = this.session?.userId;
+      if (!userId) throw new Error("Unauthorized");
+      const existing = Array.from(db.pushSubscriptions.values()).find((s) => s.endpoint === body.endpoint);
+      if (existing) return existing;
+      const sub: PushSubscription = {
+        id: nextId("push"),
+        userId,
+        endpoint: body.endpoint,
+        p256dh: body.keys.p256dh,
+        auth: body.keys.auth,
+        userAgent: body.userAgent,
+        createdAt: new Date().toISOString(),
+      };
+      db.pushSubscriptions.set(sub.endpoint, sub);
+      return sub;
+    },
+    unsubscribe: async (endpoint: string): Promise<void> => {
+      ensureSeed();
+      db.pushSubscriptions.delete(endpoint);
+    },
+    list: async (): Promise<PushSubscription[]> => {
+      ensureSeed();
+      const userId = this.session?.userId;
+      if (!userId) return [];
+      return Array.from(db.pushSubscriptions.values()).filter((s) => s.userId === userId);
+    },
+  };
+
+  push = {
+    getConfig: async (): Promise<{ vapidPublicKey: string | null }> => {
+      ensureSeed();
+      const key = db.settings.pushNotificationConfig?.vapidPublicKey ?? null;
+      return { vapidPublicKey: key };
     },
   };
 

@@ -23,7 +23,14 @@ import type { CreditAccount, CreditTransaction, CreditAdjustBody } from "@/lib/c
 import type { BillingReport, BillingPeriod } from "@/lib/contracts/billing";
 import type { Invoice, InvoiceCreate, InvoiceUpdate, InvoiceListParams } from "@/lib/contracts/invoices";
 import type { BankTransaction, BankTransactionListParams } from "@/lib/contracts/bank-transactions";
-import type { Notification, NotificationSendBody, NotificationListParams } from "@/lib/contracts/notifications";
+import type {
+  Notification,
+  NotificationSendBody,
+  NotificationListParams,
+  NotificationBulkSendBody,
+  PushSubscription,
+  PushSubscribeBody,
+} from "@/lib/contracts/notifications";
 import type {
   TherapyReportFile,
   ReportUploadResult,
@@ -492,6 +499,30 @@ export class HttpApiClient implements ApiClient {
      */
     read: async (id: string) =>
       fetchApi<void>(this.baseUrl, `/notifications/${id}/read`, { method: "PATCH" }),
+    sendBulk: async (body: NotificationBulkSendBody) =>
+      fetchApi<{ sent: number }>(this.baseUrl, "/notifications/send-bulk", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+  };
+
+  pushSubscriptions = {
+    subscribe: async (body: PushSubscribeBody) =>
+      fetchApi<PushSubscription>(this.baseUrl, "/push-subscriptions", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    unsubscribe: async (endpoint: string) =>
+      fetchApi<void>(this.baseUrl, "/push-subscriptions", {
+        method: "DELETE",
+        body: JSON.stringify({ endpoint }),
+      }),
+    list: async () => fetchApi<PushSubscription[]>(this.baseUrl, "/push-subscriptions"),
+  };
+
+  push = {
+    getConfig: async () =>
+      fetchApi<{ vapidPublicKey: string | null }>(this.baseUrl, "/push-config"),
   };
 
   settings = {

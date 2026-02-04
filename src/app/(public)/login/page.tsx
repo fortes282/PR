@@ -84,7 +84,7 @@ export default function LoginPage(): React.ReactElement {
           Backend: přidejte formulář email + heslo a volajte POST /auth/login.
         </p>
       </div>
-      <Link href="/" className="mt-4 text-sm text-primary-600 hover:underline">
+      <Link href="/" className="mt-4 text-sm text-primary-600 hover:underline" prefetch={false}>
         Zpět na úvod
       </Link>
     </main>

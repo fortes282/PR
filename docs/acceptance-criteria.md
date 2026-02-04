@@ -8,7 +8,7 @@ G1	The app runs with pnpm install and pnpm dev and is reachable at http://localh
 G2	The app is a PWA: it exposes a web app manifest (name, theme color, icons).	Manifest from manifest.ts
 G3	PWA icons are available at the paths referenced in the manifest (e.g. 192×192 and 512×512).	public/icons/icon-192.png, icon-512.png
 G4	When offline (or when the server is unreachable), the user sees an offline fallback page (e.g. /offline) instead of a generic browser error.	Offline UX
-G5	TypeScript builds without errors; pnpm lint passes; pnpm test passes (refund, booking window, billing totals, behavior).	Quality gate
+G5	TypeScript builds without errors; pnpm lint passes; pnpm test passes (refund, billing totals, behavior, RBAC, date helpers for booking/calendar).	Quality gate
 2. Authentication & RBAC
 ID	Criterion	Notes
 A1	An unauthenticated user can open /login and sign in (e.g. email/password or dev role selection).	Login entry

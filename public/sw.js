@@ -40,3 +40,44 @@ self.addEventListener('fetch', (event) => {
       )
   );
 });
+
+// Web Push: show notification when a push message is received
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+  let payload = { title: 'Oznámení', body: '', url: '/' };
+  try {
+    const data = event.data.json();
+    if (data && typeof data === 'object') {
+      if (data.title) payload.title = data.title;
+      if (data.body) payload.body = data.body;
+      if (data.url) payload.url = data.url;
+    }
+  } catch (_) {
+    payload.body = event.data.text();
+  }
+  const options = {
+    body: payload.body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-72.png',
+    data: { url: payload.url },
+    requireInteraction: false,
+  };
+  event.waitUntil(
+    self.registration.showNotification(payload.title, options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      if (clientList[0]) {
+        clientList[0].navigate(url);
+        clientList[0].focus();
+      } else if (self.clients.openWindow) {
+        self.clients.openWindow(self.location.origin + url);
+      }
+    })
+  );
+});

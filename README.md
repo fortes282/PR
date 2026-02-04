@@ -38,6 +38,8 @@ See `.env.example` for a template.
 - **Port 3001:** `pnpm run dev:3001` (dev) or `pnpm run start:3001` (after `pnpm build`).
 - **404 on `/_next/static/chunks/...`:** The browser is loading a page that expects the **dev** server (or the opposite). Fix: use one mode only — run `pnpm dev` (or `pnpm run dev:3001`) for development; do a **hard refresh** (Cmd+Shift+R / Ctrl+Shift+R) so the HTML and chunk URLs match the running server. If you use production, run `pnpm build && pnpm start` and open the app fresh (no cached dev HTML).
 - **404 or 500 on `/client/settings`, `/client/waitlist`, `/notifications`, etc.:** Usually a corrupted or mixed `.next` build (e.g. "Cannot find module './487.js'"). Fix: stop the server, then `rm -rf .next && pnpm run build`. For dev, then run `pnpm run dev:3001`; for production, `pnpm run start:3001`.
+- **500 on `/admin/background` or on `_next/static/chunks/main.js`, `webpack.js`, `pages/_app.js`, `pages/_error.js`:** Same cause: bad or mixed `.next` so the dev server fails when compiling or serving chunks. Fix: **stop the dev server** (Ctrl+C), then run `rm -rf .next` and start dev again with `pnpm dev` (or `pnpm run dev:3001`). Use a fresh tab or hard refresh after the dev server is ready.
+- **Repeated 404 for `http://localhost:3000/`:** Often from prefetch or a bad dev build. Ensure you run `pnpm dev` from the **repo root** (so the app with `src/app/page.tsx` is used). Then do `rm -rf .next && pnpm dev`, open http://localhost:3000 in a new tab and hard refresh. Links to "/" use `prefetch={false}` to avoid unnecessary prefetch requests.
 
 ## Acceptance criteria
 

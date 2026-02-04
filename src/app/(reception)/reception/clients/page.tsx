@@ -1,36 +1,151 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { DataTable } from "@/components/tables/DataTable";
+import { Modal } from "@/components/modals/Modal";
 import type { User } from "@/lib/contracts/users";
 
 export default function ReceptionClientsPage(): React.ReactElement {
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkModal, setBulkModal] = useState<"email" | "sms" | null>(null);
+  const [bulkSubject, setBulkSubject] = useState("");
+  const [bulkMessage, setBulkMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
     api.users.list({ role: "CLIENT", search: search || undefined }).then((r) => {
       setUsers(r.users);
     }).finally(() => setLoading(false));
   }, [search]);
 
-  if (loading) return <p className="text-gray-600">Načítám…</p>;
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const toggleOne = (id: string): void => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = (): void => {
+    if (selectedIds.size === users.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(users.map((u) => u.id)));
+  };
+
+  const openBulkEmail = (): void => {
+    setBulkSubject("");
+    setBulkMessage("");
+    setBulkModal("email");
+  };
+
+  const openBulkSms = (): void => {
+    setBulkMessage("");
+    setBulkModal("sms");
+  };
+
+  const sendBulk = async (): Promise<void> => {
+    if (selectedIds.size === 0 || !bulkModal) return;
+    const channel = bulkModal === "email" ? "EMAIL" : "SMS";
+    if (!bulkMessage.trim()) {
+      alert("Zadejte text zprávy.");
+      return;
+    }
+    if (channel === "EMAIL" && !bulkSubject.trim()) {
+      alert("Zadejte předmět e-mailu.");
+      return;
+    }
+    setSending(true);
+    try {
+      const { sent } = await api.notifications.sendBulk({
+        clientIds: Array.from(selectedIds),
+        channel,
+        subject: channel === "EMAIL" ? bulkSubject : undefined,
+        message: bulkMessage.trim(),
+        title: channel === "EMAIL" ? bulkSubject : undefined,
+      });
+      alert(`Odesláno: ${sent} ${channel === "EMAIL" ? "e-mailů" : "SMS"}.`);
+      setBulkModal(null);
+      setSelectedIds(new Set());
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Chyba při odesílání");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const selectedCount = selectedIds.size;
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Klienti</h1>
-      <input
-        type="search"
-        placeholder="Hledat jméno / e-mail"
-        className="input max-w-xs"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <div className="flex flex-wrap items-center gap-4">
+        <input
+          type="search"
+          placeholder="Hledat jméno / e-mail"
+          className="input max-w-xs"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {selectedCount > 0 && (
+          <>
+            <span className="text-sm text-gray-600">Vybráno: {selectedCount}</span>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={openBulkEmail}
+              aria-label="Odeslat e-mail vybraným klientům"
+            >
+              Odeslat e-mail vybraným
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={openBulkSms}
+              aria-label="Odeslat SMS vybraným klientům"
+            >
+              Odeslat SMS vybraným
+            </button>
+          </>
+        )}
+      </div>
       <DataTable<User>
         columns={[
+          {
+            key: "select",
+            header: (
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={users.length > 0 && selectedIds.size === users.length}
+                  onChange={toggleAll}
+                  aria-label="Vybrat všechny"
+                  className="rounded border-gray-300"
+                />
+                <span>Vybrat</span>
+              </label>
+            ),
+            render: (r) => (
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(r.id)}
+                  onChange={() => toggleOne(r.id)}
+                  aria-label={`Vybrat ${r.name}`}
+                  className="rounded border-gray-300"
+                />
+              </label>
+            ),
+          },
           { key: "name", header: "Jméno" },
           { key: "email", header: "E-mail" },
           {
@@ -46,6 +161,62 @@ export default function ReceptionClientsPage(): React.ReactElement {
         data={users}
         keyExtractor={(r) => r.id}
       />
+
+      {bulkModal && (
+        <Modal
+          open={true}
+          onClose={() => !sending && setBulkModal(null)}
+          title={bulkModal === "email" ? "Hromadný e-mail" : "Hromadná SMS"}
+        >
+          <div className="space-y-4">
+            {bulkModal === "email" && (
+              <label>
+                <span className="block text-sm font-medium text-gray-700">Předmět</span>
+                <input
+                  type="text"
+                  className="input mt-1 w-full"
+                  value={bulkSubject}
+                  onChange={(e) => setBulkSubject(e.target.value)}
+                  placeholder="Předmět e-mailu"
+                />
+              </label>
+            )}
+            <label>
+              <span className="block text-sm font-medium text-gray-700">
+                {bulkModal === "email" ? "Text e-mailu" : "Text SMS"}
+              </span>
+              <textarea
+                className="input mt-1 w-full min-h-[120px]"
+                value={bulkMessage}
+                onChange={(e) => setBulkMessage(e.target.value)}
+                placeholder={bulkModal === "sms" ? "Max. 160 znaků…" : "Zpráva"}
+                maxLength={bulkModal === "sms" ? 160 : undefined}
+              />
+              {bulkModal === "sms" && (
+                <p className="mt-1 text-xs text-gray-500">{bulkMessage.length}/160</p>
+              )}
+            </label>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setBulkModal(null)}
+                disabled={sending}
+              >
+                Zrušit
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={sendBulk}
+                disabled={sending || !bulkMessage.trim() || (bulkModal === "email" && !bulkSubject.trim())}
+              >
+                {sending ? "Odesílám…" : "Odeslat"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

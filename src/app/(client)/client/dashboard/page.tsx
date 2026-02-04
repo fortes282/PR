@@ -37,19 +37,28 @@ export default function ClientDashboardPage(): React.ReactElement {
 
   useEffect(() => {
     if (!clientId) return;
+    let mounted = true;
     Promise.all([
       api.appointments.list({ clientId, from: new Date().toISOString(), to: "" }),
       api.credits.get(clientId),
     ])
       .then(([appointments, account]) => {
+        if (!mounted) return;
         const next = appointments
           .filter((a) => a.status !== "CANCELLED" && new Date(a.startAt) > new Date())
           .sort((a, b) => a.startAt.localeCompare(b.startAt))[0];
         setNextAppointment(next ?? null);
         setCredits(account.balanceCzk);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Chyba"))
-      .finally(() => setLoading(false));
+      .catch((e) => {
+        if (mounted) setError(e instanceof Error ? e.message : "Chyba");
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, [clientId]);
 
   if (loading) return <p className="text-gray-600">Načítám…</p>;

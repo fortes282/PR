@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { canRefund } from "@/lib/cancellation";
 import { format } from "@/lib/utils/date";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import type { Notification } from "@/lib/contracts/notifications";
@@ -65,9 +66,7 @@ export default function ReceptionAppointmentDetailPage(): React.ReactElement {
 
   const freeCancelHours = settings?.freeCancelHours ?? 48;
   const start = new Date(appointment.startAt);
-  const canRefund =
-    appointment.paymentStatus === "PAID" &&
-    (start.getTime() - Date.now()) / (1000 * 60 * 60) >= freeCancelHours;
+  const eligibleRefund = canRefund(appointment.paymentStatus, appointment.startAt, freeCancelHours);
 
   return (
     <div className="space-y-6">
@@ -138,7 +137,7 @@ export default function ReceptionAppointmentDetailPage(): React.ReactElement {
             message={
               <>
                 Zrušit termín {format(start, "datetime")}?
-                {canRefund && " Můžete vrátit platbu na kredity."}
+                {eligibleRefund && " Můžete vrátit platbu na kredity."}
                 <div className="mt-2">
                   <label className="flex items-center gap-2">
                     <input

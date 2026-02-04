@@ -18,7 +18,14 @@ import type { AvailabilitySlot, BookableDay } from "@/lib/contracts/availability
 import type { BookingActivation, BookingActivationListParams, BookingActivationSet } from "@/lib/contracts/booking-activation";
 import type { CreditAccount, CreditTransaction, CreditAdjustBody } from "@/lib/contracts/credits";
 import type { BillingReport, BillingPeriod } from "@/lib/contracts/billing";
-import type { Notification, NotificationSendBody, NotificationListParams } from "@/lib/contracts/notifications";
+import type {
+  Notification,
+  NotificationSendBody,
+  NotificationListParams,
+  NotificationBulkSendBody,
+  PushSubscription,
+  PushSubscribeBody,
+} from "@/lib/contracts/notifications";
 import type {
   TherapyReportFile,
   ReportUploadResult,
@@ -136,7 +143,18 @@ export type ApiClient = {
   notifications: {
     list: (params?: NotificationListParams) => Promise<Notification[]>;
     send: (body: NotificationSendBody) => Promise<void>;
+    /** Send email or SMS to selected client IDs (bulk). */
+    sendBulk: (body: NotificationBulkSendBody) => Promise<{ sent: number }>;
     read: (id: string) => Promise<void>;
+  };
+  pushSubscriptions: {
+    subscribe: (body: PushSubscribeBody) => Promise<PushSubscription>;
+    unsubscribe: (endpoint: string) => Promise<void>;
+    list: () => Promise<PushSubscription[]>;
+  };
+  /** Public push config (VAPID public key) for client subscription. */
+  push: {
+    getConfig: () => Promise<{ vapidPublicKey: string | null }>;
   };
   settings: {
     get: () => Promise<Settings>;

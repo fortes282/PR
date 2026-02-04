@@ -143,9 +143,9 @@ export function seed(): void {
   const notifs: (Notification & { userId?: string })[] = [
     { id: "n-1", channel: "IN_APP", message: "Nabídka volného termínu", read: false, createdAt: iso(now) },
     { id: "n-2", channel: "IN_APP", message: "Připomínka zítřejší návštěvy", read: true, createdAt: iso(subDays(now, 1)) },
-    { id: "n-3", channel: "EMAIL", message: "Vaše rezervace na 15.2.2025 v 9:00 byla potvrzena.", title: "Potvrzení termínu", userId: clientIds[0], createdAt: iso(subDays(now, 3)) },
-    { id: "n-4", channel: "SMS", message: "Pristav: Připomínka – zítra 9:00 individuální terapie.", userId: clientIds[1], createdAt: iso(subDays(now, 1)) },
-    { id: "n-5", channel: "EMAIL", message: "Dobrý den, máme volný termín v odpoledních hodinách. Ozvěte se.", title: "Nabídka termínu", userId: clientIds[2], createdAt: iso(subDays(now, 5)) },
+    { id: "n-3", channel: "EMAIL", message: "Vaše rezervace na 15.2.2025 v 9:00 byla potvrzena.", title: "Potvrzení termínu", userId: clientIds[0], read: false, createdAt: iso(subDays(now, 3)) },
+    { id: "n-4", channel: "SMS", message: "Pristav: Připomínka – zítra 9:00 individuální terapie.", userId: clientIds[1], read: false, createdAt: iso(subDays(now, 1)) },
+    { id: "n-5", channel: "EMAIL", message: "Dobrý den, máme volný termín v odpoledních hodinách. Ozvěte se.", title: "Nabídka termínu", userId: clientIds[2], read: false, createdAt: iso(subDays(now, 5)) },
   ];
   notifs.forEach((n) => db.notifications.set(n.id, n));
 

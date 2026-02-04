@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
+import { canRefund } from "@/lib/cancellation";
 import { format } from "@/lib/utils/date";
 import { DataTable } from "@/components/tables/DataTable";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
@@ -64,10 +65,7 @@ export default function ClientAppointmentsPage(): React.ReactElement {
 
   const app = cancelId ? appointments.find((a) => a.id === cancelId) : null;
   const freeCancelHours = settings?.freeCancelHours ?? 48;
-  const canRefund = app
-    ? app.paymentStatus === "PAID" &&
-      (new Date(app.startAt).getTime() - Date.now()) / (1000 * 60 * 60) >= freeCancelHours
-    : false;
+  const eligibleRefund = app ? canRefund(app.paymentStatus, app.startAt, freeCancelHours) : false;
 
   if (loading) return <p className="text-gray-600">Načítám…</p>;
 
@@ -144,7 +142,7 @@ export default function ClientAppointmentsPage(): React.ReactElement {
         message={
           app
             ? `Zrušit termín ${format(new Date(app.startAt), "datetime")}? ${
-                canRefund ? "Vrátíme platbu na kredity (zrušení včas)." : "Platba se nevrací (po lhůtě)."
+                eligibleRefund ? "Vrátíme platbu na kredity (zrušení včas)." : "Platba se nevrací (po lhůtě)."
               }`
             : ""
         }

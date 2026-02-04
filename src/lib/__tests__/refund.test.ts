@@ -2,18 +2,7 @@
  * Unit tests: cancellation refund decision.
  * Refund applies if paymentStatus === PAID and hours until start >= freeCancelHours.
  */
-
-function canRefund(
-  paymentStatus: string,
-  startAt: string,
-  freeCancelHours: number,
-  now: Date
-): boolean {
-  if (paymentStatus !== "PAID") return false;
-  const start = new Date(startAt);
-  const hoursUntil = (start.getTime() - now.getTime()) / (1000 * 60 * 60);
-  return hoursUntil >= freeCancelHours;
-}
+import { canRefund } from "@/lib/cancellation";
 
 describe("cancellation refund decision", () => {
   const freeCancelHours = 48;

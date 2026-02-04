@@ -9,7 +9,7 @@ import type { Appointment } from "@/lib/contracts/appointments";
 import type { CreditAccount, CreditTransaction } from "@/lib/contracts/credits";
 import type { BillingReport } from "@/lib/contracts/billing";
 import type { Invoice } from "@/lib/contracts/invoices";
-import type { Notification } from "@/lib/contracts/notifications";
+import type { Notification, PushSubscription } from "@/lib/contracts/notifications";
 import type { TherapyReportFile, ReportUploadResult } from "@/lib/contracts/reports";
 import type { WaitingListEntry } from "@/lib/contracts/waitlist";
 import type { Settings } from "@/lib/contracts/settings";
@@ -25,6 +25,7 @@ export const db = {
   billingReports: new Map<string, BillingReport>(),
   invoices: new Map<string, Invoice>(),
   notifications: new Map<string, Notification>(),
+  pushSubscriptions: new Map<string, PushSubscription>(), // key by endpoint or id
   therapyReports: new Map<string, TherapyReportFile>(),
   therapyReportBlobs: new Map<string, Blob>(), // id -> blob (mock file store)
   waitlist: new Map<string, WaitingListEntry>(),

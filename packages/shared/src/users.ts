@@ -23,6 +23,25 @@ export const BillingAddressSchema = z.object({
 });
 export type BillingAddress = z.infer<typeof BillingAddressSchema>;
 
+/** Granular client notification preferences (opt-in/opt-out per channel and type). */
+export const NotificationPreferencesSchema = z.object({
+  /** First reservation reminder by email (hours before – uses admin default if not set). */
+  emailReminder1: z.boolean().default(true),
+  /** Second reservation reminder by email. */
+  emailReminder2: z.boolean().default(true),
+  /** Reservation reminder by SMS. */
+  smsReminder: z.boolean().default(false),
+  /** Marketing / news emails. */
+  emailMarketing: z.boolean().default(false),
+  /** Marketing SMS. */
+  smsMarketing: z.boolean().default(false),
+  /** Push: appointment reminders. */
+  pushAppointmentReminder: z.boolean().default(true),
+  /** Push: marketing / general. */
+  pushMarketing: z.boolean().default(false),
+});
+export type NotificationPreferences = z.infer<typeof NotificationPreferencesSchema>;
+
 export const UserSchema = z.object({
   id: z.string(),
   email: z.string().email(),
@@ -38,6 +57,7 @@ export const UserSchema = z.object({
   lastName: z.string().optional(),
   childName: z.string().optional(),
   billingAddress: BillingAddressSchema.optional(),
+  notificationPreferences: NotificationPreferencesSchema.optional(),
 });
 export type User = z.infer<typeof UserSchema>;
 
