@@ -6,6 +6,7 @@ import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
 import { addDays } from "../lib/date.js";
+import { persistInvoice, persistSettings, persistNotification } from "../db/persist.js";
 
 export default async function invoicesRoutes(app: FastifyInstance): Promise<void> {
   app.get(
@@ -70,7 +71,8 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
     const prefix = settings.invoiceNumberPrefix ?? "F";
     const nextNum = (settings as { invoiceNumberNext?: number }).invoiceNumberNext ?? 1;
     const number = `${prefix}-${String(nextNum).padStart(6, "0")}`;
-    (store.settings as Record<string, unknown>).invoiceNumberNext = nextNum + 1;
+    const updatedSettings = { ...store.settings, invoiceNumberNext: nextNum + 1 };
+    persistSettings(store, updatedSettings);
     const issueDate = new Date().toISOString().slice(0, 10);
     const dueDays = settings.invoiceDueDays ?? 14;
     const dueDate = data.dueDate ?? addDays(new Date(), dueDays).toISOString().slice(0, 10);
@@ -96,7 +98,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
       recipient,
       createdAt: new Date().toISOString(),
     };
-    store.invoices.set(id, invoice);
+    persistInvoice(store, invoice);
     reply.status(201).send(invoice);
   });
 
@@ -117,7 +119,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
     }
     const recipient = parse.data.recipient ? { ...inv.recipient, ...parse.data.recipient } : inv.recipient;
     const updated = { ...inv, ...parse.data, recipient };
-    store.invoices.set(inv.id, updated);
+    persistInvoice(store, updated);
     reply.send(updated);
   });
 
@@ -128,7 +130,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
       return;
     }
     const updated = { ...inv, status: "SENT" as const, sentAt: new Date().toISOString() };
-    store.invoices.set(inv.id, updated);
+    persistInvoice(store, updated);
     reply.status(204).send();
   });
 
@@ -141,7 +143,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
         const inv = store.invoices.get(invoiceId);
         if (inv) {
           const updated = { ...inv, status: "SENT" as const, sentAt: new Date().toISOString() };
-          store.invoices.set(invoiceId, updated);
+          persistInvoice(store, updated);
         }
       }
       reply.status(204).send();
@@ -162,7 +164,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
           read: false,
           createdAt: new Date().toISOString(),
         };
-        store.notifications.set(n.id, n);
+        persistNotification(store, n);
         sent += 1;
       }
     }

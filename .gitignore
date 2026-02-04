@@ -11,6 +11,13 @@ out/
 .turbo/
 dist/
 
+# API SQLite database (persistent data)
+apps/api/data/
+data/
+*.db
+*.db-wal
+*.db-shm
+
 # Environment
 .env
 .env.local

@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { BookingActivationListParamsSchema, BookingActivationSetSchema } from "@pristav/shared/booking-activation";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { persistBookingActivation } from "../db/persist.js";
 
 export default async function bookingActivationsRoutes(app: FastifyInstance): Promise<void> {
   app.get(
@@ -54,8 +55,7 @@ export default async function bookingActivationsRoutes(app: FastifyInstance): Pr
       });
       return;
     }
-    const key = `${parse.data.employeeId}:${parse.data.monthKey}`;
-    store.bookingActivations.set(key, parse.data.active);
+    persistBookingActivation(store, parse.data.employeeId, parse.data.monthKey, parse.data.active);
     reply.status(204).send();
   });
 }

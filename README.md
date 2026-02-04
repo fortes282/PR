@@ -1,5 +1,4 @@
-zúl)§¨ů:bcghnfxdyse\awQ2É=)
-¨# Pristav Radosti — Rehab Center Management (Frontend)
+# Pristav Radosti — Rehab Center Management (Frontend)
 
 Next.js App Router PWA for multi-role rehab center management. **Frontend only**; all data goes through a data gateway that can use mock (default) or real HTTP.
 
@@ -19,10 +18,12 @@ To run the app against the real API (Fastify backend in `apps/api`):
 1. Set environment variables:
    - `NEXT_PUBLIC_API_MODE=http`
    - `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001`
-2. Start both processes:
-   - **Option A:** From repo root run `pnpm dev:all` (starts Next.js and API concurrently).
+2. **První spuštění (API s SQLite):** Pokud API spadne s chybou „Could not locate the bindings file“, spusťte z kořene projektu jednou: `pnpm build:sqlite`. (Zkompiluje se nativní modul `better-sqlite3`.)
+3. **Porty:** Ujistěte se, že **port 3000 je volný** (Next.js). Pokud je 3000 obsazený, Next naběhne na 3001 a dojde ke konfliktu s API. Zastavte jiný proces na 3000 nebo spouštějte Next a API zvlášť v různých terminálech.
+4. Start both processes:
+   - **Option A:** From repo root run `pnpm dev:all` (Next.js on 3000, API on 3001).
    - **Option B:** In one terminal run `pnpm dev` (Next.js), in another run `pnpm dev:api` (API on port 3001).
-3. Restart the Next.js dev server after changing env so `NEXT_PUBLIC_*` is picked up.
+5. Restart the Next.js dev server after changing env so `NEXT_PUBLIC_*` is picked up.
 
 ### Environment variables
 
@@ -32,13 +33,35 @@ To run the app against the real API (Fastify backend in `apps/api`):
 | `NEXT_PUBLIC_API_BASE_URL` | Frontend | Backend URL when mode is `http`, e.g. `http://localhost:3001` |
 | `PORT` | Backend (apps/api) | API server port (default `3001`) |
 | `JWT_SECRET` | Backend (apps/api) | Secret for JWT signing; set a strong value in production |
+| `DATABASE_PATH` | Backend (apps/api) | SQLite file path (default `./data/pristav.db`). Use an absolute path in production and back up regularly. |
 
 See `.env.example` for a template.
+
+### Jak ověřit, že běží frontend, backend a databáze
+
+1. **Frontend (Next.js)**  
+   Otevřete [http://localhost:3000](http://localhost:3000). Měla by se načíst přihlašovací stránka. **Důležité:** Spouštějte vždy z **kořene repozitáře** (`/Users/.../PR`), ne z `apps/web`. Při `pnpm dev:all` musí v terminálu u procesu `[next]` být hláška „Ready“ a „Local: http://localhost:3000“. Pokud vidíte 404 na portu 3000, zastavte procesy (Ctrl+C), smažte cache (`rm -rf .next`), znovu spusťte `pnpm dev:all` a otevřete http://localhost:3000 v **novém** tabu (nebo tvrdý refresh).
+
+2. **Backend (API)**  
+   V prohlížeči nebo v terminálu:  
+   `curl http://localhost:3001/`  
+   Očekávaná odpověď: `{"ok":true,"service":"api"}`.  
+   Pokud ne, spusťte v druhém terminálu `pnpm dev:api` (nebo `pnpm dev:all` z kořene).
+
+3. **Databáze (SQLite)**  
+   `curl http://localhost:3001/health`  
+   Očekávaná odpověď: `{"ok":true,"service":"api","database":"connected"}`.  
+   Pokud je `"database":"error"`, backend běží, ale připojení k SQLite selhalo (zkuste `pnpm build:sqlite` z kořene projektu).
+
+4. **Ukládání nastavení (Admin)**  
+   Přihlaste se jako Admin → Nastavení. Nahoře uvidíte buď **Režim server** (data jdou do DB), nebo **Režim mock** (data jen v paměti, po F5 se ztratí). Aby se nastavení trvale ukládalo, musí běžet backend a frontend musí mít `NEXT_PUBLIC_API_MODE=http` (pak restart Next.js).
 
 - **Port 3001:** `pnpm run dev:3001` (dev) or `pnpm run start:3001` (after `pnpm build`).
 - **404 on `/_next/static/chunks/...`:** The browser is loading a page that expects the **dev** server (or the opposite). Fix: use one mode only — run `pnpm dev` (or `pnpm run dev:3001`) for development; do a **hard refresh** (Cmd+Shift+R / Ctrl+Shift+R) so the HTML and chunk URLs match the running server. If you use production, run `pnpm build && pnpm start` and open the app fresh (no cached dev HTML).
 - **404 or 500 on `/client/settings`, `/client/waitlist`, `/notifications`, etc.:** Usually a corrupted or mixed `.next` build (e.g. "Cannot find module './487.js'"). Fix: stop the server, then `rm -rf .next && pnpm run build`. For dev, then run `pnpm run dev:3001`; for production, `pnpm run start:3001`.
 - **500 on `/admin/background` or on `_next/static/chunks/main.js`, `webpack.js`, `pages/_app.js`, `pages/_error.js`:** Same cause: bad or mixed `.next` so the dev server fails when compiling or serving chunks. Fix: **stop the dev server** (Ctrl+C), then run `rm -rf .next` and start dev again with `pnpm dev` (or `pnpm run dev:3001`). Use a fresh tab or hard refresh after the dev server is ready.
+- **API: „Could not locate the bindings file“ (better-sqlite3):** Spusťte z kořene `pnpm build:sqlite`. Pokud to nepomůže, nainstalujte Xcode Command Line Tools (`xcode-select --install` na Macu) a zkuste znovu.
+- **Next: „Failed to download Plus Jakarta Sans from Google Fonts“ (ENOTFOUND):** Při offline nebo bez DNS se font nestáhne; aplikace použije náhradní font. Není to chyba.
 - **Repeated 404 for `http://localhost:3000/`:** Often from prefetch or a bad dev build. Ensure you run `pnpm dev` from the **repo root** (so the app with `src/app/page.tsx` is used). Then do `rm -rf .next && pnpm dev`, open http://localhost:3000 in a new tab and hard refresh. Links to "/" use `prefetch={false}` to avoid unnecessary prefetch requests.
 
 ## Acceptance criteria
@@ -72,9 +95,11 @@ Use the doc as the source of truth for scope and for manual/automated checks.
 
 The repo includes a Fastify backend in `apps/api` that implements the full API contract used by the frontend. It runs on port **3001** by default.
 
-- **Stack:** Node.js, Fastify, in-memory store (same deterministic seed as the frontend mock), JWT auth.
+- **Stack:** Node.js, Fastify, **SQLite** (persistent), Drizzle ORM, JWT auth.
 - **Scripts:** From root, `pnpm dev:api` runs the API; `pnpm dev:all` runs Next.js and API together.
-- **Data:** No database required; data is in memory and reseeded on each API process start. You can later swap the store for SQLite or Postgres.
+- **Data:** Data is stored in a **SQLite** file. On first start (empty DB), seed data is loaded and saved; on later starts the DB is loaded into memory. All writes go to both memory and SQLite so data survives restarts.
+- **Database:** Path is `./data/pristav.db` by default. Override with `DATABASE_PATH` (e.g. `/var/lib/pristav/pristav.db` in production). Back up this file regularly.
+- **Native dependency:** `better-sqlite3` must be compiled. If you see "Could not locate the bindings file", run from repo root: `pnpm rebuild better-sqlite3` (or allow build scripts when installing).
 
 ## Backend preparation guide (historical)
 

@@ -3,6 +3,7 @@ import { BillingPeriodSchema } from "@pristav/shared/billing";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
+import { persistBillingReport, persistAppointment } from "../db/persist.js";
 
 export default async function billingRoutes(app: FastifyInstance): Promise<void> {
   app.post("/billing/reports", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: { period?: { year: number; month: number } } }>, reply: FastifyReply) => {
@@ -42,7 +43,7 @@ export default async function billingRoutes(app: FastifyInstance): Promise<void>
       perClientTotals: Array.from(perClientTotals.entries()).map(([clientId, totalCzk]) => ({ clientId, totalCzk })),
       createdAt: new Date().toISOString(),
     };
-    store.billingReports.set(id, report);
+    persistBillingReport(store, report);
     reply.status(201).send(report);
   });
 
@@ -78,7 +79,7 @@ export default async function billingRoutes(app: FastifyInstance): Promise<void>
         const a = store.appointments.get(id);
         if (a) {
           const updated = { ...a, paymentStatus: "INVOICED" as const, status: "INVOICED" as const };
-          store.appointments.set(id, updated);
+          persistAppointment(store, updated);
         }
       }
       reply.status(204).send();

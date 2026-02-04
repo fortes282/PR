@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { ServiceCreateSchema, ServiceUpdateSchema } from "@pristav/shared/services";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { persistService } from "../db/persist.js";
 
 function nextId(): string {
   const ids = Array.from(store.services.keys())
@@ -37,7 +38,7 @@ export default async function servicesRoutes(app: FastifyInstance): Promise<void
     }
     const id = nextId();
     const service = { ...parse.data, id };
-    store.services.set(id, service);
+    persistService(store, service);
     reply.status(201).send(service);
   });
 
@@ -57,7 +58,7 @@ export default async function servicesRoutes(app: FastifyInstance): Promise<void
       return;
     }
     const updated = { ...service, ...parse.data };
-    store.services.set(service.id, updated);
+    persistService(store, updated);
     reply.send(updated);
   });
 }

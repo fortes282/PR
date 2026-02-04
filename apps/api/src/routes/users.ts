@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { UserListParamsSchema, UserUpdateSchema } from "@pristav/shared/users";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { persistUser } from "../db/persist.js";
 
 export default async function usersRoutes(app: FastifyInstance): Promise<void> {
   app.get("/users", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -50,7 +51,7 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
       return;
     }
     const updated = { ...user, ...parse.data };
-    store.users.set(user.id, updated);
+    persistUser(store, updated);
     reply.send(updated);
   });
 }

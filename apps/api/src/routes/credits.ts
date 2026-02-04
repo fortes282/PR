@@ -3,6 +3,7 @@ import { CreditAdjustBodySchema } from "@pristav/shared/credits";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
+import { persistCreditAccount, persistCreditTransaction } from "../db/persist.js";
 
 export default async function creditsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/credits/:clientId", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { clientId: string } }>, reply: FastifyReply) => {
@@ -35,10 +36,11 @@ export default async function creditsRoutes(app: FastifyInstance): Promise<void>
     let acc = store.creditAccounts.get(clientId);
     if (!acc) {
       acc = { clientId, balanceCzk: 0, updatedAt: new Date().toISOString() };
-      store.creditAccounts.set(clientId, acc);
+      persistCreditAccount(store, acc);
     }
     acc.balanceCzk += parse.data.amountCzk;
     acc.updatedAt = new Date().toISOString();
+    persistCreditAccount(store, acc);
     const tx = {
       id: nextId("tx"),
       clientId,
@@ -46,7 +48,7 @@ export default async function creditsRoutes(app: FastifyInstance): Promise<void>
       reason: parse.data.reason,
       createdAt: new Date().toISOString(),
     };
-    store.creditTransactions.set(tx.id, tx);
+    persistCreditTransaction(store, tx);
     reply.status(201).send(tx);
   });
 }

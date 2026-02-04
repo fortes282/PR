@@ -104,11 +104,28 @@ export default function AdminSettingsPage(): React.ReactElement {
     }
   };
 
+  const isServerMode = process.env.NEXT_PUBLIC_API_MODE === "http";
+
   if (!settings) return <p className="text-gray-600">Načítám…</p>;
 
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold text-gray-900">Nastavení</h1>
+
+      <div
+        className={`rounded-lg border p-4 text-sm ${isServerMode ? "border-green-200 bg-green-50 text-green-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}
+        role="status"
+      >
+        {isServerMode ? (
+          <>
+            <strong>Režim server.</strong> Nastavení se ukládá do databáze na backendu a přežije restart aplikace i obnovení stránky.
+          </>
+        ) : (
+          <>
+            <strong>Režim mock (paměť prohlížeče).</strong> Po obnovení stránky (F5) se nastavení vrátí na výchozí. Pro trvalé ukládání nastavte v .env <code className="rounded bg-amber-100 px-1">NEXT_PUBLIC_API_MODE=http</code>, <code className="rounded bg-amber-100 px-1">NEXT_PUBLIC_API_BASE_URL=http://localhost:3001</code> a spusťte backend (<code className="rounded bg-amber-100 px-1">pnpm dev:api</code>). Po změně env restartujte Next.js.
+          </>
+        )}
+      </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         <section className="card max-w-md space-y-4 p-4">

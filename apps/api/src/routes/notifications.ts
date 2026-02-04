@@ -3,6 +3,7 @@ import { NotificationSendBodySchema, NotificationListParamsSchema } from "@prist
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
+import { persistNotification } from "../db/persist.js";
 
 export default async function notificationsRoutes(app: FastifyInstance): Promise<void> {
   app.get(
@@ -46,7 +47,7 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
       appointmentId: parse.data.appointmentId,
       blockId: parse.data.blockId,
     };
-    store.notifications.set(n.id, n);
+    persistNotification(store, n);
     reply.status(204).send();
   });
 
@@ -54,7 +55,7 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
     const n = store.notifications.get(request.params.id);
     if (n) {
       const updated = { ...n, read: true };
-      store.notifications.set(n.id, updated);
+      persistNotification(store, updated);
     }
     reply.status(204).send();
   });

@@ -3,6 +3,7 @@ import { ReportVisibilityUpdateSchema } from "@pristav/shared/reports";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
+import { persistTherapyReport, persistTherapyReportBlob } from "../db/persist.js";
 
 export default async function reportsRoutes(app: FastifyInstance): Promise<void> {
   app.post("/reports/upload", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -33,8 +34,8 @@ export default async function reportsRoutes(app: FastifyInstance): Promise<void>
       visibleToClient: false,
       createdAt: new Date().toISOString(),
     };
-    store.therapyReports.set(id, rec);
-    store.therapyReportBlobs.set(id, fileData.buffer);
+    persistTherapyReport(store, rec);
+    persistTherapyReportBlob(store, id, fileData.buffer);
     reply.status(201).send({ id, fileName: rec.fileName, createdAt: rec.createdAt });
   });
 
@@ -75,7 +76,7 @@ export default async function reportsRoutes(app: FastifyInstance): Promise<void>
       return;
     }
     const updated = { ...r, ...parse.data };
-    store.therapyReports.set(r.id, updated);
+    persistTherapyReport(store, updated);
     reply.send(updated);
   });
 }

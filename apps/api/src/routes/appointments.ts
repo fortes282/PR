@@ -12,6 +12,7 @@ import type { Notification } from "@pristav/shared/notifications";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
+import { persistAppointment, persistCreditAccount, persistCreditTransaction, persistNotification } from "../db/persist.js";
 
 export default async function appointmentsRoutes(app: FastifyInstance): Promise<void> {
   app.get(
@@ -63,10 +64,11 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
       status,
       paymentStatus,
     };
-    store.appointments.set(id, appointment);
+    persistAppointment(store, appointment);
     if (paymentStatus === "PAID" && account && !isClientOnly) {
       account.balanceCzk -= service.priceCzk;
       account.updatedAt = new Date().toISOString();
+      persistCreditAccount(store, account);
       const tx: CreditTransaction = {
         id: nextId("tx"),
         clientId: data.clientId,
@@ -75,7 +77,7 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
         appointmentId: id,
         createdAt: new Date().toISOString(),
       };
-      store.creditTransactions.set(tx.id, tx);
+      persistCreditTransaction(store, tx);
     }
     reply.status(201).send(appointment);
   });
@@ -115,11 +117,12 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
         paymentStatus,
         blockId,
       };
-      store.appointments.set(appId, app);
+      persistAppointment(store, app);
       appointments.push(app);
       if (paymentStatus === "PAID" && account) {
         account.balanceCzk -= service.priceCzk;
         account.updatedAt = new Date().toISOString();
+        persistCreditAccount(store, account);
         const tx: CreditTransaction = {
           id: nextId("tx"),
           clientId: data.clientId,
@@ -128,7 +131,7 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
           appointmentId: appId,
           createdAt: new Date().toISOString(),
         };
-        store.creditTransactions.set(tx.id, tx);
+        persistCreditTransaction(store, tx);
       }
     }
     const firstStart = data.slots[0]?.startAt ?? "";
@@ -141,7 +144,7 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
       createdAt: new Date().toISOString(),
       blockId,
     };
-    store.notifications.set(n.id, n);
+    persistNotification(store, n);
     reply.status(201).send({ blockId, appointments });
   });
 
@@ -157,7 +160,7 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
       return;
     }
     const updated = { ...appointment, ...parse.data };
-    store.appointments.set(appointment.id, updated);
+    persistAppointment(store, updated);
     reply.send(updated);
   });
 
@@ -192,13 +195,14 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
         cancelReason: body.reason ?? "",
         cancelledAt: new Date().toISOString(),
       };
-      store.appointments.set(id, updated);
+      persistAppointment(store, updated);
       let creditTransaction: CreditTransaction | undefined;
       if (doRefund && price > 0) {
         const account = store.creditAccounts.get(appointment.clientId);
         if (account) {
           account.balanceCzk += price;
           account.updatedAt = new Date().toISOString();
+          persistCreditAccount(store, account);
           creditTransaction = {
             id: nextId("tx"),
             clientId: appointment.clientId,
@@ -207,7 +211,7 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
             appointmentId: id,
             createdAt: new Date().toISOString(),
           };
-          store.creditTransactions.set(creditTransaction.id, creditTransaction);
+          persistCreditTransaction(store, creditTransaction);
         }
       }
       reply.send({ appointment: updated, creditTransaction });
@@ -221,7 +225,7 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
       return;
     }
     const updated = { ...appointment, status: "COMPLETED" as const };
-    store.appointments.set(appointment.id, updated);
+    persistAppointment(store, updated);
     reply.send(updated);
   });
 }

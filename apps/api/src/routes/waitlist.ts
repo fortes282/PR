@@ -4,6 +4,7 @@ import type { WaitingListEntry } from "@pristav/shared/waitlist";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
+import { persistWaitlistEntry, persistNotification } from "../db/persist.js";
 
 export default async function waitlistRoutes(app: FastifyInstance): Promise<void> {
   app.get("/waitlist", { preHandler: [authMiddleware] }, async (_request: FastifyRequest, reply: FastifyReply) => {
@@ -23,7 +24,7 @@ export default async function waitlistRoutes(app: FastifyInstance): Promise<void
     }
     const id = nextId("w");
     const entry: WaitingListEntry = { ...parse.data, id, createdAt: new Date().toISOString() };
-    store.waitlist.set(id, entry);
+    persistWaitlistEntry(store, entry);
     reply.status(201).send(entry);
   });
 
@@ -35,7 +36,7 @@ export default async function waitlistRoutes(app: FastifyInstance): Promise<void
     }
     const body = request.body as Partial<WaitingListEntry>;
     const updated = { ...w, ...body };
-    store.waitlist.set(w.id, updated);
+    persistWaitlistEntry(store, updated);
     reply.send(updated);
   });
 
@@ -69,7 +70,7 @@ export default async function waitlistRoutes(app: FastifyInstance): Promise<void
       read: false,
       createdAt: new Date().toISOString(),
     };
-    store.notifications.set(n.id, n);
+    persistNotification(store, n);
     reply.status(204).send();
   });
 }

@@ -5,17 +5,21 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "build:sqlite": "node -e \"const path=require('path'); const r=require.resolve('better-sqlite3/package.json'); require('child_process').execSync('npm run install', { cwd: path.dirname(r), stdio: 'inherit' })\""
   },
   "dependencies": {
     "@fastify/cors": "^9.0.0",
     "@fastify/multipart": "^8.0.0",
     "@pristav/shared": "workspace:*",
+    "better-sqlite3": "^11.6.0",
+    "drizzle-orm": "^0.36.0",
     "fastify": "^4.24.0",
     "jsonwebtoken": "^9.0.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
     "@types/jsonwebtoken": "^9.0.0",
     "@types/node": "^20.0.0",
     "tsx": "^4.6.0",

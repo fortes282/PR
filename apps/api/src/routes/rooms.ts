@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { RoomCreateSchema, RoomUpdateSchema } from "@pristav/shared/rooms";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { persistRoom } from "../db/persist.js";
 
 function nextId(): string {
   const ids = Array.from(store.rooms.keys())
@@ -37,7 +38,7 @@ export default async function roomsRoutes(app: FastifyInstance): Promise<void> {
     }
     const id = nextId();
     const room = { ...parse.data, id };
-    store.rooms.set(id, room);
+    persistRoom(store, room);
     reply.status(201).send(room);
   });
 
@@ -57,7 +58,7 @@ export default async function roomsRoutes(app: FastifyInstance): Promise<void> {
       return;
     }
     const updated = { ...room, ...parse.data };
-    store.rooms.set(room.id, updated);
+    persistRoom(store, updated);
     reply.send(updated);
   });
 }
