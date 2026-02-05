@@ -1,4 +1,5 @@
 export * from "./auth";
+export * from "./client-profile-log";
 export * from "./availability";
 export * from "./users";
 export * from "./services";
@@ -14,3 +15,4 @@ export * from "./stats";
 export * from "./booking-activation";
 export * from "./invoices";
 export * from "./bank-transactions";
+export * from "./medical-reports";

@@ -56,6 +56,10 @@ export const UserSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   childName: z.string().optional(),
+  /** Child's date of birth (ISO date string YYYY-MM-DD). Used in medical reports and health record. */
+  childDateOfBirth: z.string().optional(),
+  /** Primary diagnosis. Editable in client Health Record; prefills medical reports. */
+  diagnosis: z.string().optional(),
   billingAddress: BillingAddressSchema.optional(),
   notificationPreferences: NotificationPreferencesSchema.optional(),
 });

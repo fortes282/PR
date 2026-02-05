@@ -6,7 +6,15 @@
 
 import type { ApiClient } from "../index";
 import type { User } from "@/lib/contracts/users";
-import type { Session, LoginCredentials } from "@/lib/contracts/auth";
+import type {
+  Session,
+  LoginCredentials,
+  RegisterBody,
+  RequestSmsCodeBody,
+  VerifySmsCodeBody,
+  ResetPasswordByAdminBody,
+} from "@/lib/contracts/auth";
+import type { ClientProfileLogEntry, ClientProfileLogListParams } from "@/lib/contracts";
 import type { UserListParams, UserUpdate } from "@/lib/contracts/users";
 import type { Service, ServiceCreate, ServiceUpdate } from "@/lib/contracts/services";
 import type { Room, RoomCreate, RoomUpdate } from "@/lib/contracts/rooms";
@@ -45,6 +53,8 @@ import type {
   SentCommunicationListParams,
   ClientRecommendation,
 } from "@/lib/contracts/admin-background";
+import type { MedicalReport, MedicalReportCreate } from "@/lib/contracts";
+import type { ClientBehaviorScore } from "../index";
 import { computeRecommendations } from "@/lib/behavior/recommendations";
 
 function getToken(): string | null {
@@ -141,6 +151,29 @@ export class HttpApiClient implements ApiClient {
           localStorage.removeItem("pristav_user");
         } catch {}
       }
+    },
+    register: async (body: RegisterBody) =>
+      fetchApi<{ user: User; session: Session }>(this.baseUrl, "/auth/register", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    requestSmsCode: async (body: RequestSmsCodeBody) =>
+      fetchApi<{ expiresInSeconds: number }>(this.baseUrl, "/auth/sms/request", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    verifySmsCode: async (body: VerifySmsCodeBody) =>
+      fetchApi<{ verified: boolean }>(this.baseUrl, "/auth/sms/verify", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+  };
+
+  clientProfileLog = {
+    list: async (params: ClientProfileLogListParams) => {
+      const q = new URLSearchParams({ clientId: params.clientId });
+      if (params.limit) q.set("limit", String(params.limit));
+      return fetchApi<ClientProfileLogEntry[]>(this.baseUrl, `/client-profile-log?${q}`);
     },
   };
 
@@ -475,6 +508,37 @@ export class HttpApiClient implements ApiClient {
       }),
   };
 
+  medicalReports = {
+    list: async (clientId: string) =>
+      fetchApi<MedicalReport[]>(this.baseUrl, `/medical-reports?clientId=${clientId}`),
+    create: async (data: MedicalReportCreate) =>
+      fetchApi<MedicalReport>(this.baseUrl, "/medical-reports", { method: "POST", body: JSON.stringify(data) }),
+    get: async (id: string) => fetchApi<MedicalReport | null>(this.baseUrl, `/medical-reports/${id}`),
+    exportPdf: async (id: string) => {
+      const token = getToken();
+      const res = await fetch(`${this.baseUrl}/medical-reports/${id}/export/pdf`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.blob();
+    },
+    exportDocx: async (id: string) => {
+      const token = getToken();
+      const res = await fetch(`${this.baseUrl}/medical-reports/${id}/export/docx`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.blob();
+    },
+  };
+
+  behavior = {
+    getClientScores: async (clientIds?: string[]) => {
+      const q = clientIds?.length ? `?clientIds=${clientIds.join(",")}` : "";
+      return fetchApi<ClientBehaviorScore[]>(this.baseUrl, `/behavior/scores${q}`);
+    },
+  };
+
   notifications = {
     /**
      * GET /notifications?read=&limit=&appointmentId=&blockId=
@@ -576,5 +640,10 @@ export class HttpApiClient implements ApiClient {
         waitlist,
       });
     },
+    resetClientPassword: async (body: ResetPasswordByAdminBody) =>
+      fetchApi<void>(this.baseUrl, "/admin/reset-client-password", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
   };
 }

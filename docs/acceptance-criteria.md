@@ -78,3 +78,5 @@ Admin: Users, services, rooms, settings, stats (AD1–AD5).
 Shared: Notifications, offline (S1–S2).
 Data: Mock/HTTP modes, availability and activation behavior (D1–D4).
 Behavior: Profile and refund rules (B1–B2) for when the algorithm is integrated.
+
+**Extended features** (medical reports, health record, therapist day timeline, push admin toggles and prompt, client list behavioral score and unpaid indicators): see [docs/About.md](About.md) for full scope and behaviour.

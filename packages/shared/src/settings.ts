@@ -52,6 +52,8 @@ export const PushNotificationConfigSchema = z.object({
   badge: z.string().url().optional(),
   /** Default icon URL. */
   icon: z.string().url().optional(),
+  /** When true, client app shows a prompt to enable push on first and every subsequent open until subscribed. Admin can turn off. */
+  promptClientToEnablePush: z.boolean().default(true),
 });
 export type PushNotificationConfig = z.infer<typeof PushNotificationConfigSchema>;
 

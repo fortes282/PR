@@ -35,6 +35,7 @@ const emptyPush: PushNotificationConfig = {
   requireInteraction: false,
   badge: "",
   icon: "",
+  promptClientToEnablePush: true,
 };
 
 export default function AdminSettingsPage(): React.ReactElement {
@@ -85,13 +86,14 @@ export default function AdminSettingsPage(): React.ReactElement {
         smsFaynConfig: smsFaynConfig.enabled || smsFaynConfig.username ? smsFaynConfig : undefined,
         reservationNotificationTiming: reservationTiming,
         pushNotificationConfig:
-          pushConfig.enabled || pushConfig.vapidPublicKey
+          pushConfig.enabled || pushConfig.vapidPublicKey || pushConfig.promptClientToEnablePush !== undefined
             ? {
                 ...pushConfig,
                 vapidPublicKey: pushConfig.vapidPublicKey || undefined,
                 defaultTtlSeconds: pushConfig.defaultTtlSeconds || undefined,
                 badge: pushConfig.badge || undefined,
                 icon: pushConfig.icon || undefined,
+                promptClientToEnablePush: pushConfig.promptClientToEnablePush,
               }
             : undefined,
       });
@@ -469,6 +471,19 @@ export default function AdminSettingsPage(): React.ReactElement {
               onChange={(e) => setPushConfig((p) => ({ ...p, badge: e.target.value || undefined }))}
               placeholder="https://…"
             />
+          </label>
+          <label className="flex items-center gap-2 pt-2">
+            <input
+              type="checkbox"
+              checked={pushConfig.promptClientToEnablePush ?? true}
+              onChange={(e) =>
+                setPushConfig((p) => ({ ...p, promptClientToEnablePush: e.target.checked }))
+              }
+              className="rounded border-gray-300"
+            />
+            <span className="text-sm text-gray-700">
+              Zobrazovat klientům výzvu k zapnutí push (po prvním spuštění a při každém dalším otevření aplikace)
+            </span>
           </label>
         </section>
 

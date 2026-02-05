@@ -8,7 +8,7 @@ import { DataTable } from "@/components/tables/DataTable";
 import { Modal } from "@/components/modals/Modal";
 import type { User } from "@/lib/contracts/users";
 
-export default function ReceptionClientsPage(): React.ReactElement {
+export default function AdminClientsPage(): React.ReactElement {
   const [users, setUsers] = useState<User[]>([]);
   const [scoresByClient, setScoresByClient] = useState<Map<string, ClientBehaviorScore>>(new Map());
   const [unpaidClientIds, setUnpaidClientIds] = useState<Set<string>>(new Set());
@@ -102,7 +102,10 @@ export default function ReceptionClientsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Klienti</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Klienti (admin)</h1>
+      <p className="text-sm text-gray-600">
+        Stejná správa klientů jako na recepci: vyhledávání, hromadný e-mail/SMS, detail včetně logu a resetu hesla.
+      </p>
       <div className="flex flex-wrap items-center gap-4">
         <input
           type="search"
@@ -114,20 +117,10 @@ export default function ReceptionClientsPage(): React.ReactElement {
         {selectedCount > 0 && (
           <>
             <span className="text-sm text-gray-600">Vybráno: {selectedCount}</span>
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={openBulkEmail}
-              aria-label="Odeslat e-mail vybraným klientům"
-            >
+            <button type="button" className="btn-primary" onClick={openBulkEmail} aria-label="Odeslat e-mail vybraným">
               Odeslat e-mail vybraným
             </button>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={openBulkSms}
-              aria-label="Odeslat SMS vybraným klientům"
-            >
+            <button type="button" className="btn-secondary" onClick={openBulkSms} aria-label="Odeslat SMS vybraným">
               Odeslat SMS vybraným
             </button>
           </>
@@ -200,7 +193,7 @@ export default function ReceptionClientsPage(): React.ReactElement {
             key: "id",
             header: "Akce",
             render: (r) => (
-              <Link href={`/reception/clients/${r.id}`} className="text-primary-600 hover:underline">
+              <Link href={`/admin/clients/${r.id}`} className="text-primary-600 hover:underline">
                 Detail
               </Link>
             ),
@@ -211,56 +204,22 @@ export default function ReceptionClientsPage(): React.ReactElement {
       />
 
       {bulkModal && (
-        <Modal
-          open={true}
-          onClose={() => !sending && setBulkModal(null)}
-          title={bulkModal === "email" ? "Hromadný e-mail" : "Hromadná SMS"}
-        >
+        <Modal open={true} onClose={() => !sending && setBulkModal(null)} title={bulkModal === "email" ? "Hromadný e-mail" : "Hromadná SMS"}>
           <div className="space-y-4">
             {bulkModal === "email" && (
               <label>
                 <span className="block text-sm font-medium text-gray-700">Předmět</span>
-                <input
-                  type="text"
-                  className="input mt-1 w-full"
-                  value={bulkSubject}
-                  onChange={(e) => setBulkSubject(e.target.value)}
-                  placeholder="Předmět e-mailu"
-                />
+                <input type="text" className="input mt-1 w-full" value={bulkSubject} onChange={(e) => setBulkSubject(e.target.value)} placeholder="Předmět e-mailu" />
               </label>
             )}
             <label>
-              <span className="block text-sm font-medium text-gray-700">
-                {bulkModal === "email" ? "Text e-mailu" : "Text SMS"}
-              </span>
-              <textarea
-                className="input mt-1 w-full min-h-[120px]"
-                value={bulkMessage}
-                onChange={(e) => setBulkMessage(e.target.value)}
-                placeholder={bulkModal === "sms" ? "Max. 160 znaků…" : "Zpráva"}
-                maxLength={bulkModal === "sms" ? 160 : undefined}
-              />
-              {bulkModal === "sms" && (
-                <p className="mt-1 text-xs text-gray-500">{bulkMessage.length}/160</p>
-              )}
+              <span className="block text-sm font-medium text-gray-700">{bulkModal === "email" ? "Text e-mailu" : "Text SMS"}</span>
+              <textarea className="input mt-1 w-full min-h-[120px]" value={bulkMessage} onChange={(e) => setBulkMessage(e.target.value)} placeholder={bulkModal === "sms" ? "Max. 160 znaků…" : "Zpráva"} maxLength={bulkModal === "sms" ? 160 : undefined} />
+              {bulkModal === "sms" && <p className="mt-1 text-xs text-gray-500">{bulkMessage.length}/160</p>}
             </label>
             <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setBulkModal(null)}
-                disabled={sending}
-              >
-                Zrušit
-              </button>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={sendBulk}
-                disabled={sending || !bulkMessage.trim() || (bulkModal === "email" && !bulkSubject.trim())}
-              >
-                {sending ? "Odesílám…" : "Odeslat"}
-              </button>
+              <button type="button" className="btn-secondary" onClick={() => setBulkModal(null)} disabled={sending}>Zrušit</button>
+              <button type="button" className="btn-primary" onClick={sendBulk} disabled={sending || !bulkMessage.trim() || (bulkModal === "email" && !bulkSubject.trim())}>{sending ? "Odesílám…" : "Odeslat"}</button>
             </div>
           </div>
         </Modal>

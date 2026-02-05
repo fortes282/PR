@@ -181,9 +181,9 @@ export default function ClientSettingsPage(): React.ReactElement {
         <section>
           <h2 className="mb-3 font-medium text-gray-900">Push notifikace</h2>
           <p className="mb-3 text-sm text-gray-600">
-            Nejdříve povolte odběr push zpráv v prohlížeči. Níže pak můžete zvolit, které typy chcete dostávat.
+            Povolte odběr push zpráv v prohlížeči. Připomínky termínů a novinky/akce (push) zapíná nebo vypíná administrátor u vás v detailu klienta.
           </p>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {pushStatus === "subscribed" ? (
               <>
                 <span className="text-sm text-success-600">Push jsou povoleny</span>
@@ -213,28 +213,6 @@ export default function ClientSettingsPage(): React.ReactElement {
                 )}
               </>
             )}
-          </div>
-          <div className="space-y-3">
-            <label className="flex items-center justify-between gap-4">
-              <span className="text-sm text-gray-700">Připomínky termínů (push)</span>
-              <input
-                type="checkbox"
-                checked={prefs.pushAppointmentReminder}
-                onChange={(e) => updatePref("pushAppointmentReminder", e.target.checked)}
-                className="rounded border-gray-300"
-                aria-label="Push připomínky rezervací"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-4">
-              <span className="text-sm text-gray-700">Novinky a akce (push)</span>
-              <input
-                type="checkbox"
-                checked={prefs.pushMarketing}
-                onChange={(e) => updatePref("pushMarketing", e.target.checked)}
-                className="rounded border-gray-300"
-                aria-label="Marketing push"
-              />
-            </label>
           </div>
         </section>
 

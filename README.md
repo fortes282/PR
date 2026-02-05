@@ -1,6 +1,6 @@
-# Pristav Radosti — Rehab Center Management (Frontend)
+# Pristav Radosti — Rehab Center Management
 
-Next.js App Router PWA for multi-role rehab center management. **Frontend only**; all data goes through a data gateway that can use mock (default) or real HTTP.
+Next.js App Router PWA for multi-role rehab center management. Data goes through a single gateway: **mock** (default, in-memory) or **HTTP** (Fastify backend in `apps/api` with SQLite). See **[docs/About.md](docs/About.md)** for a full overview of features, infrastructure, deployment, and operations.
 
 ## Run
 
@@ -63,6 +63,15 @@ See `.env.example` for a template.
 - **API: „Could not locate the bindings file“ (better-sqlite3):** Spusťte z kořene `pnpm build:sqlite`. Pokud to nepomůže, nainstalujte Xcode Command Line Tools (`xcode-select --install` na Macu) a zkuste znovu.
 - **Next: „Failed to download Plus Jakarta Sans from Google Fonts“ (ENOTFOUND):** Při offline nebo bez DNS se font nestáhne; aplikace použije náhradní font. Není to chyba.
 - **Repeated 404 for `http://localhost:3000/`:** Often from prefetch or a bad dev build. Ensure you run `pnpm dev` from the **repo root** (so the app with `src/app/page.tsx` is used). Then do `rm -rf .next && pnpm dev`, open http://localhost:3000 in a new tab and hard refresh. Links to "/" use `prefetch={false}` to avoid unnecessary prefetch requests.
+- **„2 Chyby načítání mapy zdrojů“ / 404 pro `LayoutGroupContext.mjs.map`:** Jde jen o chybějící source mapy v dev režimu (interní Next.js chunky). Aplikace funguje; v konzoli můžete tyto zprávy ignorovat nebo skrýt filtrem. Na funkci stránky to nemá vliv.
+
+## Documentation
+
+- **[docs/About.md](docs/About.md)** — Full overview: all features, infrastructure, how everything works, deployment, operations, and usage. Start here for a complete picture.
+- **[docs/acceptance-criteria.md](docs/acceptance-criteria.md)** — Formal acceptance and quality criteria.
+- **[docs/application-features.md](docs/application-features.md)** — Feature list by role; API and UI notes.
+- **[docs/behavior-algorithm.md](docs/behavior-algorithm.md)** — Behavior scoring and tags.
+- **[docs/billing-and-financial-management.md](docs/billing-and-financial-management.md)** — Billing and invoicing.
 
 ## Acceptance criteria
 
@@ -99,7 +108,8 @@ The repo includes a Fastify backend in `apps/api` that implements the full API c
 - **Scripts:** From root, `pnpm dev:api` runs the API; `pnpm dev:all` runs Next.js and API together.
 - **Data:** Data is stored in a **SQLite** file. On first start (empty DB), seed data is loaded and saved; on later starts the DB is loaded into memory. All writes go to both memory and SQLite so data survives restarts.
 - **Database:** Path is `./data/pristav.db` by default. Override with `DATABASE_PATH` (e.g. `/var/lib/pristav/pristav.db` in production). Back up this file regularly.
-- **Native dependency:** `better-sqlite3` must be compiled. If you see "Could not locate the bindings file", run from repo root: `pnpm rebuild better-sqlite3` (or allow build scripts when installing).
+- **Native dependency:** `better-sqlite3` must be compiled. If you see "Could not locate the bindings file", run from repo root: `pnpm build:sqlite` or `pnpm rebuild better-sqlite3`.
+- **HTTP mode gaps:** The backend does not yet implement medical reports, behavior scores (client list), or client profile log. Those features work in **mock** mode; for HTTP mode either add the routes or accept that those UIs will not have data.
 
 ## Backend preparation guide (historical)
 

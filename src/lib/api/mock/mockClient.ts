@@ -50,7 +50,13 @@ import type { WaitingListEntry, WaitlistSuggestion } from "@/lib/contracts/waitl
 import type { Settings, SettingsUpdate } from "@/lib/contracts/settings";
 import type { OccupancyStat, CancellationStat, ClientTagStat } from "@/lib/contracts/stats";
 import type { BehaviorEvaluationRecord, SentCommunication, SentCommunicationListParams, ClientRecommendation } from "@/lib/contracts/admin-background";
+import type { ClientProfileLogEntry, ClientProfileLogKind, ClientProfileLogListParams } from "@/lib/contracts";
+import type { MedicalReport, MedicalReportCreate } from "@/lib/contracts";
+import type { RegisterBody, RequestSmsCodeBody, VerifySmsCodeBody, ResetPasswordByAdminBody } from "@/lib/contracts/auth";
+import type { ClientBehaviorScore } from "../index";
 import { computeRecommendations } from "@/lib/behavior/recommendations";
+import { deriveEventsFromAppointments } from "@/lib/behavior/derive-events";
+import { computeBehaviorProfile } from "@/lib/behavior/profile";
 import { canRefund } from "@/lib/cancellation";
 import { addDays, subDays, startOfDay, addMonths, getDayOfWeek, parseTimeHHmm, setHours, setMinutes, monthKey } from "@/lib/utils/date";
 
@@ -64,6 +70,25 @@ function ensureSeed(): void {
 
 function nextId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function appendClientProfileLog(
+  clientId: string,
+  kind: ClientProfileLogKind,
+  summary: string,
+  detail?: string,
+  actorId?: string
+): void {
+  const entry: ClientProfileLogEntry = {
+    id: nextId("log"),
+    clientId,
+    kind,
+    summary,
+    detail,
+    actorId: actorId ?? "system",
+    createdAt: new Date().toISOString(),
+  };
+  db.clientProfileLog.push(entry);
 }
 
 export class MockApiClient implements ApiClient {
@@ -134,6 +159,77 @@ export class MockApiClient implements ApiClient {
         } catch {}
       }
     },
+
+    register: async (body: RegisterBody): Promise<{ user: User; session: Session }> => {
+      ensureSeed();
+      const existing = Array.from(db.users.values()).find((u) => u.email === body.email);
+      if (existing) throw new Error("E-mail již je registrován.");
+      if (body.smsCode) {
+        const stored = db.smsVerificationCodes.get(body.phone ?? "");
+        if (!stored || stored.code !== body.smsCode || Date.now() > stored.expiresAt) {
+          throw new Error("Neplatný nebo vypršený SMS kód.");
+        }
+        db.smsVerificationCodes.delete(body.phone ?? "");
+      } else if (body.phone) {
+        throw new Error("Pro registraci s telefonem je vyžadováno ověření SMS. Zavolejte requestSmsCode a pak register s kódem.");
+      }
+      const id = nextId("u");
+      const user: User = {
+        id,
+        email: body.email,
+        name: body.name,
+        role: "CLIENT",
+        phone: body.phone,
+        active: true,
+        firstName: body.firstName,
+        lastName: body.lastName,
+      };
+      db.users.set(id, user);
+      const session: Session = {
+        userId: id,
+        role: "CLIENT",
+        accessToken: `mock-token-${id}`,
+        expiresAt: Date.now() + 3600_000,
+      };
+      this.session = session;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("pristav_session", JSON.stringify(session));
+          localStorage.setItem("pristav_user", JSON.stringify(user));
+        } catch {}
+      }
+      return { user, session };
+    },
+
+    requestSmsCode: async (body: RequestSmsCodeBody): Promise<{ expiresInSeconds: number }> => {
+      ensureSeed();
+      const code = String(Math.floor(1000 + Math.random() * 9000));
+      db.smsVerificationCodes.set(body.phone, {
+        code,
+        expiresAt: Date.now() + 5 * 60 * 1000,
+      });
+      return { expiresInSeconds: 300 };
+    },
+
+    verifySmsCode: async (body: VerifySmsCodeBody): Promise<{ verified: boolean }> => {
+      ensureSeed();
+      const stored = db.smsVerificationCodes.get(body.phone);
+      if (!stored || stored.code !== body.code || Date.now() > stored.expiresAt) {
+        return { verified: false };
+      }
+      return { verified: true };
+    },
+  };
+
+  clientProfileLog = {
+    list: async (params: ClientProfileLogListParams): Promise<ClientProfileLogEntry[]> => {
+      ensureSeed();
+      const list = db.clientProfileLog
+        .filter((e) => e.clientId === params.clientId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      const limit = params.limit ?? 50;
+      return list.slice(0, limit);
+    },
   };
 
   users = {
@@ -166,13 +262,30 @@ export class MockApiClient implements ApiClient {
      * BACKEND CONTRACT (to implement later):
      * PUT /users/:id
      * Body: UserUpdate
+     * Only ADMIN may update role.
      */
     update: async (id: string, data: UserUpdate): Promise<User> => {
       ensureSeed();
+      if (data.role !== undefined && this.session?.role !== "ADMIN") {
+        throw new Error("Pouze administrátor může měnit roli uživatele.");
+      }
       const user = db.users.get(id);
       if (!user) throw new Error("User not found");
       const updated = { ...user, ...data };
       db.users.set(id, updated);
+      if (user.role === "CLIENT") {
+        if (data.role !== undefined || data.active !== undefined) {
+          appendClientProfileLog(
+            id,
+            "ROLE_OR_ACTIVE_CHANGED",
+            `Změna role nebo aktivity`,
+            data.role !== undefined ? `Role: ${data.role}` : undefined,
+            this.session?.userId
+          );
+        } else {
+          appendClientProfileLog(id, "DATA_CHANGE", "Změna údajů klienta", undefined, this.session?.userId);
+        }
+      }
       return updated;
     },
   };
@@ -561,6 +674,13 @@ export class MockApiClient implements ApiClient {
         createdAt: new Date().toISOString(),
       };
       db.creditTransactions.set(tx.id, tx);
+      appendClientProfileLog(
+        clientId,
+        "DATA_CHANGE",
+        "Úprava kreditu",
+        `${body.amountCzk >= 0 ? "+" : ""}${body.amountCzk} Kč: ${body.reason}`,
+        this.session?.userId
+      );
       return tx;
     },
   };
@@ -871,6 +991,108 @@ export class MockApiClient implements ApiClient {
     },
   };
 
+  medicalReports = {
+    list: async (clientId: string): Promise<MedicalReport[]> => {
+      ensureSeed();
+      return Array.from(db.medicalReports.values())
+        .filter((r) => r.clientId === clientId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+    create: async (data: MedicalReportCreate): Promise<MedicalReport> => {
+      ensureSeed();
+      if (this.session?.role !== "EMPLOYEE" && this.session?.role !== "ADMIN") {
+        throw new Error("Pouze terapeut nebo administrátor může vytvářet lékařské zprávy.");
+      }
+      const client = db.users.get(data.clientId);
+      if (!client) throw new Error("Klient nenalezen.");
+      const fullName = [client.firstName ?? "", client.lastName ?? ""].filter(Boolean).join(" ") || client.name;
+      const address = client.billingAddress
+        ? [client.billingAddress.street, client.billingAddress.city, client.billingAddress.zip, client.billingAddress.country].filter(Boolean).join(", ")
+        : "";
+      const reportDate = new Date().toISOString().slice(0, 10);
+      const id = nextId("medrep");
+      const report: MedicalReport = {
+        id,
+        clientId: data.clientId,
+        createdBy: this.session?.userId ?? "unknown",
+        createdAt: new Date().toISOString(),
+        clientFullName: fullName,
+        clientAddress: address,
+        childName: client.childName ?? undefined,
+        childDateOfBirth: client.childDateOfBirth ?? undefined,
+        reportDate,
+        diagnosis: data.diagnosis ?? undefined,
+        currentCondition: data.currentCondition ?? undefined,
+        plannedTreatment: data.plannedTreatment ?? undefined,
+        recommendations: data.recommendations ?? undefined,
+      };
+      db.medicalReports.set(id, report);
+      return report;
+    },
+    get: async (id: string): Promise<MedicalReport | null> => {
+      ensureSeed();
+      return db.medicalReports.get(id) ?? null;
+    },
+    exportPdf: async (id: string): Promise<Blob> => {
+      ensureSeed();
+      const r = db.medicalReports.get(id);
+      if (!r) throw new Error("Zpráva nenalezena.");
+      const text = [
+        `Lékařská zpráva – ${r.clientFullName}`,
+        `Datum: ${r.reportDate}`,
+        `Adresa: ${r.clientAddress}`,
+        r.childName ? `Jméno dítěte: ${r.childName}` : "",
+        r.childDateOfBirth ? `Datum narození dítěte: ${r.childDateOfBirth}` : "",
+        r.diagnosis ? `Diagnóza: ${r.diagnosis}` : "",
+        r.currentCondition ? `Aktuální stav: ${r.currentCondition}` : "",
+        r.plannedTreatment ? `Plánovaná léčba: ${r.plannedTreatment}` : "",
+        r.recommendations ? `Doporučení: ${r.recommendations}` : "",
+      ].filter(Boolean).join("\n\n");
+      return new Blob([text], { type: "application/pdf" });
+    },
+    exportDocx: async (id: string): Promise<Blob> => {
+      ensureSeed();
+      const r = db.medicalReports.get(id);
+      if (!r) throw new Error("Zpráva nenalezena.");
+      const text = [
+        `Lékařská zpráva – ${r.clientFullName}`,
+        `Datum: ${r.reportDate}`,
+        `Adresa: ${r.clientAddress}`,
+        r.childName ? `Jméno dítěte: ${r.childName}` : "",
+        r.childDateOfBirth ? `Datum narození dítěte: ${r.childDateOfBirth}` : "",
+        r.diagnosis ? `Diagnóza: ${r.diagnosis}` : "",
+        r.currentCondition ? `Aktuální stav: ${r.currentCondition}` : "",
+        r.plannedTreatment ? `Plánovaná léčba: ${r.plannedTreatment}` : "",
+        r.recommendations ? `Doporučení: ${r.recommendations}` : "",
+      ].filter(Boolean).join("\n\n");
+      return new Blob([text], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    },
+  };
+
+  behavior = {
+    getClientScores: async (clientIds?: string[]): Promise<ClientBehaviorScore[]> => {
+      ensureSeed();
+      const clients = clientIds?.length
+        ? Array.from(db.users.values()).filter((u) => u.role === "CLIENT" && clientIds.includes(u.id))
+        : Array.from(db.users.values()).filter((u) => u.role === "CLIENT");
+      const appointments = Array.from(db.appointments.values());
+      const events = deriveEventsFromAppointments(appointments);
+      const result: ClientBehaviorScore[] = [];
+      for (const client of clients) {
+        const clientEvents = events.filter((e) => e.clientId === client.id);
+        const profile = computeBehaviorProfile(client.id, clientEvents);
+        result.push({
+          clientId: client.id,
+          reliabilityScore: profile.scores.reliabilityScore,
+          cancellationRiskScore: profile.scores.cancellationRiskScore,
+          reactivityScore: profile.scores.reactivityScore,
+          fillHelperScore: profile.scores.fillHelperScore,
+        });
+      }
+      return result;
+    },
+  };
+
   notifications = {
     list: async (params?: { read?: boolean; limit?: number; appointmentId?: string; blockId?: string }) => {
       ensureSeed();
@@ -920,6 +1142,13 @@ export class MockApiClient implements ApiClient {
           createdAt: new Date().toISOString(),
         };
         db.notifications.set(n.id, n);
+        appendClientProfileLog(
+          clientId,
+          "NOTIFICATION_SENT",
+          `Odesláno: ${body.channel}`,
+          body.title ?? body.message.slice(0, 50),
+          this.session?.userId
+        );
         sent += 1;
       }
       return { sent };
@@ -1060,6 +1289,30 @@ export class MockApiClient implements ApiClient {
       const appointments = Array.from(db.appointments.values());
       const waitlist = Array.from(db.waitlist.values());
       return computeRecommendations({ users, appointments, waitlist });
+    },
+
+    resetClientPassword: async (body: ResetPasswordByAdminBody): Promise<void> => {
+      ensureSeed();
+      if (this.session?.role !== "ADMIN") throw new Error("Pouze administrátor může resetovat heslo.");
+      const client = db.users.get(body.clientId);
+      if (!client || client.role !== "CLIENT") throw new Error("Klient nenalezen.");
+      appendClientProfileLog(
+        body.clientId,
+        "PASSWORD_RESET_REQUESTED",
+        "Administrátor vyžádal reset hesla",
+        body.message,
+        this.session.userId
+      );
+      const emailNotif: Notification = {
+        id: nextId("n"),
+        userId: body.clientId,
+        channel: "EMAIL",
+        title: "Nastavení nového hesla",
+        message: "Byl vyžádán reset hesla. Pro nastavení nového hesla použijte odkaz v tomto e-mailu (backend: implementovat odkaz).",
+        read: false,
+        createdAt: new Date().toISOString(),
+      };
+      db.notifications.set(emailNotif.id, emailNotif);
     },
   };
 }

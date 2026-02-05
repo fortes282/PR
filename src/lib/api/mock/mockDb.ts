@@ -14,6 +14,8 @@ import type { TherapyReportFile, ReportUploadResult } from "@/lib/contracts/repo
 import type { WaitingListEntry } from "@/lib/contracts/waitlist";
 import type { Settings } from "@/lib/contracts/settings";
 import type { BehaviorEvaluationRecord } from "@/lib/contracts/admin-background";
+import type { ClientProfileLogEntry } from "@/lib/contracts";
+import type { MedicalReport } from "@/lib/contracts";
 
 export const db = {
   users: new Map<string, User>(),
@@ -39,6 +41,12 @@ export const db = {
   bookingActivations: new Map<string, boolean>(),
   /** Algorithm evaluation history: what changed, when, why (admin background). */
   behaviorEvaluations: [] as BehaviorEvaluationRecord[],
+  /** Client profile audit log (notifications, data changes, scoring, password reset). Visible to admin and reception. */
+  clientProfileLog: [] as ClientProfileLogEntry[],
+  /** SMS verification codes in mock: phone -> { code, expiresAt } */
+  smsVerificationCodes: new Map<string, { code: string; expiresAt: number }>(),
+  /** Medical reports (therapist-written); key by report id. */
+  medicalReports: new Map<string, MedicalReport>(),
 };
 
 export type MockDb = typeof db;

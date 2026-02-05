@@ -3,7 +3,15 @@
  * Switch implementation via NEXT_PUBLIC_API_MODE=mock|http (default: mock).
  * Backend: replace MockApiClient with HttpApiClient when backend is ready.
  */
-import type { LoginCredentials, Session } from "@/lib/contracts/auth";
+import type {
+  LoginCredentials,
+  Session,
+  RegisterBody,
+  RequestSmsCodeBody,
+  VerifySmsCodeBody,
+  ResetPasswordByAdminBody,
+} from "@/lib/contracts/auth";
+import type { ClientProfileLogEntry, ClientProfileLogListParams } from "@/lib/contracts";
 import type { User, UserListParams, UserUpdate } from "@/lib/contracts/users";
 import type { Service, ServiceCreate, ServiceUpdate } from "@/lib/contracts/services";
 import type { Room, RoomCreate, RoomUpdate } from "@/lib/contracts/rooms";
@@ -49,14 +57,33 @@ import type {
   SentCommunicationListParams,
   ClientRecommendation,
 } from "@/lib/contracts/admin-background";
+import type { MedicalReport, MedicalReportCreate } from "@/lib/contracts";
 import { MockApiClient } from "./mock/mockClient";
 import { HttpApiClient } from "./http/httpClient";
+
+/** Per-client behavior score summary (reliability 0–100, etc.). */
+export type ClientBehaviorScore = {
+  clientId: string;
+  reliabilityScore: number;
+  cancellationRiskScore: number;
+  reactivityScore: number;
+  fillHelperScore: number;
+};
 
 export type ApiClient = {
   auth: {
     login: (credentials: LoginCredentials) => Promise<{ user: User; session: Session }>;
     me: () => Promise<{ user: User; session: Session } | null>;
     logout: () => Promise<void>;
+    /** Client self-registration (optionally with SMS code). */
+    register: (body: RegisterBody) => Promise<{ user: User; session: Session }>;
+    /** Request SMS verification code (registration or login). */
+    requestSmsCode: (body: RequestSmsCodeBody) => Promise<{ expiresInSeconds: number }>;
+    /** Verify SMS code. */
+    verifySmsCode: (body: VerifySmsCodeBody) => Promise<{ verified: boolean }>;
+  };
+  clientProfileLog: {
+    list: (params: ClientProfileLogListParams) => Promise<ClientProfileLogEntry[]>;
   };
   users: {
     list: (params?: UserListParams) => Promise<{ users: User[]; total: number }>;
@@ -140,6 +167,18 @@ export type ApiClient = {
     download: (id: string) => Promise<Blob>;
     updateVisibility: (id: string, data: ReportVisibilityUpdate) => Promise<TherapyReportFile>;
   };
+  /** Medical reports (therapist-written): list by client, create, get, export PDF/DOCX. */
+  medicalReports: {
+    list: (clientId: string) => Promise<MedicalReport[]>;
+    create: (data: MedicalReportCreate) => Promise<MedicalReport>;
+    get: (id: string) => Promise<MedicalReport | null>;
+    exportPdf: (id: string) => Promise<Blob>;
+    exportDocx: (id: string) => Promise<Blob>;
+  };
+  /** Behavior scores per client (for list display). Optional clientIds to limit. */
+  behavior: {
+    getClientScores: (clientIds?: string[]) => Promise<ClientBehaviorScore[]>;
+  };
   notifications: {
     list: (params?: NotificationListParams) => Promise<Notification[]>;
     send: (body: NotificationSendBody) => Promise<void>;
@@ -169,6 +208,8 @@ export type ApiClient = {
     getBehaviorEvaluations: () => Promise<BehaviorEvaluationRecord[]>;
     getSentCommunications: (params?: SentCommunicationListParams) => Promise<SentCommunication[]>;
     getRecommendations: () => Promise<ClientRecommendation[]>;
+    /** Reset client password and send email to set new one. Admin only. */
+    resetClientPassword: (body: ResetPasswordByAdminBody) => Promise<void>;
   };
 };
 

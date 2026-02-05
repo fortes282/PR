@@ -51,15 +51,18 @@ const receptionNav: NavItem[] = [
 ];
 
 const employeeNav: NavItem[] = [
-  { href: "/employee/calendar", label: "Můj kalendář", icon: Calendar },
+  { href: "/employee/calendar", label: "Rezervace (kalendář)", icon: Calendar },
+  { href: "/employee/medical-reports/new", label: "Lékařská zpráva", icon: FileText },
   { href: "/employee/colleagues", label: "Kolegové", icon: Users },
-  { href: "/employee/appointments", label: "Rezervace", icon: CalendarCheck },
+  { href: "/employee/appointments", label: "Seznam rezervací", icon: CalendarCheck },
 ];
 
 const adminNav: NavItem[] = [
   { href: "/admin/users", label: "Uživatelé", icon: Users },
+  { href: "/admin/clients", label: "Klienti", icon: Users },
   { href: "/admin/services", label: "Služby", icon: Briefcase },
   { href: "/admin/rooms", label: "Místnosti", icon: DoorOpen },
+  { href: "/admin/billing", label: "Fakturace", icon: Receipt },
   { href: "/admin/background", label: "Pozadí algoritmů", icon: Cpu },
   { href: "/admin/settings", label: "Nastavení", icon: Settings },
   { href: "/admin/stats", label: "Statistiky", icon: BarChart3 },

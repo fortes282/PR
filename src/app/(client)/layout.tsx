@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getDefaultRoute, canAccessRoute } from "@/lib/auth/rbac";
 import { AppShell } from "@/components/layout/AppShell";
+import { PushPromptBanner } from "@/components/client/PushPromptBanner";
 
 export default function ClientLayout({
   children,
@@ -29,5 +30,10 @@ export default function ClientLayout({
     }
   }, [router, pathname]);
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <>
+      <PushPromptBanner />
+      <AppShell>{children}</AppShell>
+    </>
+  );
 }

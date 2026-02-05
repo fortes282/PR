@@ -20,7 +20,7 @@ export default function ReceptionLayout({
       router.replace("/login");
       return;
     }
-    if (session.role !== "RECEPTION") {
+    if (session.role !== "RECEPTION" && session.role !== "ADMIN") {
       router.replace(getDefaultRoute(session.role));
       return;
     }
