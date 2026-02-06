@@ -25,14 +25,13 @@ export default function EmployeeCalendarPage(): React.ReactElement {
 
   const rangeStart = subDays(selectedDate, 7);
   const rangeEnd = addDays(selectedDate, 7);
+  const fromStr = rangeStart.toISOString();
+  const toStr = rangeEnd.toISOString();
 
   useEffect(() => {
     if (!employeeId) return;
     Promise.all([
-      api.appointments.list({
-        from: rangeStart.toISOString(),
-        to: rangeEnd.toISOString(),
-      }),
+      api.appointments.list({ from: fromStr, to: toStr }),
       api.users.list({ role: "CLIENT" }),
     ])
       .then(([apps, u]) => {
@@ -40,7 +39,7 @@ export default function EmployeeCalendarPage(): React.ReactElement {
         setUsers(u.users);
       })
       .finally(() => setLoading(false));
-  }, [employeeId, rangeStart.toISOString(), rangeEnd.toISOString()]);
+  }, [employeeId, fromStr, toStr]);
 
   const userMap = useMemo(() => new Map(users.map((u) => [u.id, u.name])), [users]);
   const slots: TimelineSlot[] = useMemo(

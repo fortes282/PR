@@ -6,7 +6,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { formatCzk } from "@/lib/utils/money";
 import { format } from "@/lib/utils/date";
-import type { User } from "@/lib/contracts/users";
+import type { User, NotificationPreferences } from "@/lib/contracts/users";
 import type { ClientProfileLogEntry } from "@/lib/contracts";
 import type { MedicalReport } from "@/lib/contracts";
 
@@ -114,13 +114,17 @@ export default function AdminClientDetailPage(): React.ReactElement {
     if (!user) return;
     setSavingPush(true);
     try {
-      const updated = await api.users.update(id, {
-        notificationPreferences: {
-          ...user.notificationPreferences,
-          pushAppointmentReminder: pushPrefs.pushAppointmentReminder,
-          pushMarketing: pushPrefs.pushMarketing,
-        },
-      });
+      const existing = user.notificationPreferences ?? {};
+      const notificationPreferences: NotificationPreferences = {
+        emailReminder1: existing.emailReminder1 ?? true,
+        emailReminder2: existing.emailReminder2 ?? true,
+        smsReminder: existing.smsReminder ?? false,
+        emailMarketing: existing.emailMarketing ?? false,
+        smsMarketing: existing.smsMarketing ?? false,
+        pushAppointmentReminder: pushPrefs.pushAppointmentReminder,
+        pushMarketing: pushPrefs.pushMarketing,
+      };
+      const updated = await api.users.update(id, { notificationPreferences });
       setUser(updated);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Chyba");

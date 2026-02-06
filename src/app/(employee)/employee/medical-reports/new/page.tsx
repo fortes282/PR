@@ -110,6 +110,7 @@ export default function NewMedicalReportPage(): React.ReactElement {
               <li
                 key={u.id}
                 role="option"
+                aria-selected={selectedClient?.id === u.id}
                 tabIndex={0}
                 onClick={() => handleSelectClient(u)}
                 onKeyDown={(e) => {

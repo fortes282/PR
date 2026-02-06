@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 
 type ModalProps = {
   open: boolean;
@@ -33,6 +33,13 @@ export function Modal({ open, onClose, title, children }: ModalProps): React.Rea
     };
   }, [open]);
 
+  const handleClose = useCallback((): void => {
+    setExiting(true);
+    setTimeout(() => {
+      onClose();
+    }, DURATION_MS);
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
     const handleEscape = (e: KeyboardEvent) => {
@@ -40,14 +47,7 @@ export function Modal({ open, onClose, title, children }: ModalProps): React.Rea
     };
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [open]);
-
-  const handleClose = (): void => {
-    setExiting(true);
-    setTimeout(() => {
-      onClose();
-    }, DURATION_MS);
-  };
+  }, [open, handleClose]);
 
   if (!open && !exiting) return null;
 
