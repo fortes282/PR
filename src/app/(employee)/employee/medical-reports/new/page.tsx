@@ -106,12 +106,14 @@ export default function NewMedicalReportPage(): React.ReactElement {
             className="mt-2 max-h-48 overflow-auto rounded border border-gray-200 bg-white shadow"
             aria-label="Výsledky vyhledávání"
           >
-            {searchResults.map((u) => (
-              <li
-                key={u.id}
-                role="option"
-                aria-selected={selectedClient?.id === u.id}
-                tabIndex={0}
+            {searchResults.map((u) => {
+              const isSelected = selectedClient?.id === u.id;
+              return (
+                <li
+                  key={u.id}
+                  role="option"
+                  aria-selected={isSelected}
+                  tabIndex={0}
                 onClick={() => handleSelectClient(u)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -124,7 +126,8 @@ export default function NewMedicalReportPage(): React.ReactElement {
                 <span className="font-medium text-gray-900">{u.name}</span>
                 {u.email && <span className="ml-2 text-sm text-gray-500">{u.email}</span>}
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
         {searchQuery.trim() && !searching && searchResults.length === 0 && (
