@@ -114,13 +114,13 @@ export default function AdminClientDetailPage(): React.ReactElement {
     if (!user) return;
     setSavingPush(true);
     try {
-      const existing: Partial<NotificationPreferences> = user.notificationPreferences ?? {};
+      const existing = user.notificationPreferences;
       const notificationPreferences: NotificationPreferences = {
-        emailReminder1: existing.emailReminder1 ?? true,
-        emailReminder2: existing.emailReminder2 ?? true,
-        smsReminder: existing.smsReminder ?? false,
-        emailMarketing: existing.emailMarketing ?? false,
-        smsMarketing: existing.smsMarketing ?? false,
+        emailReminder1: existing?.emailReminder1 ?? true,
+        emailReminder2: existing?.emailReminder2 ?? true,
+        smsReminder: existing?.smsReminder ?? false,
+        emailMarketing: existing?.emailMarketing ?? false,
+        smsMarketing: existing?.smsMarketing ?? false,
         pushAppointmentReminder: pushPrefs.pushAppointmentReminder,
         pushMarketing: pushPrefs.pushMarketing,
       };
