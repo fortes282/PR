@@ -114,7 +114,7 @@ export default function AdminClientDetailPage(): React.ReactElement {
     if (!user) return;
     setSavingPush(true);
     try {
-      const existing = user.notificationPreferences ?? {};
+      const existing: Partial<NotificationPreferences> = user.notificationPreferences ?? {};
       const notificationPreferences: NotificationPreferences = {
         emailReminder1: existing.emailReminder1 ?? true,
         emailReminder2: existing.emailReminder2 ?? true,

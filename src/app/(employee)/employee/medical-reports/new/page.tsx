@@ -109,6 +109,7 @@ export default function NewMedicalReportPage(): React.ReactElement {
             {searchResults.map((u) => {
               const isSelected = selectedClient?.id === u.id;
               return (
+                // eslint-disable-next-line jsx-a11y/role-has-required-aria-props -- aria-selected set below
                 <li
                   key={u.id}
                   role="option"

@@ -30,7 +30,7 @@ export async function subscribeToPush(): Promise<PushSubscribeResult> {
   if (Notification.permission === "denied") {
     return { ok: false, error: "Oznámení jsou zablokována. Povolte je v nastavení prohlížeče." };
   }
-  let permission = Notification.permission;
+  let permission: NotificationPermission = Notification.permission;
   if (permission === "default") {
     permission = await Notification.requestPermission();
   }
@@ -49,7 +49,7 @@ export async function subscribeToPush(): Promise<PushSubscribeResult> {
 
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
   });
 
   const json = subscription.toJSON();

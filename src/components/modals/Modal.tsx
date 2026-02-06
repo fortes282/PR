@@ -40,6 +40,7 @@ export function Modal({ open, onClose, title, children }: ModalProps): React.Rea
     }, DURATION_MS);
   }, [onClose]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- handleClose from useCallback above
   useEffect(() => {
     if (!open) return;
     const handleEscape = (e: KeyboardEvent) => {
@@ -47,8 +48,6 @@ export function Modal({ open, onClose, title, children }: ModalProps): React.Rea
     };
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-    // handleClose is stable via useCallback
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, handleClose]);
 
   if (!open && !exiting) return null;

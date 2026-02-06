@@ -28,6 +28,8 @@ export default function EmployeeCalendarPage(): React.ReactElement {
   const fromStr = rangeStart.toISOString();
   const toStr = rangeEnd.toISOString();
 
+  // fromStr/toStr are stable serialized dates; rangeStart/rangeEnd would re-run every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!employeeId) return;
     Promise.all([
@@ -39,8 +41,6 @@ export default function EmployeeCalendarPage(): React.ReactElement {
         setUsers(u.users);
       })
       .finally(() => setLoading(false));
-    // fromStr/toStr are stable serialized dates; rangeStart/rangeEnd would re-run every render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [employeeId, fromStr, toStr]);
 
   const userMap = useMemo(() => new Map(users.map((u) => [u.id, u.name])), [users]);

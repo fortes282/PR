@@ -23,6 +23,7 @@ export default function ClientSettingsPage(): React.ReactElement {
   const [saving, setSaving] = useState(false);
   const [pushStatus, setPushStatus] = useState<"idle" | "loading" | "subscribed" | "error">("idle");
   const [pushError, setPushError] = useState<string | null>(null);
+  const pushLoading = pushStatus === "loading";
 
   const loadUser = useCallback(() => {
     if (!session?.userId) return;
@@ -185,27 +186,27 @@ export default function ClientSettingsPage(): React.ReactElement {
           </p>
           <div className="flex flex-wrap items-center gap-2">
             {pushStatus === "subscribed" ? (
-              <>
-                <span className="text-sm text-success-600">Push jsou povoleny</span>
-                <button
-                  type="button"
-                  className="btn-secondary text-sm"
-                  onClick={handleDisablePush}
-                  disabled={pushStatus === "loading"}
-                >
-                  Zrušit push
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="btn-primary text-sm"
-                  onClick={handleEnablePush}
-                  disabled={pushStatus === "loading"}
-                >
-                  {pushStatus === "loading" ? "Načítám…" : "Povolit push notifikace"}
-                </button>
+                <>
+                  <span className="text-sm text-success-600">Push jsou povoleny</span>
+                  <button
+                    type="button"
+                    className="btn-secondary text-sm"
+                    onClick={handleDisablePush}
+                    disabled={pushLoading}
+                  >
+                    Zrušit push
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="btn-primary text-sm"
+                    onClick={handleEnablePush}
+                    disabled={pushLoading}
+                  >
+                    {pushStatus === "loading" ? "Načítám…" : "Povolit push notifikace"}
+                  </button>
                 {pushStatus === "error" && pushError && (
                   <span className="text-sm text-error-600" role="alert">
                     {pushError}
