@@ -1,7 +1,7 @@
 /**
  * Fastify API server. Persistent SQLite store; port 3001.
  */
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import { initDb } from "./db/client.js";
@@ -12,6 +12,22 @@ import { persistAll } from "./db/persist.js";
 import { users } from "./db/schema.js";
 import { store } from "./store.js";
 import { seed } from "./seed.js";
+import authRoutes from "./routes/auth.js";
+import usersRoutes from "./routes/users.js";
+import servicesRoutes from "./routes/services.js";
+import roomsRoutes from "./routes/rooms.js";
+import appointmentsRoutes from "./routes/appointments.js";
+import creditsRoutes from "./routes/credits.js";
+import availabilityRoutes from "./routes/availability.js";
+import bookingActivationsRoutes from "./routes/booking-activations.js";
+import billingRoutes from "./routes/billing.js";
+import invoicesRoutes from "./routes/invoices.js";
+import bankTransactionsRoutes from "./routes/bank-transactions.js";
+import waitlistRoutes from "./routes/waitlist.js";
+import reportsRoutes from "./routes/reports.js";
+import notificationsRoutes from "./routes/notifications.js";
+import settingsRoutes from "./routes/settings.js";
+import statsRoutes from "./routes/stats.js";
 
 const PORT = Number(process.env.PORT ?? 3001);
 
@@ -58,27 +74,27 @@ async function main() {
     }
   });
 
-  const registerRoutes = async (load: () => Promise<Record<string, unknown>>) => {
-    const m = await load();
-    const fn = m.default as (instance: FastifyInstance) => Promise<void>;
-    await app.register(async (instance: FastifyInstance) => { await fn(instance); });
-  };
-  await registerRoutes(() => import("./routes/auth.js"));
-  await registerRoutes(() => import("./routes/users.js"));
-  await registerRoutes(() => import("./routes/services.js"));
-  await registerRoutes(() => import("./routes/rooms.js"));
-  await registerRoutes(() => import("./routes/appointments.js"));
-  await registerRoutes(() => import("./routes/credits.js"));
-  await registerRoutes(() => import("./routes/availability.js"));
-  await registerRoutes(() => import("./routes/booking-activations.js"));
-  await registerRoutes(() => import("./routes/billing.js"));
-  await registerRoutes(() => import("./routes/invoices.js"));
-  await registerRoutes(() => import("./routes/bank-transactions.js"));
-  await registerRoutes(() => import("./routes/waitlist.js"));
-  await registerRoutes(() => import("./routes/reports.js"));
-  await registerRoutes(() => import("./routes/notifications.js"));
-  await registerRoutes(() => import("./routes/settings.js"));
-  await registerRoutes(() => import("./routes/stats.js"));
+  const routeModules = [
+    authRoutes,
+    usersRoutes,
+    servicesRoutes,
+    roomsRoutes,
+    appointmentsRoutes,
+    creditsRoutes,
+    availabilityRoutes,
+    bookingActivationsRoutes,
+    billingRoutes,
+    invoicesRoutes,
+    bankTransactionsRoutes,
+    waitlistRoutes,
+    reportsRoutes,
+    notificationsRoutes,
+    settingsRoutes,
+    statsRoutes,
+  ];
+  for (const fn of routeModules) {
+    await app.register(fn);
+  }
 
   await app.listen({ port: PORT, host: "0.0.0.0" });
   console.log(`API listening on http://localhost:${PORT}`);
