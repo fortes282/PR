@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AppointmentSchema } from "./appointments";
+import { AppointmentSchema } from "./appointments.js";
 
 export const BillingReportSchema = z.object({
   id: z.string(),

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "pnpm --filter @pristav/shared build && tsc",
     "start": "node dist/index.js",
     "build:sqlite": "node -e \"const path=require('path'); const r=require.resolve('better-sqlite3/package.json'); require('child_process').execSync('npm run install', { cwd: path.dirname(r), stdio: 'inherit' })\""
   },

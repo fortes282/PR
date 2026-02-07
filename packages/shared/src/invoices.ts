@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { InvoiceIssuerSchema } from "./settings";
+import { InvoiceIssuerSchema } from "./settings.js";
 
 export const InvoiceStatusSchema = z.enum(["DRAFT", "SENT", "PAID", "OVERDUE"]);
 export type InvoiceStatus = z.infer<typeof InvoiceStatusSchema>;

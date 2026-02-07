@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Role } from "./auth";
+import { Role } from "./auth.js";
 
 export const WorkingHoursSlotSchema = z.object({
   dayOfWeek: z.number().int().min(1).max(7),
