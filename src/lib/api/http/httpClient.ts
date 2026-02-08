@@ -69,10 +69,13 @@ function getToken(): string | null {
   }
 }
 
+const RETRY_DELAYS_502 = [3000, 5000]; // ms, for Railway sleep wake-up
+
 async function fetchApi<T>(
   baseUrl: string,
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryCount = 0
 ): Promise<T> {
   const url = `${baseUrl.replace(/\/$/, "")}${path}`;
   const token = getToken();
@@ -81,7 +84,20 @@ async function fetchApi<T>(
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
-  const res = await fetch(url, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(url, { ...options, headers });
+  } catch (err) {
+    if (retryCount < RETRY_DELAYS_502.length) {
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS_502[retryCount]));
+      return fetchApi<T>(baseUrl, path, options, retryCount + 1);
+    }
+    throw err;
+  }
+  if (res.status === 502 && retryCount < RETRY_DELAYS_502.length) {
+    await new Promise((r) => setTimeout(r, RETRY_DELAYS_502[retryCount]));
+    return fetchApi<T>(baseUrl, path, options, retryCount + 1);
+  }
   if (!res.ok) {
     const text = await res.text();
     throw new Error(res.status === 401 ? "Unauthorized" : text || `HTTP ${res.status}`);

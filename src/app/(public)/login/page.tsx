@@ -17,6 +17,10 @@ export default function LoginPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
+    if (baseUrl && process.env.NEXT_PUBLIC_API_MODE === "http") {
+      fetch(`${baseUrl}/ping`).catch(() => {});
+    }
     api.auth.me().then((res) => {
       if (res) router.replace(getDefaultRoute(res.session.role));
     });

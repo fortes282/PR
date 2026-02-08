@@ -278,6 +278,8 @@ pnpm start
 
 **Kontrola:** Otevři URL api → `{"ok":true,"service":"api"}`. Otevři `/ping` → `{"ok":true,"ts":...}`. API health check může používat `/ping` (bez DB).
 
+**Railway sleep (free tier):** Služby mohou usínat. Po probuzení první požadavky mohou vracet 502. Frontend má retry (3s, 5s) pro 502. Přihlašovací stránka volá `/ping` při načtení pro pre-warm. Pokud přihlášení nefunguje, zkus to znovu za 5–10 s nebo vypni sleep v nastavení služby.
+
 ---
 
 ## 6. How to use the system
