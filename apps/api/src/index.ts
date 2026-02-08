@@ -47,8 +47,10 @@ async function main() {
 
   const app = Fastify({ logger: true });
 
+  const corsOrigin = process.env.CORS_ORIGIN;
+  const corsOrigins = corsOrigin ? corsOrigin.split(",").map((o) => o.trim()) : undefined;
   await app.register(cors, {
-    origin: true,
+    origin: corsOrigins ?? true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   });

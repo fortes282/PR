@@ -263,7 +263,7 @@ pnpm start
 |-----------|---------|
 | Build Command | `pnpm install && pnpm --filter api build` |
 | Start Command | `pnpm --filter api start` |
-| Variables | `DATABASE_PATH=/data/pristav.db`, `JWT_SECRET` (silný secret) |
+| Variables | `DATABASE_PATH=/data/pristav.db`, `JWT_SECRET` (silný secret), `CORS_ORIGIN=https://web-production-21de7.up.railway.app` (URL web služby) |
 | Volume | Mount path `/data`, připojit ke službě api |
 
 **Služba web:**

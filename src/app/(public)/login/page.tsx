@@ -36,7 +36,11 @@ export default function LoginPage(): React.ReactElement {
       router.push(getDefaultRoute(session.role));
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Přihlášení selhalo");
+      const msg = e instanceof Error ? e.message : "Přihlášení selhalo";
+      const hint = msg.includes("502") || msg.includes("Failed") || msg.includes("fetch")
+        ? " API může spát (Railway). Zkuste to znovu za 10–15 s."
+        : "";
+      setError(msg + hint);
     } finally {
       setLoading(false);
     }

@@ -69,7 +69,7 @@ function getToken(): string | null {
   }
 }
 
-const RETRY_DELAYS_502 = [3000, 5000]; // ms, for Railway sleep wake-up
+const RETRY_DELAYS_502 = [5000, 10000, 15000]; // ms, for Railway sleep wake-up
 
 async function fetchApi<T>(
   baseUrl: string,
