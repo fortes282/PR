@@ -253,6 +253,31 @@ pnpm start
 - [ ] Ensure API is reachable from the browser (same domain or CORS and correct base URL).
 - [ ] (Optional) Add medical reports, behavior scores, and client profile log to the backend if you need them in HTTP mode.
 
+### 5.5 Railway deployment
+
+**Dvě služby z jednoho repa:** web (Next.js) a api (Fastify). Obě mají Root Directory prázdné.
+
+**Služba api:**
+
+| Nastavení | Hodnota |
+|-----------|---------|
+| Build Command | `pnpm install && pnpm --filter api build` |
+| Start Command | `pnpm --filter api start` |
+| Variables | `DATABASE_PATH=/data/pristav.db`, `JWT_SECRET` (silný secret) |
+| Volume | Mount path `/data`, připojit ke službě api |
+
+**Služba web:**
+
+| Nastavení | Hodnota |
+|-----------|---------|
+| Build Command | `pnpm install && pnpm run build` |
+| Start Command | `pnpm run start` |
+| Variables | `NEXT_PUBLIC_API_MODE=http`, `NEXT_PUBLIC_API_BASE_URL=https://TVAJE-API-URL.up.railway.app` |
+
+**Důležité:** `NEXT_PUBLIC_*` nastavuj **jen u web služby**, ne u api. Po změně env u webu je třeba **Redeploy** (build vkládá tyto hodnoty).
+
+**Kontrola:** Otevři URL api → `{"ok":true,"service":"api"}`. Otevři `/ping` → `{"ok":true,"ts":...}`. API health check může používat `/ping` (bez DB).
+
 ---
 
 ## 6. How to use the system

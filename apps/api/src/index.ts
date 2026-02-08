@@ -47,7 +47,11 @@ async function main() {
 
   const app = Fastify({ logger: true });
 
-  await app.register(cors, { origin: true });
+  await app.register(cors, {
+    origin: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  });
   await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
 
   app.setErrorHandler((err: Error & { statusCode?: number; code?: string }, _request, reply) => {
@@ -59,6 +63,8 @@ async function main() {
   });
 
   app.get("/", async () => ({ ok: true, service: "api" }));
+
+  app.get("/ping", async () => ({ ok: true, ts: Date.now() }));
 
   app.get("/health", async (_request, reply) => {
     try {
