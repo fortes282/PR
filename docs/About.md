@@ -262,7 +262,7 @@ pnpm start
 | Nastavení | Hodnota |
 |-----------|---------|
 | Build Command | `pnpm install && pnpm --filter api build` |
-| Start Command | `pnpm --filter api start` |
+| Start Command | `cd apps/api && node dist/index.js` |
 | Variables | `DATABASE_PATH=/data/pristav.db`, `JWT_SECRET` (silný secret), `CORS_ORIGIN=https://web-production-21de7.up.railway.app` (URL web služby) |
 | Volume | Mount path `/data`, připojit ke službě api |
 
@@ -283,6 +283,8 @@ pnpm start
 **Railway sleep (hobby plan):** Služby mohou usínat; sleep nelze vypnout na hobby plánu. 502 znamená, že API nereaguje. Možnosti: (a) upgrade na Pro plan pro vypnutí sleep, (b) nasadit API na Render/Fly.io (mají free tier bez sleep), (c) zkusit znovu po 15–30 s (probouzení může trvat).
 
 **Diagnostika 502:** Proxy vrací detail při chybě. Pokud vidíš „Backend unreachable“, API neběží. Zkontroluj API službu: Deployments → poslední build → Deploy Logs. Hledej „API listening“ nebo chyby při startu. Ověř Build/Start Command a že Volume je připojen.
+
+**SIGTERM po startu:** Na Railway používá `pnpm start` pnpm jako hlavní proces, který zachytává SIGTERM a kontejner padá. Použij místo toho `cd apps/api && node dist/index.js` jako Start Command – Node poběží přímo a správně zpracuje signály.
 
 ---
 
