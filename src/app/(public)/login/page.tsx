@@ -17,10 +17,10 @@ export default function LoginPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
-    if (baseUrl && process.env.NEXT_PUBLIC_API_MODE === "http") {
-      fetch(`${baseUrl}/ping`).catch(() => {});
-    }
+    if (process.env.NEXT_PUBLIC_API_MODE !== "http") return;
+    const useProxy = process.env.NEXT_PUBLIC_USE_API_PROXY === "true";
+    const pingUrl = useProxy ? "/api/proxy/ping" : `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "")}/ping`;
+    if (pingUrl) fetch(pingUrl).catch(() => {});
     api.auth.me().then((res) => {
       if (res) router.replace(getDefaultRoute(res.session.role));
     });
@@ -76,9 +76,12 @@ export default function LoginPage(): React.ReactElement {
           <div className="mt-2 space-y-1" role="alert">
             <p className="text-sm text-red-600">{error}</p>
             <p className="text-xs text-gray-500">
-              API: {process.env.NEXT_PUBLIC_API_MODE === "http" ? "HTTP" : "mock"} →{" "}
+              API: {process.env.NEXT_PUBLIC_API_MODE === "http" ? "HTTP" : "mock"}
+              {process.env.NEXT_PUBLIC_USE_API_PROXY === "true" ? " (proxy)" : ""} →{" "}
               {process.env.NEXT_PUBLIC_API_MODE === "http"
-                ? process.env.NEXT_PUBLIC_API_BASE_URL || "(nevyplněno)"
+                ? process.env.NEXT_PUBLIC_USE_API_PROXY === "true"
+                  ? "/api/proxy"
+                  : process.env.NEXT_PUBLIC_API_BASE_URL || "(nevyplněno)"
                 : "lokální mock"}
             </p>
           </div>

@@ -272,7 +272,9 @@ pnpm start
 |-----------|---------|
 | Build Command | `pnpm install && pnpm run build` |
 | Start Command | `pnpm run start` |
-| Variables | `NEXT_PUBLIC_API_MODE=http`, `NEXT_PUBLIC_API_BASE_URL=https://TVAJE-API-URL.up.railway.app` |
+| Variables | `NEXT_PUBLIC_API_MODE=http`, `NEXT_PUBLIC_API_BASE_URL=https://TVAJE-API-URL.up.railway.app`, `NEXT_PUBLIC_USE_API_PROXY=true` |
+
+**Doporučení:** `NEXT_PUBLIC_USE_API_PROXY=true` obchází CORS a 502 z přímého volání API – požadavky jdou přes Next.js proxy (same-origin).
 
 **Důležité:** `NEXT_PUBLIC_*` nastavuj **jen u web služby**, ne u api. Po změně env u webu je třeba **Redeploy** (build vkládá tyto hodnoty).
 

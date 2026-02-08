@@ -214,7 +214,9 @@ export type ApiClient = {
 };
 
 const apiMode = process.env.NEXT_PUBLIC_API_MODE ?? "mock";
-const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+const useProxy = process.env.NEXT_PUBLIC_USE_API_PROXY === "true";
+const directUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+const baseUrl = apiMode === "http" && useProxy ? "/api/proxy" : directUrl;
 
 const apiInstance =
   apiMode === "http" ? new HttpApiClient(baseUrl) : new MockApiClient();
