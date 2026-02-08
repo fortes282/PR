@@ -5,6 +5,13 @@
 const BACKEND_URL =
   process.env.API_BACKEND_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
 
+function errorResponse(status: number, message: string, detail?: string): Response {
+  return Response.json(
+    { code: "PROXY_ERROR", message, detail },
+    { status }
+  );
+}
+
 async function proxy(request: Request, pathSegments: string[]): Promise<Response> {
   const path = pathSegments.join("/");
   const url = `${BACKEND_URL.replace(/\/$/, "")}/${path}${request.url.includes("?") ? "?" + new URL(request.url).searchParams.toString() : ""}`;
@@ -28,11 +35,18 @@ async function proxy(request: Request, pathSegments: string[]): Promise<Response
     }
   }
 
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body ?? undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method,
+      headers,
+      body: body ?? undefined,
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return errorResponse(503, "Backend unreachable", msg);
+  }
 
   const resHeaders = new Headers();
   res.headers.forEach((value, key) => {
@@ -56,26 +70,35 @@ async function getPath(context: RouteContext): Promise<string[]> {
   return params.path;
 }
 
+async function handle(request: Request, context: RouteContext): Promise<Response> {
+  try {
+    return await proxy(request, await getPath(context));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return errorResponse(500, "Proxy error", msg);
+  }
+}
+
 export async function GET(request: Request, context: RouteContext): Promise<Response> {
-  return proxy(request, await getPath(context));
+  return handle(request, context);
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
-  return proxy(request, await getPath(context));
+  return handle(request, context);
 }
 
 export async function PUT(request: Request, context: RouteContext): Promise<Response> {
-  return proxy(request, await getPath(context));
+  return handle(request, context);
 }
 
 export async function PATCH(request: Request, context: RouteContext): Promise<Response> {
-  return proxy(request, await getPath(context));
+  return handle(request, context);
 }
 
 export async function DELETE(request: Request, context: RouteContext): Promise<Response> {
-  return proxy(request, await getPath(context));
+  return handle(request, context);
 }
 
 export async function OPTIONS(request: Request, context: RouteContext): Promise<Response> {
-  return proxy(request, await getPath(context));
+  return handle(request, context);
 }

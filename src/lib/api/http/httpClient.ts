@@ -100,7 +100,14 @@ async function fetchApi<T>(
   }
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(res.status === 401 ? "Unauthorized" : text || `HTTP ${res.status}`);
+    let msg = text || `HTTP ${res.status}`;
+    try {
+      const json = JSON.parse(text) as { detail?: string; message?: string };
+      if (json.detail) msg = `${json.message ?? msg}: ${json.detail}`;
+    } catch {
+      // use text as-is
+    }
+    throw new Error(res.status === 401 ? "Unauthorized" : msg);
   }
   if (res.headers.get("content-type")?.includes("application/json")) {
     return res.json() as Promise<T>;

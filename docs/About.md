@@ -280,7 +280,9 @@ pnpm start
 
 **Kontrola:** Otevři URL api → `{"ok":true,"service":"api"}`. Otevři `/ping` → `{"ok":true,"ts":...}`. API health check může používat `/ping` (bez DB).
 
-**Railway sleep (free tier):** Služby mohou usínat. Po probuzení první požadavky mohou vracet 502. Frontend má retry (3s, 5s) pro 502. Přihlašovací stránka volá `/ping` při načtení pro pre-warm. Pokud přihlášení nefunguje, zkus to znovu za 5–10 s nebo vypni sleep v nastavení služby.
+**Railway sleep (hobby plan):** Služby mohou usínat; sleep nelze vypnout na hobby plánu. 502 znamená, že API nereaguje. Možnosti: (a) upgrade na Pro plan pro vypnutí sleep, (b) nasadit API na Render/Fly.io (mají free tier bez sleep), (c) zkusit znovu po 15–30 s (probouzení může trvat).
+
+**Diagnostika 502:** Proxy vrací detail při chybě. Pokud vidíš „Backend unreachable“, API neběží. Zkontroluj API službu: Deployments → poslední build → Deploy Logs. Hledej „API listening“ nebo chyby při startu. Ověř Build/Start Command a že Volume je připojen.
 
 ---
 
