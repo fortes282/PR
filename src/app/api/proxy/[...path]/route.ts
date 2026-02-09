@@ -19,7 +19,13 @@ async function proxy(request: Request, pathSegments: string[]): Promise<Response
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     const lower = key.toLowerCase();
-    if (lower !== "host" && lower !== "connection" && lower !== "origin" && lower !== "referer") {
+    if (
+      lower !== "host" &&
+      lower !== "connection" &&
+      lower !== "origin" &&
+      lower !== "referer" &&
+      lower !== "accept-encoding"
+    ) {
       headers.set(key, value);
     }
   });
@@ -51,7 +57,12 @@ async function proxy(request: Request, pathSegments: string[]): Promise<Response
   const resHeaders = new Headers();
   res.headers.forEach((value, key) => {
     const lower = key.toLowerCase();
-    if (lower !== "transfer-encoding" && lower !== "connection") {
+    if (
+      lower !== "transfer-encoding" &&
+      lower !== "connection" &&
+      lower !== "content-encoding" &&
+      lower !== "content-length"
+    ) {
       resHeaders.set(key, value);
     }
   });
