@@ -286,6 +286,10 @@ pnpm start
 
 **Render:** Bez persistent disk **nepřidávej** DATABASE_PATH, nebo API použije fallback (`./data/pristav.db`). S Render diskem nastav DATABASE_PATH na mount path disku (např. disk mount = `/data` → `DATABASE_PATH=/data/pristav.db`).
 
+**401 při přihlášení:** API vrací 401, když DB nemá žádné uživatele (prázdná tabulka). Na Renderu s ephemeral storage se DB resetuje při každém restartu. Řešení: přidej persistent disk na Renderu pro API, nebo po každém restartu API proveď první request (seed se spustí automaticky při startu, pokud je DB prázdná – ověř v logu „Database empty: seeded“).
+
+**Diagnostika proxy:** Otevři `https://TVŮJ-WEB-URL/api/proxy/__debug` – zobrazí, na jakou URL proxy posílá a jestli backend odpovídá.
+
 **SIGTERM po startu:** Na Railway používá `pnpm start` pnpm jako hlavní proces, který zachytává SIGTERM a kontejner padá. Použij místo toho `cd apps/api && node dist/index.js` jako Start Command – Node poběží přímo a správně zpracuje signály.
 
 ---

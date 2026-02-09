@@ -37,9 +37,12 @@ export default function LoginPage(): React.ReactElement {
       router.refresh();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Přihlášení selhalo";
-      const hint = msg.includes("502") || msg.includes("Failed") || msg.includes("fetch")
-        ? " API může spát (Railway). Zkuste to znovu za 10–15 s."
-        : "";
+      let hint = "";
+      if (msg.includes("502") || msg.includes("Failed") || msg.includes("fetch")) {
+        hint = " API může spát. Zkuste to znovu za 10–15 s.";
+      } else if (msg.includes("Unauthorized") || msg.includes("401")) {
+        hint = " API vrací 401 – prázdná DB? Restartuj API na Renderu nebo přidej persistent disk.";
+      }
       setError(msg + hint);
     } finally {
       setLoading(false);

@@ -71,8 +71,25 @@ async function getPath(context: RouteContext): Promise<string[]> {
 }
 
 async function handle(request: Request, context: RouteContext): Promise<Response> {
+  const path = await getPath(context);
+  if (path[0] === "__debug") {
+    try {
+      const res = await fetch(`${BACKEND_URL.replace(/\/$/, "")}/ping`, { signal: AbortSignal.timeout(5000) });
+      return Response.json({
+        ok: true,
+        backend: BACKEND_URL.replace(/\/\/[^/]+@/, "//***@").replace(/:[^/:]+\./, ":***."),
+        ping: res.ok ? "ok" : `status ${res.status}`,
+      });
+    } catch (err) {
+      return Response.json({
+        ok: false,
+        backend: BACKEND_URL.replace(/\/\/[^/]+@/, "//***@").replace(/:[^/:]+\./, ":***."),
+        error: err instanceof Error ? err.message : String(err),
+      }, { status: 503 });
+    }
+  }
   try {
-    return await proxy(request, await getPath(context));
+    return await proxy(request, path);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return errorResponse(500, "Proxy error", msg);
