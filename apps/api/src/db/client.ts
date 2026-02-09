@@ -8,7 +8,7 @@ import * as path from "path";
 import * as schema from "./schema.js";
 
 const defaultPath = path.join(process.cwd(), "data", "pristav.db");
-const dbPath = process.env.DATABASE_PATH ?? defaultPath;
+const configuredPath = process.env.DATABASE_PATH ?? defaultPath;
 
 function ensureDir(dir: string): void {
   if (!fs.existsSync(dir)) {
@@ -16,16 +16,35 @@ function ensureDir(dir: string): void {
   }
 }
 
+function resolveDbPath(): string {
+  const candidates = [configuredPath, defaultPath];
+  for (const p of candidates) {
+    try {
+      const dir = path.dirname(p);
+      ensureDir(dir);
+      return p;
+    } catch (err) {
+      const code = err instanceof Error && "code" in err ? (err as NodeJS.ErrnoException).code : null;
+      if (code === "EACCES" || code === "EPERM") {
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error(`Cannot create database directory for ${configuredPath} or ${defaultPath}`);
+}
+
 let sqlite: Database.Database | null = null;
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+let dbPath: string | null = null;
 
 export function getDbPath(): string {
-  return dbPath;
+  return dbPath ?? configuredPath;
 }
 
 export function initDb(): Database.Database {
   if (sqlite) return sqlite;
-  ensureDir(path.dirname(dbPath));
+  dbPath = resolveDbPath();
   sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");

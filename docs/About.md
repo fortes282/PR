@@ -284,6 +284,8 @@ pnpm start
 
 **Diagnostika 502:** Proxy vrací detail při chybě. Pokud vidíš „Backend unreachable“, API neběží. Zkontroluj API službu: Deployments → poslední build → Deploy Logs. Hledej „API listening“ nebo chyby při startu. Ověř Build/Start Command a že Volume je připojen.
 
+**Render:** Bez persistent disk **nepřidávej** DATABASE_PATH, nebo API použije fallback (`./data/pristav.db`). S Render diskem nastav DATABASE_PATH na mount path disku (např. disk mount = `/data` → `DATABASE_PATH=/data/pristav.db`).
+
 **SIGTERM po startu:** Na Railway používá `pnpm start` pnpm jako hlavní proces, který zachytává SIGTERM a kontejner padá. Použij místo toho `cd apps/api && node dist/index.js` jako Start Command – Node poběží přímo a správně zpracuje signály.
 
 ---
