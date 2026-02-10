@@ -78,3 +78,11 @@ export type Settings = z.infer<typeof SettingsSchema>;
 
 export const SettingsUpdateSchema = SettingsSchema.partial();
 export type SettingsUpdate = z.infer<typeof SettingsUpdateSchema>;
+
+/** Body for sending a test email from the configured notification sender. */
+export const TestEmailBodySchema = z.object({
+  to: z.string().email(),
+  subject: z.string().min(1),
+  text: z.string(),
+});
+export type TestEmailBody = z.infer<typeof TestEmailBodySchema>;

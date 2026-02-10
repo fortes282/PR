@@ -47,7 +47,7 @@ import type {
   ReportVisibilityUpdate,
 } from "@/lib/contracts/reports";
 import type { WaitingListEntry, WaitlistSuggestion } from "@/lib/contracts/waitlist";
-import type { Settings, SettingsUpdate } from "@/lib/contracts/settings";
+import type { Settings, SettingsUpdate, TestEmailBody } from "@/lib/contracts/settings";
 import type { OccupancyStat, CancellationStat, ClientTagStat } from "@/lib/contracts/stats";
 import type { BehaviorEvaluationRecord, SentCommunication, SentCommunicationListParams, ClientRecommendation } from "@/lib/contracts/admin-background";
 import type { ClientProfileLogEntry, ClientProfileLogKind, ClientProfileLogListParams } from "@/lib/contracts";
@@ -1203,6 +1203,10 @@ export class MockApiClient implements ApiClient {
       ensureSeed();
       db.settings = { ...db.settings, ...data };
       return { ...db.settings };
+    },
+    sendTestEmail: async (_body: TestEmailBody): Promise<void> => {
+      ensureSeed();
+      // V mocku e-mail neodesíláme; v reálném režimu (http) volá backend POST /settings/test-email.
     },
   };
 

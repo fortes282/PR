@@ -9,6 +9,7 @@ import type {
   SmsFaynConfig,
   ReservationNotificationTiming,
   PushNotificationConfig,
+  TestEmailBody,
 } from "@/lib/contracts/settings";
 
 const emptyIssuer: InvoiceIssuer = {
@@ -50,6 +51,9 @@ export default function AdminSettingsPage(): React.ReactElement {
   const [reservationTiming, setReservationTiming] = useState<ReservationNotificationTiming>(emptyTiming);
   const [pushConfig, setPushConfig] = useState<PushNotificationConfig>(emptyPush);
   const [saving, setSaving] = useState(false);
+  const [testEmail, setTestEmail] = useState<TestEmailBody>({ to: "", subject: "", text: "" });
+  const [testEmailSending, setTestEmailSending] = useState(false);
+  const [testEmailMessage, setTestEmailMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     api.settings.get().then((s) => {
@@ -107,6 +111,31 @@ export default function AdminSettingsPage(): React.ReactElement {
   };
 
   const isServerMode = process.env.NEXT_PUBLIC_API_MODE === "http";
+
+  const handleSendTestEmail = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!testEmail.to || !testEmail.subject.trim()) {
+      setTestEmailMessage({ type: "error", text: "Vyplňte e-mail adresáta a předmět." });
+      return;
+    }
+    setTestEmailMessage(null);
+    setTestEmailSending(true);
+    try {
+      await api.settings.sendTestEmail({
+        to: testEmail.to,
+        subject: testEmail.subject.trim(),
+        text: testEmail.text.trim() || "(prázdná zpráva)",
+      });
+      setTestEmailMessage({ type: "success", text: "Testovací e-mail byl odeslán." });
+    } catch (err) {
+      setTestEmailMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Odeslání selhalo.",
+      });
+    } finally {
+      setTestEmailSending(false);
+    }
+  };
 
   if (!settings) return <p className="text-gray-600">Načítám…</p>;
 
@@ -257,7 +286,7 @@ export default function AdminSettingsPage(): React.ReactElement {
         <section className="card max-w-lg space-y-4 p-4">
           <h2 className="font-medium text-gray-900">Oznámení – odesílatel e-mailů</h2>
           <p className="text-sm text-gray-600">
-            E-mailová adresa a jméno, ze kterého se odesílají všechny notifikační e-maily.
+            E-mailová adresa a jméno, ze kterého se odesílají všechny notifikační e-maily. Pro reálné odesílání nastavte na serveru SMTP (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) – viz .env.example.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <label>
@@ -285,6 +314,64 @@ export default function AdminSettingsPage(): React.ReactElement {
               />
             </label>
           </div>
+        </section>
+
+        <section className="card max-w-lg space-y-4 p-4">
+          <h2 className="font-medium text-gray-900">Testovací e-mail</h2>
+          <p className="text-sm text-gray-600">
+            Odešle jeden e-mail z nastaveného odesílatele na zadanou adresu. Slouží k ověření SMTP a zobrazení jména/adresy odesílatele. V režimu mock se e-mail neodesílá; použijte režim http a nastavte SMTP na backendu.
+          </p>
+          <form onSubmit={handleSendTestEmail} className="space-y-3">
+            <label>
+              <span className="block text-sm font-medium text-gray-700">Adresát</span>
+              <input
+                type="email"
+                className="input mt-1 w-full"
+                value={testEmail.to}
+                onChange={(e) => setTestEmail((p) => ({ ...p, to: e.target.value }))}
+                placeholder="vas@email.cz"
+                required
+              />
+            </label>
+            <label>
+              <span className="block text-sm font-medium text-gray-700">Předmět</span>
+              <input
+                type="text"
+                className="input mt-1 w-full"
+                value={testEmail.subject}
+                onChange={(e) => setTestEmail((p) => ({ ...p, subject: e.target.value }))}
+                placeholder="Test Přístav radosti"
+              />
+            </label>
+            <label>
+              <span className="block text-sm font-medium text-gray-700">Zpráva</span>
+              <textarea
+                className="input mt-1 w-full min-h-[100px] resize-y"
+                value={testEmail.text}
+                onChange={(e) => setTestEmail((p) => ({ ...p, text: e.target.value }))}
+                placeholder="Toto je testovací e-mail…"
+                rows={4}
+              />
+            </label>
+            {testEmailMessage && (
+              <p
+                className={`text-sm ${testEmailMessage.type === "success" ? "text-success-600" : "text-error-600"}`}
+                role="alert"
+              >
+                {testEmailMessage.text}
+              </p>
+            )}
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={testEmailSending || !notificationEmailSender.email}
+            >
+              {testEmailSending ? "Odesílám…" : "Odeslat testovací e-mail"}
+            </button>
+            {!notificationEmailSender.email && (
+              <p className="text-sm text-gray-500">Nejprve vyplňte e-mail odesílatele výše a uložte nastavení.</p>
+            )}
+          </form>
         </section>
 
         <section className="card max-w-lg space-y-4 p-4">

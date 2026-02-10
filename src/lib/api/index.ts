@@ -43,7 +43,7 @@ import type {
   WaitingListEntry,
   WaitlistSuggestion,
 } from "@/lib/contracts/waitlist";
-import type { Settings, SettingsUpdate } from "@/lib/contracts/settings";
+import type { Settings, SettingsUpdate, TestEmailBody } from "@/lib/contracts/settings";
 import type { Invoice, InvoiceCreate, InvoiceUpdate, InvoiceListParams } from "@/lib/contracts/invoices";
 import type { BankTransaction, BankTransactionListParams } from "@/lib/contracts/bank-transactions";
 import type {
@@ -198,6 +198,8 @@ export type ApiClient = {
   settings: {
     get: () => Promise<Settings>;
     update: (data: SettingsUpdate) => Promise<Settings>;
+    /** Send test email from configured sender (admin only, requires SMTP env). */
+    sendTestEmail: (body: TestEmailBody) => Promise<void>;
   };
   stats: {
     occupancy: (params: { from: string; to: string }) => Promise<OccupancyStat[]>;

@@ -45,7 +45,7 @@ import type {
   ReportVisibilityUpdate,
 } from "@/lib/contracts/reports";
 import type { WaitingListEntry, WaitlistSuggestion } from "@/lib/contracts/waitlist";
-import type { Settings, SettingsUpdate } from "@/lib/contracts/settings";
+import type { Settings, SettingsUpdate, TestEmailBody } from "@/lib/contracts/settings";
 import type { OccupancyStat, CancellationStat, ClientTagStat } from "@/lib/contracts/stats";
 import type {
   BehaviorEvaluationRecord,
@@ -103,12 +103,13 @@ async function fetchApi<T>(
     let msg = text || `HTTP ${res.status}`;
     try {
       const json = JSON.parse(text) as { detail?: string; message?: string };
-      if (json.detail) msg = `${json.message ?? msg}: ${json.detail}`;
+      if (json.message) msg = json.detail ? `${json.message}: ${json.detail}` : json.message;
     } catch {
       // use text as-is
     }
     throw new Error(res.status === 401 ? "Unauthorized" : msg);
   }
+  if (res.status === 204) return undefined as T;
   if (res.headers.get("content-type")?.includes("application/json")) {
     return res.json() as Promise<T>;
   }
@@ -620,6 +621,12 @@ export class HttpApiClient implements ApiClient {
      */
     update: async (data: SettingsUpdate) =>
       fetchApi<Settings>(this.baseUrl, "/settings", { method: "PUT", body: JSON.stringify(data) }),
+    /**
+     * POST /settings/test-email
+     * Body: TestEmailBody (admin only; requires SMTP env on server)
+     */
+    sendTestEmail: async (body: TestEmailBody) =>
+      fetchApi<void>(this.baseUrl, "/settings/test-email", { method: "POST", body: JSON.stringify(body) }),
   };
 
   stats = {
