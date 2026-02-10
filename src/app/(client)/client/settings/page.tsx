@@ -21,6 +21,7 @@ export default function ClientSettingsPage(): React.ReactElement {
   const [user, setUser] = useState<User | null>(null);
   const [prefs, setPrefs] = useState<NotificationPreferences>(defaultPrefs);
   const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const [pushStatus, setPushStatus] = useState<"idle" | "loading" | "subscribed" | "error">("idle");
   const [pushError, setPushError] = useState<string | null>(null);
   const pushLoading = pushStatus === "loading";
@@ -80,10 +81,13 @@ export default function ClientSettingsPage(): React.ReactElement {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
+    setJustSaved(false);
     try {
       const updated = await api.users.update(user.id, { notificationPreferences: prefs });
       setUser(updated);
       setPrefs(updated.notificationPreferences ? { ...defaultPrefs, ...updated.notificationPreferences } : defaultPrefs);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 1200);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Chyba při ukládání");
     } finally {
@@ -116,7 +120,10 @@ export default function ClientSettingsPage(): React.ReactElement {
         Zde můžete zapnout nebo vypnout jednotlivé typy oznámení (e-mail, SMS, push).
       </p>
 
-      <form onSubmit={handleSave} className="card max-w-lg space-y-6 p-4">
+      <form
+        onSubmit={handleSave}
+        className={`card max-w-lg space-y-6 p-4 ${justSaved ? "animate-success-flash" : ""}`}
+      >
         <section>
           <h2 className="mb-3 font-medium text-gray-900">Připomínky rezervací</h2>
           <div className="space-y-3">

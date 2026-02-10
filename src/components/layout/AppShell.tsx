@@ -21,6 +21,7 @@ import {
   Bell,
   LogOut,
   Cpu,
+  Anchor,
 } from "lucide-react";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { useSession } from "@/lib/auth/useSession";
@@ -132,16 +133,22 @@ export function AppShell({ children }: { children: React.ReactNode }): React.Rea
             : "w-full border-b border-gray-200 bg-white md:w-56 md:border-b-0 md:border-r"
         }
       >
-        <div className="p-4">
+        <div className="flex items-center justify-between gap-3 p-4">
           <Link
             href={getDefaultRoute(session.role)}
-            className="font-semibold text-sky-700 hover:underline"
+            className="group flex items-center gap-2"
           >
-            Přístav Radosti
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-sky-600 text-white shadow-sm transition-transform duration-fast group-hover:-translate-y-0.5">
+              <Anchor className="h-4 w-4" aria-hidden />
+            </span>
+            <span className="font-semibold text-sky-800 transition-colors duration-fast group-hover:text-sky-900">
+              Přístav Radosti
+            </span>
           </Link>
-          <p className="mt-1 text-xs text-gray-500">
-            {user.name} · {session.role}
-          </p>
+          <div className="text-right">
+            <p className="text-xs font-medium text-gray-700">{user.name}</p>
+            <p className="text-[11px] text-gray-500">{session.role}</p>
+          </div>
         </div>
         <nav className="flex flex-wrap gap-1 p-2 md:flex-col">
           {nav.map((item) => {
@@ -153,7 +160,7 @@ export function AppShell({ children }: { children: React.ReactNode }): React.Rea
                 href={item.href}
                 className={`nav-item-active-indicator relative flex min-h-[44px] min-w-[44px] items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-fast focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
                   active
-                    ? "bg-sky-100 font-medium text-sky-800"
+                    ? "nav-item-active-indicator-active bg-sky-100 font-medium text-sky-800"
                     : "text-gray-700 hover:bg-gray-100"
                 } border-l-2 ${active ? "border-primary-500" : "border-transparent"}`}
               >
@@ -166,7 +173,7 @@ export function AppShell({ children }: { children: React.ReactNode }): React.Rea
             href="/notifications"
             className={`nav-item-active-indicator relative flex min-h-[44px] min-w-[44px] items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-fast focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
               pathname === "/notifications"
-                ? "bg-sky-100 font-medium text-sky-800 border-l-2 border-primary-500"
+                ? "nav-item-active-indicator-active bg-sky-100 font-medium text-sky-800 border-l-2 border-primary-500"
                 : "text-gray-700 hover:bg-gray-100 border-l-2 border-transparent"
             }`}
           >
@@ -223,10 +230,10 @@ export function AppShell({ children }: { children: React.ReactNode }): React.Rea
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-h-[44px] flex-1 flex-col items-center justify-center gap-1 py-3 text-xs transition-colors duration-fast focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-inset ${
+                className={`flex min-h-[44px] flex-1 flex-col items-center justify-center gap-1 py-3 text-xs transition-all duration-fast focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-inset ${
                   active
-                    ? "bg-sky-50 font-medium text-sky-700"
-                    : "text-gray-600 hover:bg-gray-50"
+                    ? "bg-sky-50 font-medium text-sky-700 scale-105"
+                    : "text-gray-600 hover:bg-gray-50 hover:-translate-y-0.5 active:translate-y-0"
                 }`}
               >
                 <Icon className="h-5 w-5 shrink-0" size={20} aria-hidden />

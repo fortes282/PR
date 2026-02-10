@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { CalendarClock, Wallet, ChevronRight, CalendarPlus } from "lucide-react";
+import { CalendarClock, Wallet, ChevronRight, CalendarPlus, Anchor } from "lucide-react";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
 import { formatCzk } from "@/lib/utils/money";
@@ -66,7 +66,24 @@ export default function ClientDashboardPage(): React.ReactElement {
 
   return (
     <section className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Přehled</h1>
+      <motion.div
+        variants={item}
+        initial="hidden"
+        animate="visible"
+        className="card card-hover-lift relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary-500 to-sky-600 p-6 text-white shadow-sm"
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Vítejte v Přístavu radosti</h1>
+            <p className="mt-1 text-sm text-sky-100">
+              Rychlý přehled vašich termínů a kreditů – vše na jednom místě.
+            </p>
+          </div>
+          <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 shadow-inner">
+            <Anchor className="h-6 w-6 text-sky-50" aria-hidden />
+          </div>
+        </div>
+      </motion.div>
 
       <motion.div
         className="grid gap-4 md:grid-cols-2"

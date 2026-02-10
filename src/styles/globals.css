@@ -85,10 +85,27 @@ h1, h2, h3 {
   @apply font-display;
 }
 
-/* Nav active indicator (animated pill/underline) */
+/* Nav active indicator (animated pill + underline) */
 @media (prefers-reduced-motion: no-preference) {
   .nav-item-active-indicator {
+    position: relative;
+    overflow: hidden;
     @apply transition-all duration-fast ease-out;
+  }
+  .nav-item-active-indicator::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, theme("colors.primary.100"), theme("colors.primary.50"));
+    opacity: 0;
+    transform: translateX(-8px);
+    z-index: -1;
+    transition: opacity var(--duration-fast) ease-out, transform var(--duration-fast) ease-out;
+  }
+  .nav-item-active-indicator-active::before {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
