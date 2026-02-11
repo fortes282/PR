@@ -365,7 +365,12 @@ export default function AdminSettingsPage(): React.ReactElement {
           <p className="text-sm text-gray-600">
             Odešle jeden e-mail z nastaveného odesílatele na zadanou adresu. Slouží k ověření SMTP a zobrazení jména/adresy odesílatele. V režimu mock se e-mail neodesílá; použijte režim http a nastavte SMTP na backendu.
           </p>
-          <form onSubmit={handleSendTestEmail} className="space-y-3">
+          <div
+            className="space-y-3"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.preventDefault();
+            }}
+          >
             <label>
               <span className="block text-sm font-medium text-gray-700">Adresát</span>
               <input
@@ -406,9 +411,17 @@ export default function AdminSettingsPage(): React.ReactElement {
               </p>
             )}
             <button
-              type="submit"
+              type="button"
               className="btn-primary"
               disabled={testEmailSending || (!notificationEmailSender.email && !isServerMode)}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!testEmail.to || !testEmail.subject.trim()) {
+                  setTestEmailMessage({ type: "error", text: "Vyplňte e-mail adresáta a předmět." });
+                  return;
+                }
+                handleSendTestEmail(e);
+              }}
             >
               {testEmailSending ? "Odesílám…" : "Odeslat testovací e-mail"}
             </button>
@@ -421,7 +434,7 @@ export default function AdminSettingsPage(): React.ReactElement {
             <p className="text-sm text-gray-500">
               Nepřišel e-mail? Zkontrolujte složku <strong>Spam</strong>, správnost adresy adresáta a v logách serveru (Render) hledejte „Test email sent to …“ – pokud tam je, server e-mail předal SMTP.
             </p>
-          </form>
+          </div>
         </section>
 
         <section className="card max-w-lg space-y-4 p-4">
