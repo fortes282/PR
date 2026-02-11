@@ -611,7 +611,7 @@ export default function AdminSettingsPage(): React.ReactElement {
         <section className="card max-w-lg space-y-4 p-4">
           <h2 className="font-medium text-gray-900">Push notifikace</h2>
           <p className="text-sm text-gray-600">
-            Web Push (VAPID). Veřejný klíč pro odběr na klientech; soukromý klíč pouze na serveru.
+            Na serveru nastavte VAPID_PUBLIC_KEY a VAPID_PRIVATE_KEY (npx web-push generate-vapid-keys). Veřejný klíč můžete přepsat níže.
           </p>
           <label className="flex items-center gap-2">
             <input
@@ -620,10 +620,10 @@ export default function AdminSettingsPage(): React.ReactElement {
               onChange={(e) => setPushConfig((p) => ({ ...p, enabled: e.target.checked }))}
               className="rounded border-gray-300"
             />
-            <span className="text-sm font-medium text-gray-700">Push notifikace zapnuty</span>
+            <span className="text-sm font-medium text-gray-700">Push zapnuty</span>
           </label>
           <label>
-            <span className="block text-sm text-gray-600">VAPID veřejný klíč (base64url)</span>
+            <span className="block text-sm text-gray-600">VAPID veřejný klíč (volitelné, jinak z env)</span>
             <input
               type="text"
               className="input mt-1 w-full font-mono text-sm"
@@ -665,6 +665,7 @@ export default function AdminSettingsPage(): React.ReactElement {
           </div>
           <label>
             <span className="block text-sm text-gray-600">Ikona (URL)</span>
+            <p className="text-xs text-gray-500">Hlavní obrázek v notifikaci (např. logo aplikace).</p>
             <input
               type="url"
               className="input mt-1 w-full"
@@ -675,6 +676,7 @@ export default function AdminSettingsPage(): React.ReactElement {
           </label>
           <label>
             <span className="block text-sm text-gray-600">Badge (URL)</span>
+            <p className="text-xs text-gray-500">Malá ikona u notifikace nebo u ikony aplikace (např. počet nepřečtených).</p>
             <input
               type="url"
               className="input mt-1 w-full"
@@ -699,9 +701,6 @@ export default function AdminSettingsPage(): React.ReactElement {
           {isServerMode && (
             <div className="mt-4 space-y-2 border-t border-gray-200 pt-4">
               <p className="text-sm font-medium text-gray-700">Testovací push</p>
-              <p className="text-xs text-gray-600">
-                Na serveru nastavte VAPID_PUBLIC_KEY a VAPID_PRIVATE_KEY (např. npx web-push generate-vapid-keys). Veřejný klíč můžete vyplnit i zde výše.
-              </p>
               <div className="flex flex-wrap items-end gap-2">
                 <label className="flex flex-col gap-1">
                   <span className="text-xs text-gray-600">Odeslat klientovi</span>

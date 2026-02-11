@@ -74,6 +74,7 @@ const clientBottomNav: NavItem[] = [
   { href: "/client/book", label: "Rezervace", icon: CalendarPlus },
   { href: "/client/credits", label: "Kredity", icon: Wallet },
   { href: "/client/reports", label: "Zprávy", icon: FileText },
+  { href: "/client/settings", label: "Nastavení", icon: Settings },
 ];
 
 function navForRole(role: Role): NavItem[] {
