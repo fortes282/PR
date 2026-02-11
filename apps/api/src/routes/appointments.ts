@@ -224,6 +224,14 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
       reply.status(404).send({ code: "NOT_FOUND", message: "Appointment not found" });
       return;
     }
+    if (appointment.status === "CANCELLED") {
+      reply.status(409).send({ code: "CONFLICT", message: "Cannot complete a cancelled appointment" });
+      return;
+    }
+    if (appointment.status === "COMPLETED") {
+      reply.status(409).send({ code: "CONFLICT", message: "Appointment already completed" });
+      return;
+    }
     const updated = { ...appointment, status: "COMPLETED" as const };
     persistAppointment(store, updated);
     reply.send(updated);

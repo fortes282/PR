@@ -1291,8 +1291,14 @@ export class MockApiClient implements ApiClient {
         const q = params.recipientName.toLowerCase();
         filtered = filtered.filter((c) => c.recipientName.toLowerCase().includes(q));
       }
-      if (params?.from) filtered = filtered.filter((c) => c.sentAt >= params.from!);
-      if (params?.to) filtered = filtered.filter((c) => c.sentAt <= params.to!);
+      if (params?.from) {
+        const fromVal = params.from.length === 10 ? `${params.from}T00:00:00.000Z` : params.from;
+        filtered = filtered.filter((c) => c.sentAt >= fromVal);
+      }
+      if (params?.to) {
+        const toVal = params.to.length === 10 ? `${params.to}T23:59:59.999Z` : params.to;
+        filtered = filtered.filter((c) => c.sentAt <= toVal);
+      }
       if (params?.messageText) {
         const q = params.messageText.toLowerCase();
         filtered = filtered.filter(

@@ -7,6 +7,7 @@ import type { SentCommunication } from "@/lib/contracts/admin-background";
 export default function AdminBackgroundCommunicationPage(): React.ReactElement {
   const [list, setList] = useState<SentCommunication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [recipientName, setRecipientName] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -14,6 +15,7 @@ export default function AdminBackgroundCommunicationPage(): React.ReactElement {
 
   const load = useCallback(() => {
     setLoading(true);
+    setError(null);
     api.admin
       .getSentCommunications({
         recipientName: recipientName || undefined,
@@ -22,6 +24,7 @@ export default function AdminBackgroundCommunicationPage(): React.ReactElement {
         messageText: messageText || undefined,
       })
       .then(setList)
+      .catch((e) => setError(e instanceof Error ? e.message : "Chyba načtení"))
       .finally(() => setLoading(false));
   }, [recipientName, from, to, messageText]);
 
@@ -88,6 +91,7 @@ export default function AdminBackgroundCommunicationPage(): React.ReactElement {
         </button>
       </div>
 
+      {error && <p className="mb-2 text-red-600" role="alert">{error}</p>}
       {loading ? (
         <p className="text-gray-600">Načítám…</p>
       ) : (

@@ -46,11 +46,12 @@ describe("RBAC getDefaultRoute()", () => {
 });
 
 describe("RBAC canAccessRoute()", () => {
-  it("allows ADMIN only on /admin paths", () => {
+  it("allows ADMIN on /admin and /reception paths, not /client or /employee", () => {
     expect(canAccessRoute("ADMIN", "/admin/users")).toBe(true);
     expect(canAccessRoute("ADMIN", "/admin/settings")).toBe(true);
-    expect(canAccessRoute("ADMIN", "/reception/calendar")).toBe(false);
+    expect(canAccessRoute("ADMIN", "/reception/calendar")).toBe(true);
     expect(canAccessRoute("ADMIN", "/client/dashboard")).toBe(false);
+    expect(canAccessRoute("ADMIN", "/employee/calendar")).toBe(false);
   });
 
   it("allows RECEPTION only on /reception paths", () => {

@@ -20,12 +20,19 @@ const TYPE_LABELS: Record<RecommendationType, string> = {
 export default function AdminBackgroundRecommendationsPage(): React.ReactElement {
   const [list, setList] = useState<ClientRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.admin.getRecommendations().then(setList).finally(() => setLoading(false));
+    setError(null);
+    api.admin
+      .getRecommendations()
+      .then(setList)
+      .catch((e) => setError(e instanceof Error ? e.message : "Chyba načtení"))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <p className="text-gray-600">Načítám…</p>;
+  if (error) return <p className="text-red-600" role="alert">{error}</p>;
 
   return (
     <section>

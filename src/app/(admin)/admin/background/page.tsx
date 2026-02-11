@@ -9,20 +9,26 @@ export default function AdminBackgroundPage(): React.ReactElement {
   const [evaluations, setEvaluations] = useState<BehaviorEvaluationRecord[]>([]);
   const [users, setUsers] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setError(null);
     Promise.all([
       api.admin.getBehaviorEvaluations(),
       api.users.list({}).then((r) => r.users),
-    ]).then(([evals, userList]) => {
-      setEvaluations(evals);
-      const map = new Map<string, string>();
-      userList.forEach((u: User) => map.set(u.id, u.name));
-      setUsers(map);
-    }).finally(() => setLoading(false));
+    ])
+      .then(([evals, userList]) => {
+        setEvaluations(evals);
+        const map = new Map<string, string>();
+        userList.forEach((u: User) => map.set(u.id, u.name));
+        setUsers(map);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Chyba načtení"))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <p className="text-gray-600">Načítám…</p>;
+  if (error) return <p className="text-red-600" role="alert">{error}</p>;
 
   return (
     <section>
