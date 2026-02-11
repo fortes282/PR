@@ -154,12 +154,15 @@ export default function AdminSettingsPage(): React.ReactElement {
     setTestEmailMessage(null);
     setTestEmailSending(true);
     try {
-      await api.settings.sendTestEmail({
-        to: testEmail.to,
+      const result = await api.settings.sendTestEmail({
+        to: testEmail.to.trim(),
         subject: testEmail.subject.trim(),
         text: testEmail.text.trim() || "(prázdná zpráva)",
       });
-      setTestEmailMessage({ type: "success", text: "Testovací e-mail byl odeslán." });
+      setTestEmailMessage({
+        type: "success",
+        text: result ? `Testovací e-mail byl odeslán na ${result.to}. Zkontrolujte i složku Spam.` : "Testovací e-mail byl odeslán.",
+      });
     } catch (err) {
       setTestEmailMessage({
         type: "error",
@@ -415,6 +418,9 @@ export default function AdminSettingsPage(): React.ReactElement {
             {isServerMode && !notificationEmailSender.email && (
               <p className="text-sm text-gray-500">Odesílatel se bere z SMTP_USER na serveru. Změna env se projeví po restartu API.</p>
             )}
+            <p className="text-sm text-gray-500">
+              Nepřišel e-mail? Zkontrolujte složku <strong>Spam</strong>, správnost adresy adresáta a v logách serveru (Render) hledejte „Test email sent to …“ – pokud tam je, server e-mail předal SMTP.
+            </p>
           </form>
         </section>
 

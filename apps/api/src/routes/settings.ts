@@ -120,7 +120,8 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
           subject: parse.data.subject,
           text: parse.data.text,
         });
-        reply.status(204).send();
+        request.log.info({ to: parse.data.to }, "Test email sent");
+        reply.send({ sent: true, to: parse.data.to });
       } catch (err) {
         request.log.error(err, "Test email send failed");
         reply.status(502).send({

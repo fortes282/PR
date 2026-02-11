@@ -1220,9 +1220,10 @@ export class MockApiClient implements ApiClient {
         details: `Odesílatel: ${sender.name ? `${sender.name} <${sender.email}>` : sender.email}.`,
       };
     },
-    sendTestEmail: async (_body: TestEmailBody): Promise<void> => {
+    sendTestEmail: async (body: TestEmailBody): Promise<{ sent: true; to: string }> => {
       ensureSeed();
       // V mocku e-mail neodesíláme; v reálném režimu (http) volá backend POST /settings/test-email.
+      return { sent: true, to: body.to };
     },
   };
 
