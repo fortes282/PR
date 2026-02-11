@@ -7,7 +7,18 @@ import { getSmtpTransport, isSmtpConfigured, verifySmtpConnection } from "../lib
 
 export default async function settingsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/settings", { preHandler: [authMiddleware] }, async (_request: FastifyRequest, reply: FastifyReply) => {
-    reply.send({ ...store.settings });
+    const fromEnv = process.env.SMTP_USER?.trim();
+    const fromSettings = store.settings.notificationEmailSender;
+    const effectiveEmail = fromEnv || fromSettings?.email?.trim();
+    const effectiveName = fromSettings?.name?.trim();
+    const effectiveNotificationEmailSender =
+      effectiveEmail ?
+        { email: effectiveEmail, name: effectiveName ?? undefined, fromEnv: Boolean(fromEnv) }
+      : undefined;
+    reply.send({
+      ...store.settings,
+      ...(effectiveNotificationEmailSender ? { effectiveNotificationEmailSender } : {}),
+    });
   });
 
   app.get(

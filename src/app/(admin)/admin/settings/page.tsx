@@ -58,6 +58,7 @@ export default function AdminSettingsPage(): React.ReactElement {
   const [testEmailMessage, setTestEmailMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [emailStatus, setEmailStatus] = useState<{ ok: boolean; message: string; details?: string } | null>(null);
   const [emailStatusChecking, setEmailStatusChecking] = useState(false);
+  const [emailFromEnv, setEmailFromEnv] = useState(false);
 
   useEffect(() => {
     api.settings.get().then((s) => {
@@ -67,9 +68,17 @@ export default function AdminSettingsPage(): React.ReactElement {
       setInvoiceNumberNext(s.invoiceNumberNext ?? 1);
       setInvoiceDueDays(s.invoiceDueDays ?? 14);
       setInvoiceIssuer(s.invoiceIssuer ? { ...emptyIssuer, ...s.invoiceIssuer } : emptyIssuer);
-      setNotificationEmailSender(
-        s.notificationEmailSender ? { ...emptyEmailSender, ...s.notificationEmailSender } : emptyEmailSender
-      );
+      const effective = (s as { effectiveNotificationEmailSender?: { email: string; name?: string; fromEnv: boolean } })
+        .effectiveNotificationEmailSender;
+      if (effective) {
+        setNotificationEmailSender({ email: effective.email, name: effective.name ?? "" });
+        setEmailFromEnv(effective.fromEnv);
+      } else {
+        setNotificationEmailSender(
+          s.notificationEmailSender ? { ...emptyEmailSender, ...s.notificationEmailSender } : emptyEmailSender
+        );
+        setEmailFromEnv(false);
+      }
       setSmsFaynConfig(s.smsFaynConfig ? { ...emptySmsFayn, ...s.smsFaynConfig } : emptySmsFayn);
       setReservationTiming(s.reservationNotificationTiming ? { ...emptyTiming, ...s.reservationNotificationTiming } : emptyTiming);
       setPushConfig(s.pushNotificationConfig ? { ...emptyPush, ...s.pushNotificationConfig } : emptyPush);
@@ -108,6 +117,12 @@ export default function AdminSettingsPage(): React.ReactElement {
       });
       const s = await api.settings.get();
       setSettings(s);
+      const effectiveAfterSave = (s as { effectiveNotificationEmailSender?: { email: string; name?: string; fromEnv: boolean } })
+        .effectiveNotificationEmailSender;
+      if (effectiveAfterSave) {
+        setNotificationEmailSender({ email: effectiveAfterSave.email, name: effectiveAfterSave.name ?? "" });
+        setEmailFromEnv(effectiveAfterSave.fromEnv);
+      }
       try {
         const status = await api.settings.getEmailStatus();
         setEmailStatus(status);
@@ -134,6 +149,13 @@ export default function AdminSettingsPage(): React.ReactElement {
     try {
       const status = await api.settings.getEmailStatus();
       setEmailStatus(status);
+      const s = await api.settings.get();
+      const effective = (s as { effectiveNotificationEmailSender?: { email: string; name?: string; fromEnv: boolean } })
+        .effectiveNotificationEmailSender;
+      if (effective) {
+        setNotificationEmailSender((prev) => ({ ...prev, email: effective.email, name: effective.name ?? prev.name ?? "" }));
+        setEmailFromEnv(effective.fromEnv);
+      }
     } catch (err) {
       setEmailStatus({
         ok: false,
@@ -336,6 +358,9 @@ export default function AdminSettingsPage(): React.ReactElement {
                 }
                 placeholder="notifikace@example.cz"
               />
+              {emailFromEnv && (
+                <p className="mt-1 text-xs text-gray-500">E-mail se načítá z SMTP_USER v prostředí serveru.</p>
+              )}
             </label>
             <label>
               <span className="block text-sm font-medium text-gray-700">Jméno odesílatele</span>
