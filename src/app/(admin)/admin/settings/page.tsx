@@ -59,6 +59,8 @@ export default function AdminSettingsPage(): React.ReactElement {
   const [emailStatus, setEmailStatus] = useState<{ ok: boolean; message: string; details?: string } | null>(null);
   const [emailStatusChecking, setEmailStatusChecking] = useState(false);
   const [emailFromEnv, setEmailFromEnv] = useState(false);
+  const [vapidFromEnv, setVapidFromEnv] = useState(false);
+  const [effectiveVapidPublicKey, setEffectiveVapidPublicKey] = useState<string | null>(null);
   const [testPushSending, setTestPushSending] = useState(false);
   const [testPushMessage, setTestPushMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
@@ -85,7 +87,16 @@ export default function AdminSettingsPage(): React.ReactElement {
       }
       setSmsFaynConfig(s.smsFaynConfig ? { ...emptySmsFayn, ...s.smsFaynConfig } : emptySmsFayn);
       setReservationTiming(s.reservationNotificationTiming ? { ...emptyTiming, ...s.reservationNotificationTiming } : emptyTiming);
-      setPushConfig(s.pushNotificationConfig ? { ...emptyPush, ...s.pushNotificationConfig } : emptyPush);
+      const push = s.pushNotificationConfig ? { ...emptyPush, ...s.pushNotificationConfig } : emptyPush;
+      setPushConfig(push);
+      const effectivePush = (s as { effectivePushVapid?: { vapidPublicKey: string; fromEnv: boolean } }).effectivePushVapid;
+      if (effectivePush) {
+        setEffectiveVapidPublicKey(effectivePush.vapidPublicKey);
+        setVapidFromEnv(effectivePush.fromEnv);
+      } else {
+        setEffectiveVapidPublicKey(null);
+        setVapidFromEnv(false);
+      }
     });
   }, []);
 
@@ -107,17 +118,15 @@ export default function AdminSettingsPage(): React.ReactElement {
           notificationEmailSender.email ? notificationEmailSender : undefined,
         smsFaynConfig: smsFaynConfig.enabled || smsFaynConfig.username ? smsFaynConfig : undefined,
         reservationNotificationTiming: reservationTiming,
-        pushNotificationConfig:
-          pushConfig.enabled || pushConfig.vapidPublicKey || pushConfig.promptClientToEnablePush !== undefined
-            ? {
-                ...pushConfig,
-                vapidPublicKey: pushConfig.vapidPublicKey || undefined,
-                defaultTtlSeconds: pushConfig.defaultTtlSeconds || undefined,
-                badge: pushConfig.badge || undefined,
-                icon: pushConfig.icon || undefined,
-                promptClientToEnablePush: pushConfig.promptClientToEnablePush,
-              }
-            : undefined,
+        pushNotificationConfig: {
+          enabled: pushConfig.enabled,
+          vapidPublicKey: vapidFromEnv ? undefined : (pushConfig.vapidPublicKey || undefined),
+          defaultTtlSeconds: pushConfig.defaultTtlSeconds || undefined,
+          requireInteraction: pushConfig.requireInteraction,
+          badge: pushConfig.badge || undefined,
+          icon: pushConfig.icon || undefined,
+          promptClientToEnablePush: pushConfig.promptClientToEnablePush,
+        },
       });
       const s = await api.settings.get();
       setSettings(s);
@@ -126,6 +135,15 @@ export default function AdminSettingsPage(): React.ReactElement {
       if (effectiveAfterSave) {
         setNotificationEmailSender({ email: effectiveAfterSave.email, name: effectiveAfterSave.name ?? "" });
         setEmailFromEnv(effectiveAfterSave.fromEnv);
+      }
+      setPushConfig(s.pushNotificationConfig ? { ...emptyPush, ...s.pushNotificationConfig } : emptyPush);
+      const effectivePushAfter = (s as { effectivePushVapid?: { vapidPublicKey: string; fromEnv: boolean } }).effectivePushVapid;
+      if (effectivePushAfter) {
+        setEffectiveVapidPublicKey(effectivePushAfter.vapidPublicKey);
+        setVapidFromEnv(effectivePushAfter.fromEnv);
+      } else {
+        setEffectiveVapidPublicKey(null);
+        setVapidFromEnv(false);
       }
       try {
         const status = await api.settings.getEmailStatus();
@@ -622,18 +640,31 @@ export default function AdminSettingsPage(): React.ReactElement {
             />
             <span className="text-sm font-medium text-gray-700">Push zapnuty</span>
           </label>
-          <label>
-            <span className="block text-sm text-gray-600">VAPID veřejný klíč (volitelné, jinak z env)</span>
-            <input
-              type="text"
-              className="input mt-1 w-full font-mono text-sm"
-              value={pushConfig.vapidPublicKey ?? ""}
-              onChange={(e) =>
-                setPushConfig((p) => ({ ...p, vapidPublicKey: e.target.value || undefined }))
-              }
-              placeholder="BN…"
-            />
-          </label>
+          <p className="text-xs text-gray-500">
+            Když je zapnuto, klienti mohou odběr push notifikací a server může odesílat připomínky. Vypnutím zakážete push pro celou aplikaci (výzva k odběru se nebude zobrazovat).
+          </p>
+          {vapidFromEnv ? (
+            <div className="space-y-1">
+              <span className="block text-sm text-gray-600">VAPID veřejný klíč</span>
+              <p className="text-sm text-gray-600 font-mono break-all bg-gray-50 border border-gray-200 rounded px-2 py-1.5">
+                {effectiveVapidPublicKey ?? "—"}
+              </p>
+              <p className="text-xs text-gray-500">Načteno z proměnné prostředí VAPID_PUBLIC_KEY. Pro změnu upravte env na serveru.</p>
+            </div>
+          ) : (
+            <label>
+              <span className="block text-sm text-gray-600">VAPID veřejný klíč (volitelné, jinak z env)</span>
+              <input
+                type="text"
+                className="input mt-1 w-full font-mono text-sm"
+                value={pushConfig.vapidPublicKey ?? ""}
+                onChange={(e) =>
+                  setPushConfig((p) => ({ ...p, vapidPublicKey: e.target.value || undefined }))
+                }
+                placeholder="BN…"
+              />
+            </label>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <label>
               <span className="block text-sm text-gray-600">TTL (s)</span>

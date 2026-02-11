@@ -9,7 +9,12 @@ import { getVapidPublicKey, isPushConfigured, sendPush } from "../lib/push.js";
 
 export default async function pushRoutes(app: FastifyInstance): Promise<void> {
   app.get("/push-config", async (_request: FastifyRequest, reply: FastifyReply) => {
-    const fromSettings = store.settings.pushNotificationConfig?.vapidPublicKey;
+    const pushConfig = store.settings.pushNotificationConfig;
+    if (pushConfig?.enabled !== true) {
+      reply.send({ vapidPublicKey: null });
+      return;
+    }
+    const fromSettings = pushConfig.vapidPublicKey;
     const vapidPublicKey = getVapidPublicKey(fromSettings);
     reply.send({ vapidPublicKey });
   });

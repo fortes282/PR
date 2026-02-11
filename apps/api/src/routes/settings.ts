@@ -4,6 +4,7 @@ import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { persistSettings } from "../db/persist.js";
 import { getSmtpTransport, isSmtpConfigured, verifySmtpConnection } from "../lib/email.js";
+import { getVapidPublicKey } from "../lib/push.js";
 
 export default async function settingsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/settings", { preHandler: [authMiddleware] }, async (_request: FastifyRequest, reply: FastifyReply) => {
@@ -15,9 +16,18 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       effectiveEmail ?
         { email: effectiveEmail, name: effectiveName ?? undefined, fromEnv: Boolean(fromEnv) }
       : undefined;
+
+    const vapidFromEnv = Boolean(process.env.VAPID_PUBLIC_KEY?.trim());
+    const effectiveVapidPublicKey = getVapidPublicKey(store.settings.pushNotificationConfig?.vapidPublicKey);
+    const effectivePushVapid =
+      effectiveVapidPublicKey != null
+        ? { vapidPublicKey: effectiveVapidPublicKey, fromEnv: vapidFromEnv }
+        : undefined;
+
     reply.send({
       ...store.settings,
       ...(effectiveNotificationEmailSender ? { effectiveNotificationEmailSender } : {}),
+      ...(effectivePushVapid ? { effectivePushVapid } : {}),
     });
   });
 
@@ -76,7 +86,13 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       });
       return;
     }
-    const updated = { ...store.settings, ...parse.data };
+    let updated = { ...store.settings, ...parse.data };
+    if (process.env.VAPID_PUBLIC_KEY?.trim() && updated.pushNotificationConfig) {
+      updated = {
+        ...updated,
+        pushNotificationConfig: { ...updated.pushNotificationConfig, vapidPublicKey: undefined },
+      };
+    }
     persistSettings(store, updated);
     reply.send({ ...store.settings });
   });

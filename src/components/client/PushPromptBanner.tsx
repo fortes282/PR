@@ -30,9 +30,10 @@ export function PushPromptBanner(): React.ReactElement | null {
     ])
       .then(([settings, subscription]) => {
         if (cancelled) return;
+        const pushEnabled = settings.pushNotificationConfig?.enabled === true;
         const promptEnabled = settings.pushNotificationConfig?.promptClientToEnablePush !== false;
         const notSubscribed = !subscription;
-        setShow(Boolean(promptEnabled && notSubscribed));
+        setShow(Boolean(pushEnabled && promptEnabled && notSubscribed));
       })
       .catch(() => {
         if (!cancelled) setShow(false);
