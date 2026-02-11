@@ -319,11 +319,11 @@ export default function AdminSettingsPage(): React.ReactElement {
         <section className="card max-w-lg space-y-4 p-4">
           <h2 className="font-medium text-gray-900">Oznámení – odesílatel e-mailů</h2>
           <p className="text-sm text-gray-600">
-            E-mailová adresa a jméno, ze kterého se odesílají všechny notifikační e-maily. Pro reálné odesílání nastavte na serveru SMTP (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) – viz .env.example.
+            Odesílatel se načítá ze serveru: pokud je v prostředí nastaven <strong>SMTP_USER</strong>, použije se ten (stačí změnit env a restart API – bez úprav zde). Jinak se bere e-mail vyplněný níže. Jméno odesílatele můžete doplnit vždy. SMTP: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS – viz .env.example.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <label>
-              <span className="block text-sm font-medium text-gray-700">E-mail</span>
+              <span className="block text-sm font-medium text-gray-700">E-mail (volitelné, když je SMTP_USER na serveru)</span>
               <input
                 type="email"
                 className="input mt-1 w-full"
@@ -405,12 +405,15 @@ export default function AdminSettingsPage(): React.ReactElement {
             <button
               type="submit"
               className="btn-primary"
-              disabled={testEmailSending || !notificationEmailSender.email}
+              disabled={testEmailSending || (!notificationEmailSender.email && !isServerMode)}
             >
               {testEmailSending ? "Odesílám…" : "Odeslat testovací e-mail"}
             </button>
-            {!notificationEmailSender.email && (
+            {!notificationEmailSender.email && !isServerMode && (
               <p className="text-sm text-gray-500">Nejprve vyplňte e-mail odesílatele výše a uložte nastavení.</p>
+            )}
+            {isServerMode && !notificationEmailSender.email && (
+              <p className="text-sm text-gray-500">Odesílatel se bere z SMTP_USER na serveru. Změna env se projeví po restartu API.</p>
             )}
           </form>
         </section>

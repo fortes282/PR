@@ -14,12 +14,17 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
     "/settings/email-status",
     { preHandler: [authMiddleware] },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const sender = store.settings.notificationEmailSender;
-      if (!sender?.email?.trim()) {
+      const fromEnv = process.env.SMTP_USER?.trim();
+      const fromSettings = store.settings.notificationEmailSender;
+      const effectiveEmail = fromEnv || fromSettings?.email?.trim();
+      const effectiveName = fromSettings?.name?.trim();
+
+      if (!effectiveEmail) {
         reply.send({
           ok: false,
           message: "E-mail není dostupný",
-          details: "Vyplňte e-mail odesílatele v sekci „Oznámení – odesílatel e-mailů“ a uložte nastavení.",
+          details:
+            "Nastavte na serveru SMTP_USER v prostředí, nebo vyplňte e-mail odesílatele v sekci „Oznámení – odesílatel e-mailů“ a uložte nastavení.",
         });
         return;
       }
@@ -40,10 +45,12 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
         });
         return;
       }
+      const senderLabel = effectiveName ? `${effectiveName} <${effectiveEmail}>` : effectiveEmail;
+      const sourceHint = fromEnv ? " (e-mail z SMTP_USER v env)" : "";
       reply.send({
         ok: true,
         message: "E-mail je připraven",
-        details: `Odesílatel: ${sender.name ? `${sender.name} <${sender.email}>` : sender.email}. SMTP spojení v pořádku.`,
+        details: `Odesílatel: ${senderLabel}${sourceHint}. SMTP spojení v pořádku.`,
       });
     }
   );
@@ -81,11 +88,14 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
         });
         return;
       }
-      const sender = store.settings.notificationEmailSender;
-      if (!sender?.email) {
+      const fromEnv = process.env.SMTP_USER?.trim();
+      const fromSettings = store.settings.notificationEmailSender;
+      const effectiveEmail = fromEnv || fromSettings?.email?.trim();
+      if (!effectiveEmail) {
         reply.status(400).send({
           code: "SENDER_NOT_CONFIGURED",
-          message: "V Nastavení nejdříve vyplňte e-mail odesílatele (Oznámení – odesílatel e-mailů).",
+          message:
+            "Nastavte na serveru SMTP_USER v prostředí, nebo vyplňte e-mail odesílatele v sekci „Oznámení – odesílatel e-mailů“.",
         });
         return;
       }
@@ -102,9 +112,10 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
         reply.status(503).send({ code: "SMTP_ERROR", message: "SMTP transport není k dispozici." });
         return;
       }
+      const effectiveName = fromSettings?.name?.trim();
       try {
         await transport.sendMail({
-          from: sender.name ? { name: sender.name, address: sender.email } : sender.email,
+          from: effectiveName ? { name: effectiveName, address: effectiveEmail } : effectiveEmail,
           to: parse.data.to,
           subject: parse.data.subject,
           text: parse.data.text,
