@@ -676,7 +676,7 @@ export default function AdminSettingsPage(): React.ReactElement {
           </label>
           <label>
             <span className="block text-sm text-gray-600">Badge (URL)</span>
-            <p className="text-xs text-gray-500">Malá ikona u notifikace nebo u ikony aplikace (např. počet nepřečtených).</p>
+            <p className="text-xs text-gray-500">Jedna malá ikona (doporučeně 72×72 px), např. zjednodušené logo. Zobrazuje se u notifikace nebo na ikoně aplikace; prohlížeč/OS na ni někdy překryje číslo (počet).</p>
             <input
               type="url"
               className="input mt-1 w-full"
