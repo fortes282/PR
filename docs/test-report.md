@@ -39,7 +39,17 @@ Datum: 2026-02-11 (pokračování po prvním kole).
 - **Build:** `pnpm run build` – úspěšný, všech 40 route zbuilděno.
 - **Lint + typecheck + unit testy:** Prošly (včetně úpravy RBAC testu – ADMIN smí na /reception).
 
-## 4. Co dál (doporučené)
+## 4. Automatické API testy
+
+- **Skript:** `scripts/test-api.mjs`
+- **Spuštění:** `pnpm run test:api` (vyžaduje běžící API na http://localhost:3001, např. `pnpm dev:api`).
+- Ověřuje: ping, login, users, services, rooms, availability, bookable-days, vytvoření rezervace, complete (včetně 409 při opakování), kredity, adjust, billing report, waitlist, settings, stats, notifications, bank-transactions, reports, booking-activations.
+
+## 5. Další opravy
+
+- **bank-transactions match:** Při označení faktury jako zaplacené se nyní volá `persistInvoice(store, updated)` místo přímého `store.invoices.set`, aby se změna zapsala do DB.
+
+## 6. Co dál (doporučené)
 
 - Manuální E2E v prohlížeči: přihlášení podle rolí, rezervace (klient/recepce), kredity, čekací list, Admin → Pozadí algoritmů (přehled, komunikace, doporučení).
 - V HTTP módu: ověřit celý flow od přihlášení po vytvoření rezervace a zrušení v UI.

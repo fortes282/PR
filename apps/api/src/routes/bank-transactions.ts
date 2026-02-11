@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { BankTransactionListParamsSchema } from "@pristav/shared/bank-transactions";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { persistInvoice } from "../db/persist.js";
 
 export default async function bankTransactionsRoutes(app: FastifyInstance): Promise<void> {
   app.get(
@@ -41,7 +42,7 @@ export default async function bankTransactionsRoutes(app: FastifyInstance): Prom
         return;
       }
       const updated = { ...inv, status: "PAID" as const, paidAt: new Date().toISOString() };
-      store.invoices.set(invoiceId, updated);
+      persistInvoice(store, updated);
       reply.status(204).send();
     }
   );
