@@ -24,8 +24,18 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
         ? { vapidPublicKey: effectiveVapidPublicKey, fromEnv: vapidFromEnv }
         : undefined;
 
+    const settingsOut = { ...store.settings };
+    if (vapidFromEnv && settingsOut.pushNotificationConfig) {
+      const cleaned = { ...settingsOut.pushNotificationConfig, vapidPublicKey: undefined };
+      settingsOut.pushNotificationConfig = cleaned;
+      if (store.settings.pushNotificationConfig?.vapidPublicKey != null) {
+        store.settings.pushNotificationConfig = { ...store.settings.pushNotificationConfig!, vapidPublicKey: undefined };
+        persistSettings(store, { ...store.settings });
+      }
+    }
+
     reply.send({
-      ...store.settings,
+      ...settingsOut,
       ...(effectiveNotificationEmailSender ? { effectiveNotificationEmailSender } : {}),
       ...(effectivePushVapid ? { effectivePushVapid } : {}),
     });
