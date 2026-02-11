@@ -1204,6 +1204,22 @@ export class MockApiClient implements ApiClient {
       db.settings = { ...db.settings, ...data };
       return { ...db.settings };
     },
+    getEmailStatus: async (): Promise<{ ok: boolean; message: string; details?: string }> => {
+      ensureSeed();
+      const sender = db.settings.notificationEmailSender;
+      if (!sender?.email?.trim()) {
+        return {
+          ok: false,
+          message: "E-mail není dostupný",
+          details: "Vyplňte e-mail odesílatele v sekci „Oznámení – odesílatel e-mailů“ a uložte nastavení.",
+        };
+      }
+      return {
+        ok: true,
+        message: "E-mail je připraven (mock – reálné odesílání v režimu http)",
+        details: `Odesílatel: ${sender.name ? `${sender.name} <${sender.email}>` : sender.email}.`,
+      };
+    },
     sendTestEmail: async (_body: TestEmailBody): Promise<void> => {
       ensureSeed();
       // V mocku e-mail neodesíláme; v reálném režimu (http) volá backend POST /settings/test-email.

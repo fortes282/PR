@@ -54,6 +54,8 @@ export default function AdminSettingsPage(): React.ReactElement {
   const [testEmail, setTestEmail] = useState<TestEmailBody>({ to: "", subject: "", text: "" });
   const [testEmailSending, setTestEmailSending] = useState(false);
   const [testEmailMessage, setTestEmailMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [emailStatus, setEmailStatus] = useState<{ ok: boolean; message: string; details?: string } | null>(null);
+  const [emailStatusChecking, setEmailStatusChecking] = useState(false);
 
   useEffect(() => {
     api.settings.get().then((s) => {
@@ -75,6 +77,7 @@ export default function AdminSettingsPage(): React.ReactElement {
   const handleSave = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setSaving(true);
+    setEmailStatus(null);
     try {
       await api.settings.update({
         freeCancelHours,
@@ -103,6 +106,16 @@ export default function AdminSettingsPage(): React.ReactElement {
       });
       const s = await api.settings.get();
       setSettings(s);
+      try {
+        const status = await api.settings.getEmailStatus();
+        setEmailStatus(status);
+      } catch (statusErr) {
+        setEmailStatus({
+          ok: false,
+          message: "Kontrola stavu e-mailu selhala",
+          details: statusErr instanceof Error ? statusErr.message : "Nepodařilo se ověřit stav.",
+        });
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : "Chyba");
     } finally {
@@ -111,6 +124,23 @@ export default function AdminSettingsPage(): React.ReactElement {
   };
 
   const isServerMode = process.env.NEXT_PUBLIC_API_MODE === "http";
+
+  const handleCheckEmailStatus = async (): Promise<void> => {
+    setEmailStatusChecking(true);
+    setEmailStatus(null);
+    try {
+      const status = await api.settings.getEmailStatus();
+      setEmailStatus(status);
+    } catch (err) {
+      setEmailStatus({
+        ok: false,
+        message: "Kontrola stavu e-mailu selhala",
+        details: err instanceof Error ? err.message : "Nepodařilo se ověřit stav.",
+      });
+    } finally {
+      setEmailStatusChecking(false);
+    }
+  };
 
   const handleSendTestEmail = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -314,6 +344,14 @@ export default function AdminSettingsPage(): React.ReactElement {
               />
             </label>
           </div>
+          <button
+            type="button"
+            onClick={handleCheckEmailStatus}
+            disabled={emailStatusChecking}
+            className="btn-secondary text-sm"
+          >
+            {emailStatusChecking ? "Kontroluji…" : "Zkontrolovat stav e-mailu"}
+          </button>
         </section>
 
         <section className="card max-w-lg space-y-4 p-4">
@@ -577,6 +615,22 @@ export default function AdminSettingsPage(): React.ReactElement {
         <button type="submit" className="btn-primary" disabled={saving}>
           {saving ? "Ukládám…" : "Uložit vše"}
         </button>
+
+        {emailStatus && (
+          <div
+            className={`mt-4 rounded-lg border p-4 ${
+              emailStatus.ok
+                ? "border-success-500 bg-success-50 text-success-800"
+                : "border-error-500 bg-error-50 text-error-800"
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            <p className="font-medium">{emailStatus.ok ? "✓ E-mail online" : "✗ E-mail offline"}</p>
+            <p className="mt-1 text-sm">{emailStatus.message}</p>
+            {emailStatus.details && <p className="mt-2 text-sm opacity-90">{emailStatus.details}</p>}
+          </div>
+        )}
       </form>
     </div>
   );

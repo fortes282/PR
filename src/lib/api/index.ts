@@ -198,6 +198,8 @@ export type ApiClient = {
   settings: {
     get: () => Promise<Settings>;
     update: (data: SettingsUpdate) => Promise<Settings>;
+    /** Check if email/SMTP is ready (after save, to show status). */
+    getEmailStatus: () => Promise<{ ok: boolean; message: string; details?: string }>;
     /** Send test email from configured sender (admin only, requires SMTP env). */
     sendTestEmail: (body: TestEmailBody) => Promise<void>;
   };

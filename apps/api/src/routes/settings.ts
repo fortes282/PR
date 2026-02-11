@@ -3,12 +3,50 @@ import { SettingsUpdateSchema, TestEmailBodySchema } from "@pristav/shared/setti
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { persistSettings } from "../db/persist.js";
-import { getSmtpTransport, isSmtpConfigured } from "../lib/email.js";
+import { getSmtpTransport, isSmtpConfigured, verifySmtpConnection } from "../lib/email.js";
 
 export default async function settingsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/settings", { preHandler: [authMiddleware] }, async (_request: FastifyRequest, reply: FastifyReply) => {
     reply.send({ ...store.settings });
   });
+
+  app.get(
+    "/settings/email-status",
+    { preHandler: [authMiddleware] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const sender = store.settings.notificationEmailSender;
+      if (!sender?.email?.trim()) {
+        reply.send({
+          ok: false,
+          message: "E-mail není dostupný",
+          details: "Vyplňte e-mail odesílatele v sekci „Oznámení – odesílatel e-mailů“ a uložte nastavení.",
+        });
+        return;
+      }
+      if (!isSmtpConfigured()) {
+        reply.send({
+          ok: false,
+          message: "E-mail není dostupný",
+          details: "Na serveru chybí SMTP konfigurace. Nastavte v prostředí: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (viz .env.example).",
+        });
+        return;
+      }
+      const verify = await verifySmtpConnection();
+      if (!verify.ok) {
+        reply.send({
+          ok: false,
+          message: "E-mail není dostupný",
+          details: `SMTP spojení selhalo: ${verify.error}`,
+        });
+        return;
+      }
+      reply.send({
+        ok: true,
+        message: "E-mail je připraven",
+        details: `Odesílatel: ${sender.name ? `${sender.name} <${sender.email}>` : sender.email}. SMTP spojení v pořádku.`,
+      });
+    }
+  );
 
   app.put("/settings", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
     const parse = SettingsUpdateSchema.safeParse(request.body);

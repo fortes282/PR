@@ -621,6 +621,8 @@ export class HttpApiClient implements ApiClient {
      */
     update: async (data: SettingsUpdate) =>
       fetchApi<Settings>(this.baseUrl, "/settings", { method: "PUT", body: JSON.stringify(data) }),
+    getEmailStatus: async () =>
+      fetchApi<{ ok: boolean; message: string; details?: string }>(this.baseUrl, "/settings/email-status"),
     /**
      * POST /settings/test-email
      * Body: TestEmailBody (admin only; requires SMTP env on server)

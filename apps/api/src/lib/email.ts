@@ -30,3 +30,18 @@ export function getSmtpTransport(): Transporter | null {
 export function isSmtpConfigured(): boolean {
   return getSmtpTransport() !== null;
 }
+
+/** Verify SMTP connection (e.g. connect + auth). Returns { ok: true } or { ok: false, error: string }. */
+export async function verifySmtpConnection(): Promise<{ ok: true } | { ok: false; error: string }> {
+  const transport = getSmtpTransport();
+  if (!transport) {
+    return { ok: false, error: "SMTP není nakonfigurován. Nastavte na serveru: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS." };
+  }
+  try {
+    await transport.verify();
+    return { ok: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: msg };
+  }
+}
