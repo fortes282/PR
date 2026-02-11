@@ -8,7 +8,7 @@ import type { Appointment } from "@pristav/shared/appointments";
 import type { CreditAccount, CreditTransaction } from "@pristav/shared/credits";
 import type { BillingReport } from "@pristav/shared/billing";
 import type { Invoice } from "@pristav/shared/invoices";
-import type { Notification } from "@pristav/shared/notifications";
+import type { Notification, PushSubscription } from "@pristav/shared/notifications";
 import type { TherapyReportFile } from "@pristav/shared/reports";
 import type { WaitingListEntry } from "@pristav/shared/waitlist";
 import type { Settings } from "@pristav/shared/settings";
@@ -29,6 +29,7 @@ import {
   waitlist as waitlistTable,
   settings as settingsTable,
   bookingActivations as bookingActivationsTable,
+  pushSubscriptions as pushSubscriptionsTable,
 } from "./schema.js";
 import type { Store } from "../store.js";
 
@@ -343,6 +344,30 @@ export function persistBookingActivation(store: Store, employeeId: string, month
     .run();
 }
 
+export function persistPushSubscription(store: Store, sub: PushSubscription): void {
+  store.pushSubscriptions.set(sub.endpoint, sub);
+  const db = getDb();
+  const id = sub.id ?? sub.endpoint;
+  db.insert(pushSubscriptionsTable)
+    .values({
+      id,
+      userId: sub.userId,
+      endpoint: sub.endpoint,
+      p256dh: sub.p256dh,
+      auth: sub.auth,
+      userAgent: sub.userAgent ?? null,
+      createdAt: sub.createdAt ?? new Date().toISOString(),
+    })
+    .onConflictDoUpdate({ target: pushSubscriptionsTable.endpoint, set: { userId: sub.userId, p256dh: sub.p256dh, auth: sub.auth, userAgent: sub.userAgent ?? null } })
+    .run();
+}
+
+export function deletePushSubscription(store: Store, endpoint: string): void {
+  store.pushSubscriptions.delete(endpoint);
+  const db = getDb();
+  db.delete(pushSubscriptionsTable).where(eq(pushSubscriptionsTable.endpoint, endpoint)).run();
+}
+
 /** Persist entire store to DB (e.g. after seed). */
 export function persistAll(store: Store): void {
   for (const u of store.users.values()) persistUser(store, u);
@@ -361,5 +386,8 @@ export function persistAll(store: Store): void {
   for (const [key, active] of store.bookingActivations) {
     const [employeeId, monthKey] = key.split(":");
     if (employeeId && monthKey) persistBookingActivation(store, employeeId, monthKey, active);
+  }
+  for (const sub of store.pushSubscriptions.values()) {
+    persistPushSubscription(store, sub);
   }
 }

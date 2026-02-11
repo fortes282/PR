@@ -159,3 +159,13 @@ export const bookingActivations = sqliteTable(
     pk: primaryKey({ columns: [t.employeeId, t.monthKey] }),
   })
 );
+
+export const pushSubscriptions = sqliteTable("push_subscriptions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: text("created_at"),
+});

@@ -611,6 +611,11 @@ export class HttpApiClient implements ApiClient {
   push = {
     getConfig: async () =>
       fetchApi<{ vapidPublicKey: string | null }>(this.baseUrl, "/push-config"),
+    sendTestPush: async (body?: { userId?: string; title?: string; body?: string }) =>
+      fetchApi<{ sent: number; total: number; errors?: string[] }>(this.baseUrl, "/push-subscriptions/test", {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
   };
 
   settings = {

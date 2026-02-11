@@ -59,6 +59,10 @@ export default function AdminSettingsPage(): React.ReactElement {
   const [emailStatus, setEmailStatus] = useState<{ ok: boolean; message: string; details?: string } | null>(null);
   const [emailStatusChecking, setEmailStatusChecking] = useState(false);
   const [emailFromEnv, setEmailFromEnv] = useState(false);
+  const [testPushSending, setTestPushSending] = useState(false);
+  const [testPushMessage, setTestPushMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
+  const [testPushUserId, setTestPushUserId] = useState<string>("");
 
   useEffect(() => {
     api.settings.get().then((s) => {
@@ -142,6 +146,38 @@ export default function AdminSettingsPage(): React.ReactElement {
   };
 
   const isServerMode = process.env.NEXT_PUBLIC_API_MODE === "http";
+
+  useEffect(() => {
+    if (isServerMode) {
+      api.users.list({ role: "CLIENT", limit: 200 }).then((r) => {
+        setClients(r.users.map((u) => ({ id: u.id, name: u.name })));
+      });
+    }
+  }, [isServerMode]);
+
+  const handleSendTestPush = async (): Promise<void> => {
+    setTestPushMessage(null);
+    setTestPushSending(true);
+    try {
+      const result = await api.push.sendTestPush(
+        testPushUserId ? { userId: testPushUserId, title: "Test Přístav radosti", body: "Toto je testovací push." } : undefined
+      );
+      if (result.sent > 0) {
+        setTestPushMessage({ type: "success", text: `Odesláno: ${result.sent} z ${result.total} odběrů.` });
+      } else if (result.total === 0) {
+        setTestPushMessage({
+          type: "error",
+          text: "Uživatel nemá push odběry. Klient musí v Nastavení povolit push a uložit.",
+        });
+      } else {
+        setTestPushMessage({ type: "error", text: result.errors?.join(" ") ?? "Odeslání selhalo." });
+      }
+    } catch (e) {
+      setTestPushMessage({ type: "error", text: e instanceof Error ? e.message : "Chyba odeslání push." });
+    } finally {
+      setTestPushSending(false);
+    }
+  };
 
   const handleCheckEmailStatus = async (): Promise<void> => {
     setEmailStatusChecking(true);
@@ -660,6 +696,48 @@ export default function AdminSettingsPage(): React.ReactElement {
               Zobrazovat klientům výzvu k zapnutí push (po prvním spuštění a při každém dalším otevření aplikace)
             </span>
           </label>
+          {isServerMode && (
+            <div className="mt-4 space-y-2 border-t border-gray-200 pt-4">
+              <p className="text-sm font-medium text-gray-700">Testovací push</p>
+              <p className="text-xs text-gray-600">
+                Na serveru nastavte VAPID_PUBLIC_KEY a VAPID_PRIVATE_KEY (např. npx web-push generate-vapid-keys). Veřejný klíč můžete vyplnit i zde výše.
+              </p>
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-gray-600">Odeslat klientovi</span>
+                  <select
+                    className="input max-w-xs text-sm"
+                    value={testPushUserId}
+                    onChange={(e) => setTestPushUserId(e.target.value)}
+                    aria-label="Vybrat klienta pro test push"
+                  >
+                    <option value="">— přihlášený admin —</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="btn-secondary text-sm"
+                  disabled={testPushSending}
+                  onClick={handleSendTestPush}
+                >
+                  {testPushSending ? "Odesílám…" : "Odeslat testovací push"}
+                </button>
+              </div>
+              {testPushMessage && (
+                <p
+                  className={`text-sm ${testPushMessage.type === "success" ? "text-success-600" : "text-error-600"}`}
+                  role="alert"
+                >
+                  {testPushMessage.text}
+                </p>
+              )}
+            </div>
+          )}
         </section>
 
         <button type="submit" className="btn-primary" disabled={saving}>

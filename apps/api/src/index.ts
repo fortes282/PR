@@ -28,6 +28,7 @@ import reportsRoutes from "./routes/reports.js";
 import notificationsRoutes from "./routes/notifications.js";
 import settingsRoutes from "./routes/settings.js";
 import statsRoutes from "./routes/stats.js";
+import pushRoutes from "./routes/push.js";
 
 const PORT = Number(process.env.PORT ?? 3001);
 
@@ -99,6 +100,7 @@ async function main() {
     notificationsRoutes,
     settingsRoutes,
     statsRoutes,
+    pushRoutes,
   ];
   for (const fn of routeModules) {
     await app.register(fn);

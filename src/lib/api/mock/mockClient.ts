@@ -1192,6 +1192,11 @@ export class MockApiClient implements ApiClient {
       const key = db.settings.pushNotificationConfig?.vapidPublicKey ?? null;
       return { vapidPublicKey: key };
     },
+    sendTestPush: async (): Promise<{ sent: number; total: number; errors?: string[] }> => {
+      ensureSeed();
+      const total = Array.from(db.pushSubscriptions.values()).length;
+      return { sent: 0, total };
+    },
   };
 
   settings = {

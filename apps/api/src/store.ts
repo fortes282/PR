@@ -8,7 +8,7 @@ import type { Appointment } from "@pristav/shared/appointments";
 import type { CreditAccount, CreditTransaction } from "@pristav/shared/credits";
 import type { BillingReport } from "@pristav/shared/billing";
 import type { Invoice } from "@pristav/shared/invoices";
-import type { Notification } from "@pristav/shared/notifications";
+import type { Notification, PushSubscription } from "@pristav/shared/notifications";
 import type { TherapyReportFile } from "@pristav/shared/reports";
 import type { WaitingListEntry } from "@pristav/shared/waitlist";
 import type { Settings } from "@pristav/shared/settings";
@@ -33,6 +33,7 @@ export const store = {
     invoiceDueDays: 14,
   } as Settings,
   bookingActivations: new Map<string, boolean>(),
+  pushSubscriptions: new Map<string, PushSubscription>(), // key by endpoint
 };
 
 export type Store = typeof store;

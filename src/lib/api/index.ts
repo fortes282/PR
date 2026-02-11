@@ -194,6 +194,8 @@ export type ApiClient = {
   /** Public push config (VAPID public key) for client subscription. */
   push: {
     getConfig: () => Promise<{ vapidPublicKey: string | null }>;
+    /** Send test push (admin only). Optional userId = target client; otherwise current user. */
+    sendTestPush: (body?: { userId?: string; title?: string; body?: string }) => Promise<{ sent: number; total: number; errors?: string[] }>;
   };
   settings: {
     get: () => Promise<Settings>;

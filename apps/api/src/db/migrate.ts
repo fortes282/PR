@@ -155,6 +155,16 @@ CREATE TABLE IF NOT EXISTS booking_activations (
   active INTEGER NOT NULL,
   PRIMARY KEY (employee_id, month_key)
 );
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  user_agent TEXT,
+  created_at TEXT
+);
 `;
 
 export function runMigrations(): void {

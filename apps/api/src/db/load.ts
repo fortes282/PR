@@ -8,7 +8,7 @@ import type { Appointment } from "@pristav/shared/appointments";
 import type { CreditAccount, CreditTransaction } from "@pristav/shared/credits";
 import type { BillingReport } from "@pristav/shared/billing";
 import type { Invoice } from "@pristav/shared/invoices";
-import type { Notification } from "@pristav/shared/notifications";
+import type { Notification, PushSubscription } from "@pristav/shared/notifications";
 import type { TherapyReportFile } from "@pristav/shared/reports";
 import type { WaitingListEntry } from "@pristav/shared/waitlist";
 import type { Settings } from "@pristav/shared/settings";
@@ -28,6 +28,7 @@ import {
   waitlist as waitlistTable,
   settings as settingsTable,
   bookingActivations as bookingActivationsTable,
+  pushSubscriptions as pushSubscriptionsTable,
 } from "./schema.js";
 import type { Store } from "../store.js";
 
@@ -244,5 +245,20 @@ export function loadFromDbIntoStore(store: Store): void {
   store.bookingActivations.clear();
   for (const r of actRows) {
     store.bookingActivations.set(`${r.employeeId}:${r.monthKey}`, r.active);
+  }
+
+  const pushRows = db.select().from(pushSubscriptionsTable).all();
+  store.pushSubscriptions.clear();
+  for (const r of pushRows) {
+    const sub: PushSubscription = {
+      id: r.id ?? undefined,
+      userId: r.userId,
+      endpoint: r.endpoint,
+      p256dh: r.p256dh,
+      auth: r.auth,
+      userAgent: r.userAgent ?? undefined,
+      createdAt: r.createdAt ?? undefined,
+    };
+    store.pushSubscriptions.set(r.endpoint, sub);
   }
 }
