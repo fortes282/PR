@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import type { User } from "@/lib/contracts/users";
 import type { Service } from "@/lib/contracts/services";
 import type { Room } from "@/lib/contracts/rooms";
@@ -11,6 +12,7 @@ import type { Room } from "@/lib/contracts/rooms";
 function NewAppointmentForm(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useToast();
   const fromParam = searchParams.get("from");
   const toParam = searchParams.get("to");
   const employeeIdParam = searchParams.get("employeeId");
@@ -52,7 +54,7 @@ function NewAppointmentForm(): React.ReactElement {
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!clientId || !serviceId || !roomId || !startAt || !endAt) {
-      alert("Vyplňte všechna pole (terapeut může zůstat nevybraný – klient-only rezervace).");
+      toast("Vyplňte všechna pole (terapeut může zůstat nevybraný – klient-only rezervace).", "error");
       return;
     }
     setSaving(true);
@@ -65,9 +67,10 @@ function NewAppointmentForm(): React.ReactElement {
         endAt: new Date(endAt).toISOString(),
         ...(employeeId ? { employeeId } : {}),
       });
+      toast("Rezervace byla vytvořena.", "success");
       router.push(`/reception/appointments/${app.id}`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Rezervace selhala");
+      toast(err instanceof Error ? err.message : "Rezervace selhala", "error");
     } finally {
       setSaving(false);
     }

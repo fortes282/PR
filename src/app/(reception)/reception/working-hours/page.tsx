@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { addMonths, subMonths } from "@/lib/utils/date";
 import type { User } from "@/lib/contracts/users";
 import type { WorkingHoursSlot, LunchBreak } from "@/lib/contracts/users";
@@ -75,6 +77,7 @@ function lunchDurationMinutes(break_: LunchBreak): number {
 }
 
 export default function ReceptionWorkingHoursPage(): React.ReactElement {
+  const toast = useToast();
   const [therapists, setTherapists] = useState<User[]>([]);
   const [edits, setEdits] = useState<Record<string, TherapistEdits>>({});
   const [selectedMonth, setSelectedMonth] = useState(() => new Date());
@@ -206,14 +209,15 @@ export default function ReceptionWorkingHoursPage(): React.ReactElement {
         });
       }
       loadTherapists();
+      toast("Pracovní doba byla uložena.", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Uložení selhalo");
+      toast(err instanceof Error ? err.message : "Uložení selhalo", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <p className="text-gray-600">Načítám…</p>;
+  if (loading) return <PageSkeleton lines={6} />;
 
   return (
     <div className="space-y-6">

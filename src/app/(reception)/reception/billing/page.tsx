@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import { formatCzk } from "@/lib/utils/money";
 import { downloadCsv } from "@/lib/utils/csv";
 import { format } from "@/lib/utils/date";
@@ -19,6 +20,7 @@ function hasRequiredInvoiceData(user: User | null): boolean {
 }
 
 export default function ReceptionBillingPage(): React.ReactElement {
+  const toast = useToast();
   const [periodYear, setPeriodYear] = useState(new Date().getFullYear());
   const [periodMonth, setPeriodMonth] = useState(new Date().getMonth() + 1);
   const [report, setReport] = useState<BillingReport | null>(null);
@@ -41,7 +43,7 @@ export default function ReceptionBillingPage(): React.ReactElement {
       const r = await api.billing.generateMonthly({ year: periodYear, month: periodMonth });
       setReport(r);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     } finally {
       setGenerating(false);
     }
@@ -52,8 +54,9 @@ export default function ReceptionBillingPage(): React.ReactElement {
     try {
       const csv = await api.billing.exportCsv(report.id);
       downloadCsv(csv, `billing-${periodYear}-${periodMonth}.csv`);
+      toast("Soubor byl stažen.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     }
   };
 
@@ -62,9 +65,9 @@ export default function ReceptionBillingPage(): React.ReactElement {
     try {
       await api.billing.markInvoiced(report.unpaidAppointments.map((a) => a.id));
       setReport(null);
-      alert("Označeno jako vyfakturováno.");
+      toast("Označeno jako vyfakturováno.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     }
   };
 
@@ -72,8 +75,9 @@ export default function ReceptionBillingPage(): React.ReactElement {
     if (!report) return;
     const user = users[clientId];
     if (!hasRequiredInvoiceData(user ?? null)) {
-      alert(
-        "Pro vygenerování faktury vyplňte u klienta: jméno, příjmení, ulici, město a PSČ (Klienti → detail klienta → Údaje pro fakturaci)."
+      toast(
+        "Pro vygenerování faktury vyplňte u klienta: jméno, příjmení, ulici, město a PSČ (Klienti → detail klienta → Údaje pro fakturaci).",
+        "error"
       );
       return;
     }
@@ -85,8 +89,9 @@ export default function ReceptionBillingPage(): React.ReactElement {
       await api.invoices.create({ clientId, appointmentIds: clientAppIds });
       const list = await api.invoices.list();
       setInvoices(list);
+      toast("Faktura byla vytvořena.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     }
   };
 
@@ -96,8 +101,9 @@ export default function ReceptionBillingPage(): React.ReactElement {
       await api.invoices.send(id);
       const list = await api.invoices.list();
       setInvoices(list);
+      toast("Faktura byla odeslána.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     } finally {
       setSending(null);
     }
@@ -106,7 +112,7 @@ export default function ReceptionBillingPage(): React.ReactElement {
   const handleSendBulk = async (): Promise<void> => {
     const toSend = invoices.filter((i) => i.status === "DRAFT" || i.status === "SENT").map((i) => i.id);
     if (toSend.length === 0) {
-      alert("Žádné faktury k odeslání.");
+      toast("Žádné faktury k odeslání.", "info");
       return;
     }
     setSending("bulk");
@@ -114,8 +120,9 @@ export default function ReceptionBillingPage(): React.ReactElement {
       await api.invoices.sendBulk(toSend);
       const list = await api.invoices.list();
       setInvoices(list);
+      toast("Faktury byly odeslány.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     } finally {
       setSending(null);
     }
@@ -125,9 +132,9 @@ export default function ReceptionBillingPage(): React.ReactElement {
     setSendingReminders(true);
     try {
       const { sent } = await api.invoices.sendOverdueReminders();
-      alert(sent === 0 ? "Žádné faktury po splatnosti k odeslání upomínek." : `Odesláno ${sent} upomínek.`);
+      toast(sent === 0 ? "Žádné faktury po splatnosti k odeslání upomínek." : `Odesláno ${sent} upomínek.`, sent > 0 ? "success" : "info");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     } finally {
       setSendingReminders(false);
     }

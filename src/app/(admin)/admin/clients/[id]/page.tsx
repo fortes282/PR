@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import { formatCzk } from "@/lib/utils/money";
 import { format } from "@/lib/utils/date";
 import type { User, NotificationPreferences } from "@/lib/contracts/users";
@@ -13,6 +14,7 @@ import type { MedicalReport } from "@/lib/contracts";
 export default function AdminClientDetailPage(): React.ReactElement {
   const params = useParams();
   const id = params.id as string;
+  const toast = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [credits, setCredits] = useState<Awaited<ReturnType<typeof api.credits.get>> | null>(null);
   const [transactions, setTransactions] = useState<Awaited<ReturnType<typeof api.credits.getTransactions>>>([]);
@@ -80,8 +82,9 @@ export default function AdminClientDetailPage(): React.ReactElement {
       setAdjustAmount("");
       setAdjustReason("");
       loadLog();
+      toast("Kredity byly upraveny.", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Chyba");
+      toast(err instanceof Error ? err.message : "Chyba", "error");
     }
   };
 
@@ -102,8 +105,9 @@ export default function AdminClientDetailPage(): React.ReactElement {
       });
       setUser(updated);
       loadLog();
+      toast("Údaje klienta byly uloženy.", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Chyba");
+      toast(err instanceof Error ? err.message : "Chyba", "error");
     } finally {
       setSaving(false);
     }
@@ -126,8 +130,9 @@ export default function AdminClientDetailPage(): React.ReactElement {
       };
       const updated = await api.users.update(id, { notificationPreferences });
       setUser(updated);
+      toast("Preference notifikací byly uloženy.", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Chyba");
+      toast(err instanceof Error ? err.message : "Chyba", "error");
     } finally {
       setSavingPush(false);
     }
@@ -139,9 +144,9 @@ export default function AdminClientDetailPage(): React.ReactElement {
     try {
       await api.admin.resetClientPassword({ clientId: id });
       loadLog();
-      alert("E-mail s odkazem na nastavení hesla byl odeslán (v mocku vytvořena notifikace).");
+      toast("E-mail s odkazem na nastavení hesla byl odeslán.", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Chyba");
+      toast(err instanceof Error ? err.message : "Chyba", "error");
     } finally {
       setResettingPassword(false);
     }
@@ -304,7 +309,7 @@ export default function AdminClientDetailPage(): React.ReactElement {
                         a.click();
                         URL.revokeObjectURL(url);
                       } catch (e) {
-                        alert(e instanceof Error ? e.message : "Stažení selhalo");
+                        toast(e instanceof Error ? e.message : "Stažení selhalo", "error");
                       }
                     }}
                   >
@@ -323,7 +328,7 @@ export default function AdminClientDetailPage(): React.ReactElement {
                         a.click();
                         URL.revokeObjectURL(url);
                       } catch (e) {
-                        alert(e instanceof Error ? e.message : "Stažení selhalo");
+                        toast(e instanceof Error ? e.message : "Stažení selhalo", "error");
                       }
                     }}
                   >

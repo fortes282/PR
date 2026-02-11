@@ -11,7 +11,10 @@ type DataTableProps<T> = {
   columns: Column<T>[];
   data: T[];
   keyExtractor: (row: T) => string;
+  /** Shown in table cell when data is empty (default). */
   emptyMessage?: string;
+  /** When provided, rendered instead of table when data is empty (e.g. EmptyState component). */
+  emptySlot?: React.ReactNode;
   onSort?: (key: string) => void;
   sortKey?: string;
   sortDir?: "asc" | "desc";
@@ -22,10 +25,19 @@ export function DataTable<T>({
   data,
   keyExtractor,
   emptyMessage = "Žádná data",
+  emptySlot,
   onSort,
   sortKey,
   sortDir,
 }: DataTableProps<T>): React.ReactElement {
+  if (data.length === 0 && emptySlot) {
+    return (
+      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        {emptySlot}
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
       <table className="min-w-full divide-y divide-gray-200 text-left text-sm">

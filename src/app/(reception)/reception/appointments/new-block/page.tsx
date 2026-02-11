@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import type { User } from "@/lib/contracts/users";
 import type { Service } from "@/lib/contracts/services";
 import type { Room } from "@/lib/contracts/rooms";
@@ -21,6 +22,7 @@ function fromDatetimeLocal(value: string): string {
 
 export default function ReceptionNewBlockPage(): React.ReactElement {
   const router = useRouter();
+  const toast = useToast();
   const [clients, setClients] = useState<User[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -73,7 +75,7 @@ export default function ReceptionNewBlockPage(): React.ReactElement {
     e.preventDefault();
     const validSlots = slots.filter((s) => s.startAt && s.endAt && new Date(s.endAt) > new Date(s.startAt));
     if (!clientId || !employeeId || !serviceId || !roomId || validSlots.length === 0) {
-      alert("Vyplňte všechna pole a alespoň jeden platný slot (začátek a konec).");
+      toast("Vyplňte všechna pole a alespoň jeden platný slot (začátek a konec).", "error");
       return;
     }
     setSaving(true);
@@ -85,9 +87,10 @@ export default function ReceptionNewBlockPage(): React.ReactElement {
         roomId,
         slots: validSlots,
       });
+      toast("Blok rezervací byl vytvořen.", "success");
       router.push(`/reception/appointments/${appointments[0].id}`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Vytvoření bloku selhalo");
+      toast(err instanceof Error ? err.message : "Vytvoření bloku selhalo", "error");
     } finally {
       setSaving(false);
     }

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
+import { useToast } from "@/components/layout/Toaster";
 import { format } from "@/lib/utils/date";
 import { FileUpload } from "@/components/forms/FileUpload";
 import type { TherapyReportFile } from "@/lib/contracts/reports";
@@ -13,6 +14,7 @@ export default function EmployeeClientReportsPage(): React.ReactElement {
   const params = useParams();
   const clientId = params.id as string;
   const session = getSession();
+  const toast = useToast();
   const [reports, setReports] = useState<TherapyReportFile[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,8 +27,9 @@ export default function EmployeeClientReportsPage(): React.ReactElement {
       await api.reports.upload(clientId, file);
       const list = await api.reports.list(clientId);
       setReports(list);
+      toast("Zpráva byla nahrána.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Nahrání selhalo");
+      toast(e instanceof Error ? e.message : "Nahrání selhalo", "error");
     }
   };
 
@@ -35,8 +38,9 @@ export default function EmployeeClientReportsPage(): React.ReactElement {
       await api.reports.updateVisibility(id, { visibleToClient });
       const list = await api.reports.list(clientId);
       setReports(list);
+      toast("Viditelnost byla upravena.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     }
   };
 

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
+import { useToast } from "@/components/layout/Toaster";
 import { format } from "@/lib/utils/date";
 import type { Appointment } from "@/lib/contracts/appointments";
 import type { User } from "@/lib/contracts/users";
@@ -14,6 +15,7 @@ export default function EmployeeAppointmentDetailPage(): React.ReactElement {
   const params = useParams();
   const id = params.id as string;
   const session = getSession();
+  const toast = useToast();
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [client, setClient] = useState<User | null>(null);
   const [lastVisit, setLastVisit] = useState<Appointment | null>(null);
@@ -62,8 +64,9 @@ export default function EmployeeAppointmentDetailPage(): React.ReactElement {
     setSaving(true);
     try {
       await api.appointments.update(id, { internalNotes });
+      toast("Poznámky byly uloženy.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     } finally {
       setSaving(false);
     }
@@ -75,8 +78,9 @@ export default function EmployeeAppointmentDetailPage(): React.ReactElement {
     try {
       await api.appointments.update(id, { employeeId: session.userId });
       loadAppointment();
+      toast("Přihlášení k termínu proběhlo.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Přihlášení k termínu selhalo");
+      toast(e instanceof Error ? e.message : "Přihlášení k termínu selhalo", "error");
     } finally {
       setSigningUp(false);
     }
@@ -99,7 +103,7 @@ export default function EmployeeAppointmentDetailPage(): React.ReactElement {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Stažení selhalo");
+      toast(e instanceof Error ? e.message : "Stažení selhalo", "error");
     }
   };
 

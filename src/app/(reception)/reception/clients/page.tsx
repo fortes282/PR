@@ -4,11 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { BarChart3, Receipt } from "lucide-react";
 import { api, type ClientBehaviorScore } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import { DataTable } from "@/components/tables/DataTable";
 import { Modal } from "@/components/modals/Modal";
 import type { User } from "@/lib/contracts/users";
 
 export default function ReceptionClientsPage(): React.ReactElement {
+  const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [scoresByClient, setScoresByClient] = useState<Map<string, ClientBehaviorScore>>(new Map());
   const [unpaidClientIds, setUnpaidClientIds] = useState<Set<string>>(new Set());
@@ -72,11 +74,11 @@ export default function ReceptionClientsPage(): React.ReactElement {
     if (selectedIds.size === 0 || !bulkModal) return;
     const channel = bulkModal === "email" ? "EMAIL" : "SMS";
     if (!bulkMessage.trim()) {
-      alert("Zadejte text zprávy.");
+      toast("Zadejte text zprávy.", "error");
       return;
     }
     if (channel === "EMAIL" && !bulkSubject.trim()) {
-      alert("Zadejte předmět e-mailu.");
+      toast("Zadejte předmět e-mailu.", "error");
       return;
     }
     setSending(true);
@@ -88,11 +90,11 @@ export default function ReceptionClientsPage(): React.ReactElement {
         message: bulkMessage.trim(),
         title: channel === "EMAIL" ? bulkSubject : undefined,
       });
-      alert(`Odesláno: ${sent} ${channel === "EMAIL" ? "e-mailů" : "SMS"}.`);
+      toast(`Odesláno: ${sent} ${channel === "EMAIL" ? "e-mailů" : "SMS"}.`, "success");
       setBulkModal(null);
       setSelectedIds(new Set());
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba při odesílání");
+      toast(e instanceof Error ? e.message : "Chyba při odesílání", "error");
     } finally {
       setSending(false);
     }

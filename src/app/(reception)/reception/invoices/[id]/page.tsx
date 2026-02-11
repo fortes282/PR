@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { formatCzk } from "@/lib/utils/money";
 import type { Invoice } from "@/lib/contracts/invoices";
 
 export default function ReceptionInvoiceEditPage(): React.ReactElement {
   const params = useParams();
   const id = params.id as string;
+  const toast = useToast();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [saving, setSaving] = useState(false);
   const [edit, setEdit] = useState({
@@ -66,8 +69,9 @@ export default function ReceptionInvoiceEditPage(): React.ReactElement {
       });
       const inv = await api.invoices.get(id);
       setInvoice(inv ?? null);
+      toast("Faktura byla uložena.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     } finally {
       setSaving(false);
     }
@@ -79,9 +83,15 @@ export default function ReceptionInvoiceEditPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      <Link href="/reception/billing" className="text-sm text-primary-600 hover:underline">
-        ← Fakturace
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: "Fakturace", href: "/reception/billing" },
+          {
+            label: `Faktura ${invoice.number}${isOverdue ? " (po splatnosti)" : ""}`,
+            current: true,
+          },
+        ]}
+      />
       <h1 className="text-2xl font-bold text-gray-900">
         Faktura {invoice.number}
         {isOverdue && <span className="ml-2 text-red-600">(po splatnosti)</span>}

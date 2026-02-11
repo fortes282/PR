@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import type { User } from "@/lib/contracts/users";
 
 export default function ReceptionClientHealthRecordPage(): React.ReactElement {
   const params = useParams();
   const id = params.id as string;
+  const toast = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [diagnosis, setDiagnosis] = useState("");
   const [childDateOfBirth, setChildDateOfBirth] = useState("");
@@ -34,8 +36,9 @@ export default function ReceptionClientHealthRecordPage(): React.ReactElement {
         childDateOfBirth: childDateOfBirth.trim() || undefined,
       });
       setUser(updated);
+      toast("Zdravotní záznam byl uložen.", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Chyba");
+      toast(err instanceof Error ? err.message : "Chyba", "error");
     } finally {
       setSaving(false);
     }

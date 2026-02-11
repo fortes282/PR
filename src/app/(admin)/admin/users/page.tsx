@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import { DataTable } from "@/components/tables/DataTable";
 import { Modal } from "@/components/modals/Modal";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
@@ -11,6 +12,7 @@ import type { Role } from "@/lib/contracts/auth";
 const ROLES: Role[] = ["ADMIN", "RECEPTION", "EMPLOYEE", "CLIENT"];
 
 export default function AdminUsersPage(): React.ReactElement {
+  const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState<User | null>(null);
@@ -41,8 +43,9 @@ export default function AdminUsersPage(): React.ReactElement {
       await api.users.update(editUser.id, { role: editRole, active: editActive });
       load();
       setEditUser(null);
+      toast("Role byla uložena.", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Chyba");
+      toast(err instanceof Error ? err.message : "Chyba", "error");
     } finally {
       setSaving(false);
     }

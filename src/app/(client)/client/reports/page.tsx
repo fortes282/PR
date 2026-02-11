@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FileText } from "lucide-react";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
+import { useToast } from "@/components/layout/Toaster";
+import { EmptyState } from "@/components/EmptyState";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { format } from "@/lib/utils/date";
 import type { TherapyReportFile } from "@/lib/contracts/reports";
 
 export default function ClientReportsPage(): React.ReactElement {
   const session = getSession();
+  const toast = useToast();
   const [reports, setReports] = useState<TherapyReportFile[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,28 +33,29 @@ export default function ClientReportsPage(): React.ReactElement {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Stažení selhalo");
+      toast(e instanceof Error ? e.message : "Stažení selhalo", "error");
     }
   };
 
   const visibleReports = reports.filter((r) => r.visibleToClient);
 
-  if (loading) return <p className="text-gray-600">Načítám…</p>;
+  if (loading) return <PageSkeleton lines={5} />;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Zprávy / dokumenty</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 font-display">
+        <FileText className="h-7 w-7 text-primary-600" aria-hidden />
+        Zprávy / dokumenty
+      </h1>
 
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
         {visibleReports.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <p className="text-base font-medium text-gray-700">
-              Zatím nemáte žádné zprávy ani dokumenty
-            </p>
-            <p className="mt-1 text-sm text-gray-500">
-              Zde se zobrazí zprávy a dokumenty od terapeutů, až budou k dispozici.
-            </p>
-          </div>
+          <EmptyState
+            icon={FileText}
+            title="Žádné zprávy ani dokumenty"
+            description="Zde se zobrazí zprávy a dokumenty od terapeutů, až budou k dispozici."
+            variant="card"
+          />
         ) : (
           <ul className="divide-y divide-gray-100">
             {visibleReports.map((r) => (

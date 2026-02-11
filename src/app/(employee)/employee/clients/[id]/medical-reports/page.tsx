@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import { format } from "@/lib/utils/date";
 import type { MedicalReport } from "@/lib/contracts";
 import type { User } from "@/lib/contracts/users";
@@ -11,6 +12,7 @@ import type { User } from "@/lib/contracts/users";
 export default function EmployeeClientMedicalReportsPage(): React.ReactElement {
   const params = useParams();
   const clientId = params.id as string;
+  const toast = useToast();
   const [client, setClient] = useState<User | null>(null);
   const [reports, setReports] = useState<MedicalReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,7 @@ export default function EmployeeClientMedicalReportsPage(): React.ReactElement {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Stažení selhalo");
+      toast(e instanceof Error ? e.message : "Stažení selhalo", "error");
     }
   };
 
@@ -48,7 +50,7 @@ export default function EmployeeClientMedicalReportsPage(): React.ReactElement {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Stažení selhalo");
+      toast(e instanceof Error ? e.message : "Stažení selhalo", "error");
     }
   };
 

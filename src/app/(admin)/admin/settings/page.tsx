@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import type {
   Settings,
   InvoiceIssuer,
@@ -40,6 +41,7 @@ const emptyPush: PushNotificationConfig = {
 };
 
 export default function AdminSettingsPage(): React.ReactElement {
+  const toast = useToast();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [freeCancelHours, setFreeCancelHours] = useState(48);
   const [invoiceNumberPrefix, setInvoiceNumberPrefix] = useState("F");
@@ -116,8 +118,9 @@ export default function AdminSettingsPage(): React.ReactElement {
           details: statusErr instanceof Error ? statusErr.message : "Nepodařilo se ověřit stav.",
         });
       }
+      toast("Nastavení bylo uloženo.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     } finally {
       setSaving(false);
     }

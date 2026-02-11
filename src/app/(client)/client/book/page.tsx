@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CalendarDays } from "lucide-react";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
+import { useToast } from "@/components/layout/Toaster";
 import { format, startOfDay, addMonths } from "@/lib/utils/date";
 import { formatCzk } from "@/lib/utils/money";
 import type { User } from "@/lib/contracts/users";
@@ -66,6 +67,7 @@ function getInitials(name: string): string {
 
 export default function ClientBookPage(): React.ReactElement {
   const session = getSession();
+  const toast = useToast();
   const [bookableDays, setBookableDays] = useState<BookableDay[]>([]);
   const [therapists, setTherapists] = useState<User[]>([]);
   const [services, setServices] = useState<Awaited<ReturnType<typeof api.services.list>>>([]);
@@ -150,6 +152,7 @@ export default function ClientBookPage(): React.ReactElement {
         endAt,
       });
       setConfirmFeedback("success");
+      toast("Rezervace byla vytvořena.", "success");
       setPendingBooking(null);
       const from = new Date(selectedDay!);
       from.setHours(0, 0, 0, 0);
@@ -164,6 +167,7 @@ export default function ClientBookPage(): React.ReactElement {
       setTimeout(() => setConfirmFeedback(null), 1500);
     } catch (e) {
       setConfirmFeedback("error");
+      toast(e instanceof Error ? e.message : "Rezervace selhala.", "error");
       setTimeout(() => setConfirmFeedback(null), 2000);
     } finally {
       setBooking(null);

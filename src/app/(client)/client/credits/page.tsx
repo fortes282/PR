@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Wallet } from "lucide-react";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
 import { formatCzk } from "@/lib/utils/money";
 import { format } from "@/lib/utils/date";
+import { EmptyState } from "@/components/EmptyState";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { DataTable } from "@/components/tables/DataTable";
 import type { CreditTransaction } from "@/lib/contracts/credits";
 
@@ -26,11 +29,14 @@ export default function ClientCreditsPage(): React.ReactElement {
       .finally(() => setLoading(false));
   }, [clientId]);
 
-  if (loading) return <p className="text-gray-600">Načítám…</p>;
+  if (loading) return <PageSkeleton lines={5} />;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Kredity</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 font-display">
+        <Wallet className="h-7 w-7 text-primary-600" aria-hidden />
+        Kredity
+      </h1>
 
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
@@ -49,6 +55,14 @@ export default function ClientCreditsPage(): React.ReactElement {
         <h2 className="mb-2 text-sm font-medium text-gray-700">Historie transakcí</h2>
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <DataTable<CreditTransaction>
+            emptySlot={
+              <EmptyState
+                icon={Wallet}
+                title="Žádné transakce"
+                description="Historie kreditů se zobrazí po první transakci."
+                variant="card"
+              />
+            }
             columns={[
               {
                 key: "createdAt",
@@ -73,7 +87,6 @@ export default function ClientCreditsPage(): React.ReactElement {
             ]}
             data={transactions}
             keyExtractor={(r) => r.id}
-            emptyMessage="Žádné transakce."
           />
         </div>
       </div>

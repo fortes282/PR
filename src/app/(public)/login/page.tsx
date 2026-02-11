@@ -6,12 +6,14 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { setSession } from "@/lib/auth/session";
 import { getDefaultRoute } from "@/lib/auth/rbac";
+import { useToast } from "@/components/layout/Toaster";
 import type { Role } from "@/lib/contracts/auth";
 
 const ROLES: Role[] = ["ADMIN", "RECEPTION", "EMPLOYEE", "CLIENT"];
 
 export default function LoginPage(): React.ReactElement {
   const router = useRouter();
+  const toast = useToast();
   const [role, setRole] = useState<Role | "">("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +45,9 @@ export default function LoginPage(): React.ReactElement {
       } else if (msg.includes("Unauthorized") || msg.includes("401")) {
         hint = " API vrací 401 – prázdná DB? Restartuj API na Renderu nebo přidej persistent disk.";
       }
-      setError(msg + hint);
+      const fullMsg = msg + hint;
+      setError(fullMsg);
+      toast(fullMsg, "error");
     } finally {
       setLoading(false);
     }

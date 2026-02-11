@@ -2,21 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { api } from "@/lib/api";
 import { canRefund } from "@/lib/cancellation";
 import { format } from "@/lib/utils/date";
+import { useToast } from "@/components/layout/Toaster";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import type { Notification } from "@/lib/contracts/notifications";
 
 export default function ReceptionAppointmentDetailPage(): React.ReactElement {
   const params = useParams();
   const router = useRouter();
+  const toast = useToast();
   const id = params.id as string;
   const [appointment, setAppointment] = useState<Awaited<ReturnType<typeof api.appointments.get>>>(null);
   const [settings, setSettings] = useState<{ freeCancelHours: number } | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [refund, setRefund] = useState(false);
   const [reason, setReason] = useState("");
 
@@ -52,13 +55,16 @@ export default function ReceptionAppointmentDetailPage(): React.ReactElement {
   }, [appointment, id]);
 
   const handleCancel = async (): Promise<void> => {
+    setCancelling(true);
     try {
       await api.appointments.cancel(id, { refund, reason });
+      toast("Rezervace byla zrušena.", "success");
       router.push("/reception/calendar");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Zrušení selhalo");
-    } finally {
+      toast(e instanceof Error ? e.message : "Zrušení selhalo", "error");
       setCancelOpen(false);
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -70,9 +76,15 @@ export default function ReceptionAppointmentDetailPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      <Link href="/reception/calendar" className="text-sm text-primary-600 hover:underline">
-        ← Kalendář
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: "Kalendář", href: "/reception/calendar" },
+          {
+            label: `Rezervace ${appointment.blockId ? "(blok)" : ""} ${format(start, "date")}`,
+            current: true,
+          },
+        ]}
+      />
       <h1 className="text-2xl font-bold text-gray-900">
         Rezervace {appointment.blockId ? "(blok)" : ""}
       </h1>
@@ -90,8 +102,9 @@ export default function ReceptionAppointmentDetailPage(): React.ReactElement {
             try {
               await api.appointments.update(id, { paymentStatus: "PAID" });
               setAppointment((prev) => (prev ? { ...prev, paymentStatus: "PAID" } : null));
+              toast("Označeno jako zaplaceno.", "success");
             } catch (e) {
-              alert(e instanceof Error ? e.message : "Chyba");
+              toast(e instanceof Error ? e.message : "Chyba", "error");
             }
           }}
         >
@@ -134,6 +147,8 @@ export default function ReceptionAppointmentDetailPage(): React.ReactElement {
             onClose={() => setCancelOpen(false)}
             onConfirm={handleCancel}
             title="Zrušit termín?"
+            confirmLabel={cancelling ? "Ruším…" : "Zrušit"}
+            confirmDisabled={cancelling}
             message={
               <>
                 Zrušit termín {format(start, "datetime")}?
@@ -157,7 +172,6 @@ export default function ReceptionAppointmentDetailPage(): React.ReactElement {
                 </div>
               </>
             }
-            confirmLabel="Zrušit"
             variant="danger"
           />
         </>

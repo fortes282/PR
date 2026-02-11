@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import { startOfMonth, addMonths, monthKey } from "@/lib/utils/date";
 import type { User } from "@/lib/contracts/users";
 import type { BookingActivation } from "@/lib/contracts/booking-activation";
@@ -14,6 +15,7 @@ const MONTH_NAMES = [
 const MONTHS_AHEAD = 6;
 
 export default function ReceptionBookingActivationPage(): React.ReactElement {
+  const toast = useToast();
   const [therapists, setTherapists] = useState<User[]>([]);
   const [activations, setActivations] = useState<BookingActivation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,8 +62,9 @@ export default function ReceptionBookingActivationPage(): React.ReactElement {
       });
       const actRes = await api.bookingActivations.list({ fromMonth, toMonth });
       setActivations(actRes.activations);
+      toast("Aktivace rezervací byla uložena.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba při ukládání");
+      toast(e instanceof Error ? e.message : "Chyba při ukládání", "error");
     } finally {
       setToggling(null);
     }

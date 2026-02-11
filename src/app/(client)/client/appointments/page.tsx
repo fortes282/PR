@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { CalendarClock } from "lucide-react";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
 import { canRefund } from "@/lib/cancellation";
 import { format } from "@/lib/utils/date";
+import { useToast } from "@/components/layout/Toaster";
+import { EmptyState } from "@/components/EmptyState";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { DataTable } from "@/components/tables/DataTable";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import type { Appointment } from "@/lib/contracts/appointments";
@@ -30,9 +34,11 @@ const PAYMENT_LABELS: Record<string, string> = {
 
 export default function ClientAppointmentsPage(): React.ReactElement {
   const session = getSession();
+  const toast = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [settings, setSettings] = useState<{ freeCancelHours: number } | null>(null);
 
   const clientId = session?.userId ?? "";
@@ -54,12 +60,16 @@ export default function ClientAppointmentsPage(): React.ReactElement {
 
   const confirmCancel = async (): Promise<void> => {
     if (!cancelId) return;
+    setCancelling(true);
     try {
       await api.appointments.cancel(cancelId);
+      toast("Rezervace byla zrušena.", "success");
       load();
       setCancelId(null);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Zrušení selhalo");
+      toast(e instanceof Error ? e.message : "Zrušení selhalo", "error");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -67,11 +77,14 @@ export default function ClientAppointmentsPage(): React.ReactElement {
   const freeCancelHours = settings?.freeCancelHours ?? 48;
   const eligibleRefund = app ? canRefund(app.paymentStatus, app.startAt, freeCancelHours) : false;
 
-  if (loading) return <p className="text-gray-600">Načítám…</p>;
+  if (loading) return <PageSkeleton lines={5} />;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Moje rezervace</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 font-display">
+        <CalendarClock className="h-7 w-7 text-primary-600" aria-hidden />
+        Moje rezervace
+      </h1>
       <Link
         href="/client/book"
         className="inline-block rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-sky-700"
@@ -81,6 +94,14 @@ export default function ClientAppointmentsPage(): React.ReactElement {
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <DataTable<Appointment>
+          emptySlot={
+            <EmptyState
+              icon={CalendarClock}
+              title="Žádné rezervace"
+              description="Zatím nemáte žádné termíny."
+              action={{ type: "link", label: "Rezervovat termín", href: "/client/book" }}
+            />
+          }
           columns={[
             {
               key: "startAt",
@@ -130,7 +151,6 @@ export default function ClientAppointmentsPage(): React.ReactElement {
           ]}
           data={appointments}
           keyExtractor={(r) => r.id}
-          emptyMessage="Žádné rezervace."
         />
       </div>
 
@@ -139,6 +159,8 @@ export default function ClientAppointmentsPage(): React.ReactElement {
         onClose={() => setCancelId(null)}
         onConfirm={confirmCancel}
         title="Zrušit termín?"
+        confirmLabel={cancelling ? "Ruším…" : "Zrušit termín"}
+        confirmDisabled={cancelling}
         message={
           app
             ? `Zrušit termín ${format(new Date(app.startAt), "datetime")}? ${
@@ -146,7 +168,6 @@ export default function ClientAppointmentsPage(): React.ReactElement {
               }`
             : ""
         }
-        confirmLabel="Zrušit termín"
         variant="danger"
       />
     </div>

@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Settings } from "lucide-react";
 import { useSession } from "@/lib/auth/useSession";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import { subscribeToPush, unsubscribeFromPush } from "@/lib/push/subscribe";
 import type { User, NotificationPreferences } from "@/lib/contracts/users";
 
@@ -18,6 +20,7 @@ const defaultPrefs: NotificationPreferences = {
 
 export default function ClientSettingsPage(): React.ReactElement {
   const { session, user: initialUser, mounted } = useSession();
+  const toast = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [prefs, setPrefs] = useState<NotificationPreferences>(defaultPrefs);
   const [saving, setSaving] = useState(false);
@@ -88,17 +91,25 @@ export default function ClientSettingsPage(): React.ReactElement {
       setPrefs(updated.notificationPreferences ? { ...defaultPrefs, ...updated.notificationPreferences } : defaultPrefs);
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 1200);
+      toast("Nastavení bylo uloženo.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba při ukládání");
+      toast(e instanceof Error ? e.message : "Chyba při ukládání", "error");
     } finally {
       setSaving(false);
     }
   };
 
+  const headingTitle = (
+    <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 font-display">
+      <Settings className="h-7 w-7 text-primary-600" aria-hidden />
+      Nastavení
+    </h1>
+  );
+
   if (!mounted || !session) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Nastavení</h1>
+        {headingTitle}
         <p className="text-gray-600">Načítám…</p>
       </div>
     );
@@ -107,7 +118,7 @@ export default function ClientSettingsPage(): React.ReactElement {
   if (!user) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Nastavení</h1>
+        {headingTitle}
         <p className="text-gray-600">Přihlaste se pro správu preferencí.</p>
       </div>
     );
@@ -115,7 +126,7 @@ export default function ClientSettingsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Nastavení</h1>
+      {headingTitle}
       <p className="text-gray-600">
         Zde můžete zapnout nebo vypnout jednotlivé typy oznámení (e-mail, SMS, push).
       </p>

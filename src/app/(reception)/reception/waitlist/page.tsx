@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Lightbulb } from "lucide-react";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
+import { EmptyState } from "@/components/EmptyState";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { DataTable } from "@/components/tables/DataTable";
 import type { WaitingListEntry } from "@/lib/contracts/waitlist";
 import type { WaitlistSuggestion } from "@/lib/contracts/waitlist";
 
 export default function ReceptionWaitlistPage(): React.ReactElement {
+  const toast = useToast();
   const [entries, setEntries] = useState<WaitingListEntry[]>([]);
   const [suggestions, setSuggestions] = useState<WaitlistSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,13 +32,13 @@ export default function ReceptionWaitlistPage(): React.ReactElement {
   const handleNotify = async (entryId: string): Promise<void> => {
     try {
       await api.waitlist.notify(entryId);
-      alert("Oznámení odesláno.");
+      toast("Oznámení odesláno.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Chyba");
+      toast(e instanceof Error ? e.message : "Chyba", "error");
     }
   };
 
-  if (loading) return <p className="text-gray-600">Načítám…</p>;
+  if (loading) return <PageSkeleton lines={5} />;
 
   return (
     <div className="space-y-6">
@@ -46,7 +51,14 @@ export default function ReceptionWaitlistPage(): React.ReactElement {
         </p>
         <ul className="mt-2 divide-y divide-gray-200 rounded border border-gray-200 bg-white">
           {suggestions.length === 0 ? (
-            <li className="px-4 py-8 text-center text-gray-500">Žádná doporučení</li>
+            <li className="list-none">
+              <EmptyState
+                icon={Lightbulb}
+                title="Žádná doporučení"
+                description="Pro zvolený slot nejsou žádní klienti na čekacím listu."
+                variant="inline"
+              />
+            </li>
           ) : (
             suggestions.map((s) => (
               <li key={s.entry.id} className="flex items-center justify-between px-4 py-3">

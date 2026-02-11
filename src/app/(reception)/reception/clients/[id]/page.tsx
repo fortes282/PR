@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { formatCzk } from "@/lib/utils/money";
 import { format } from "@/lib/utils/date";
@@ -14,6 +16,7 @@ import type { MedicalReport } from "@/lib/contracts";
 export default function ReceptionClientDetailPage(): React.ReactElement {
   const params = useParams();
   const id = params.id as string;
+  const toast = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [credits, setCredits] = useState<Awaited<ReturnType<typeof api.credits.get>> | null>(null);
   const [transactions, setTransactions] = useState<Awaited<ReturnType<typeof api.credits.getTransactions>>>([]);
@@ -69,8 +72,9 @@ export default function ReceptionClientDetailPage(): React.ReactElement {
       setTransactions(txs);
       setAdjustAmount("");
       setAdjustReason("");
+      toast("Kredity byly upraveny.", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Chyba");
+      toast(err instanceof Error ? err.message : "Chyba", "error");
     }
   };
 
@@ -90,8 +94,9 @@ export default function ReceptionClientDetailPage(): React.ReactElement {
             : undefined,
       });
       setUser(updated);
+      toast("Údaje klienta byly uloženy.", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Chyba");
+      toast(err instanceof Error ? err.message : "Chyba", "error");
     } finally {
       setSaving(false);
     }
@@ -101,9 +106,12 @@ export default function ReceptionClientDetailPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      <Link href="/reception/clients" className="text-sm text-primary-600 hover:underline">
-        ← Klienti
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: "Klienti", href: "/reception/clients" },
+          { label: user.name, current: true },
+        ]}
+      />
       <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
       <div className="flex flex-wrap gap-2 text-sm">
         <Link href={`/reception/clients/${id}/health-record`} className="text-primary-600 hover:underline">
@@ -271,7 +279,7 @@ export default function ReceptionClientDetailPage(): React.ReactElement {
                         a.click();
                         URL.revokeObjectURL(url);
                       } catch (e) {
-                        alert(e instanceof Error ? e.message : "Stažení selhalo");
+                        toast(e instanceof Error ? e.message : "Stažení selhalo", "error");
                       }
                     }}
                   >
@@ -290,7 +298,7 @@ export default function ReceptionClientDetailPage(): React.ReactElement {
                         a.click();
                         URL.revokeObjectURL(url);
                       } catch (e) {
-                        alert(e instanceof Error ? e.message : "Stažení selhalo");
+                        toast(e instanceof Error ? e.message : "Stažení selhalo", "error");
                       }
                     }}
                   >

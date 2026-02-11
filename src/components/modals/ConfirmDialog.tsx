@@ -11,6 +11,7 @@ type ConfirmDialogProps = {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: "danger" | "primary";
+  confirmDisabled?: boolean;
 };
 
 export function ConfirmDialog({
@@ -22,25 +23,34 @@ export function ConfirmDialog({
   confirmLabel = "Potvrdit",
   cancelLabel = "Zrušit",
   variant = "primary",
+  confirmDisabled = false,
 }: ConfirmDialogProps): React.ReactElement | null {
   const handleConfirm = (): void => {
     onConfirm();
-    onClose();
+    // Parent is responsible for calling onClose() after async work (e.g. after success).
   };
 
   return (
     <Modal open={open} onClose={onClose} title={title}>
       <p className="text-gray-700">{message}</p>
       <div className="mt-4 flex justify-end gap-2">
-        <button type="button" className="btn-secondary" onClick={onClose}>
+        <button type="button" className="btn btn-secondary" onClick={onClose} disabled={confirmDisabled}>
           {cancelLabel}
         </button>
         <button
           type="button"
-          className={variant === "danger" ? "btn-danger" : "btn-primary"}
+          className={variant === "danger" ? "btn btn-danger" : "btn btn-primary"}
           onClick={handleConfirm}
+          disabled={confirmDisabled}
         >
-          {confirmLabel}
+          {confirmDisabled ? (
+            <span className="inline-flex items-center gap-2">
+              <span className="spinner" aria-hidden />
+              {confirmLabel}
+            </span>
+          ) : (
+            confirmLabel
+          )}
         </button>
       </div>
     </Modal>

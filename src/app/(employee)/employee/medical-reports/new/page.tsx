@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/layout/Toaster";
 import type { User } from "@/lib/contracts/users";
 
 export default function NewMedicalReportPage(): React.ReactElement {
   const router = useRouter();
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
@@ -53,10 +55,11 @@ export default function NewMedicalReportPage(): React.ReactElement {
         plannedTreatment: plannedTreatment.trim() || undefined,
         recommendations: recommendations.trim() || undefined,
       });
+      toast("Lékařská zpráva byla vytvořena.", "success");
       router.push("/employee/calendar?medicalReportCreated=1");
       void report;
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Uložení zprávy selhalo");
+      toast(err instanceof Error ? err.message : "Uložení zprávy selhalo", "error");
     } finally {
       setSaving(false);
     }
