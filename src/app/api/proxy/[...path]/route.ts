@@ -54,6 +54,20 @@ async function proxy(request: Request, pathSegments: string[]): Promise<Response
     return errorResponse(503, "Backend unreachable", msg);
   }
 
+  // Backend may not implement these; return empty data to avoid 404 noise and broken UI
+  if (res.status === 404 && pathSegments.length >= 1) {
+    const first = pathSegments[0];
+    if (first === "behavior" && pathSegments[1] === "scores") {
+      return Response.json([]);
+    }
+    if (first === "client-profile-log") {
+      return Response.json([]);
+    }
+    if (first === "medical-reports") {
+      return Response.json([]);
+    }
+  }
+
   const resHeaders = new Headers();
   res.headers.forEach((value, key) => {
     const lower = key.toLowerCase();

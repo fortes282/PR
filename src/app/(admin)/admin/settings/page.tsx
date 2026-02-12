@@ -40,6 +40,28 @@ const emptyPush: PushNotificationConfig = {
   promptClientToEnablePush: true,
 };
 
+const PUSH_CONFIG_STORAGE_KEY = "pristav_push_config";
+
+function loadStoredPushConfig(): Partial<PushNotificationConfig> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PUSH_CONFIG_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as Partial<PushNotificationConfig>;
+  } catch {
+    return null;
+  }
+}
+
+function saveStoredPushConfig(config: PushNotificationConfig): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(PUSH_CONFIG_STORAGE_KEY, JSON.stringify(config));
+  } catch {
+    // ignore
+  }
+}
+
 export default function AdminSettingsPage(): React.ReactElement {
   const toast = useToast();
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -87,7 +109,9 @@ export default function AdminSettingsPage(): React.ReactElement {
       }
       setSmsFaynConfig(s.smsFaynConfig ? { ...emptySmsFayn, ...s.smsFaynConfig } : emptySmsFayn);
       setReservationTiming(s.reservationNotificationTiming ? { ...emptyTiming, ...s.reservationNotificationTiming } : emptyTiming);
-      const push = s.pushNotificationConfig ? { ...emptyPush, ...s.pushNotificationConfig } : emptyPush;
+      const pushFromApi = s.pushNotificationConfig ? { ...emptyPush, ...s.pushNotificationConfig } : emptyPush;
+      const stored = loadStoredPushConfig();
+      const push = stored ? { ...emptyPush, ...pushFromApi, ...stored } : pushFromApi;
       setPushConfig(push);
       const effectivePush = (s as { effectivePushVapid?: { vapidPublicKey: string; fromEnv: boolean } }).effectivePushVapid;
       if (effectivePush) {
@@ -136,7 +160,9 @@ export default function AdminSettingsPage(): React.ReactElement {
         setNotificationEmailSender({ email: effectiveAfterSave.email, name: effectiveAfterSave.name ?? "" });
         setEmailFromEnv(effectiveAfterSave.fromEnv);
       }
-      setPushConfig(s.pushNotificationConfig ? { ...emptyPush, ...s.pushNotificationConfig } : emptyPush);
+      const savedPush = s.pushNotificationConfig ? { ...emptyPush, ...s.pushNotificationConfig } : emptyPush;
+      setPushConfig(savedPush);
+      saveStoredPushConfig(savedPush);
       const effectivePushAfter = (s as { effectivePushVapid?: { vapidPublicKey: string; fromEnv: boolean } }).effectivePushVapid;
       if (effectivePushAfter) {
         setEffectiveVapidPublicKey(effectivePushAfter.vapidPublicKey);
@@ -635,7 +661,14 @@ export default function AdminSettingsPage(): React.ReactElement {
             <input
               type="checkbox"
               checked={pushConfig.enabled}
-              onChange={(e) => setPushConfig((p) => ({ ...p, enabled: e.target.checked }))}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setPushConfig((p) => {
+                  const next = { ...p, enabled: checked };
+                  saveStoredPushConfig(next);
+                  return next;
+                });
+              }}
               className="rounded border-gray-300"
             />
             <span className="text-sm font-medium text-gray-700">Push zapnuty</span>
