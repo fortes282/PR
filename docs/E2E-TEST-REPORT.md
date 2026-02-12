@@ -67,3 +67,13 @@ Datum: 2026-02-03
   `PLAYWRIGHT_BASE_URL=https://your-app.example.com pnpm test:e2e`
 - **API (vyžaduje běžící API na 3001):**  
   `pnpm dev:api` a pak `pnpm test:api`
+
+---
+
+## Testování po deployi (průběh)
+
+- **Unit testy:** `pnpm test` → **27 passed** (refund, billing totals, behavior, RBAC, date).
+- **E2E testy (lokálně):** `pnpm test:e2e` → **28 passed, 7 skipped**.
+- **E2E testy proti nasazené aplikaci (Railway):**  
+  `PLAYWRIGHT_BASE_URL=https://web-production-21de7.up.railway.app pnpm test:e2e` → **28 passed, 7 skipped** (9.3 s).
+- **Oprava:** Test „Admin › clients page loads“ na produkci padal (strict mode: 2 prvky s textem „Klienti“ – odkaz v menu a nadpis). Upraven na `getByRole('heading', { name: /Klienti/ })`.

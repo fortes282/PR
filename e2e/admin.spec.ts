@@ -35,7 +35,7 @@ test.describe("Admin", () => {
   test("clients page loads", async ({ page }) => {
     await page.goto("/admin/clients");
     await expect(page).toHaveURL(/\/admin\/clients/);
-    await expect(page.getByText(/Klienti/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Klienti/ })).toBeVisible();
   });
 
   test("billing page loads", async ({ page }) => {
