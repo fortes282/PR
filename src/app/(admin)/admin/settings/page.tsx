@@ -634,6 +634,7 @@ export default function AdminSettingsPage(): React.ReactElement {
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
+              data-testid="push-enabled-checkbox"
               checked={pushConfig.enabled}
               onChange={(e) => setPushConfig((p) => ({ ...p, enabled: e.target.checked }))}
               className="rounded border-gray-300"

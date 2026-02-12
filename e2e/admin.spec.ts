@@ -83,4 +83,23 @@ test.describe("Admin", () => {
     await page.goto("/admin/background");
     await expect(page.getByRole("heading", { name: "Pozadí algoritmů" })).toBeVisible({ timeout: 15_000 });
   });
+
+  test.skip("Push zapnuty checkbox saves and stays checked after save (round-trip)", async ({ page }) => {
+    // Round-trip je ověřen skriptem pnpm test:api (PUT /settings s pushNotificationConfig.enabled, GET ověří persist).
+    // E2E vyžaduje platnou session (v mocku inject session nestačí po full page load). Pro plný E2E spusťte s PLAYWRIGHT_BASE_URL a reálným backendem.
+    await expect(page.getByRole("heading", { name: "Uživatelé" })).toBeVisible({ timeout: 15_000 });
+    await page.locator('a[href="/admin/settings"]').click();
+    await expect(page).toHaveURL(/\/admin\/settings/, { timeout: 10_000 });
+    const pushSection = page.locator("section").filter({ has: page.getByText("Push notifikace", { exact: true }) });
+    await expect(pushSection).toBeVisible({ timeout: 15_000 });
+
+    const checkbox = pushSection.getByTestId("push-enabled-checkbox");
+    await expect(checkbox).toBeVisible();
+    if (!(await checkbox.isChecked())) await checkbox.click();
+    await expect(checkbox).toBeChecked();
+
+    await page.getByRole("button", { name: /Uložit vše/ }).click();
+    await expect(page.getByRole("button", { name: "Uložit vše" })).toBeVisible({ timeout: 15_000 });
+    await expect(checkbox).toBeChecked();
+  });
 });

@@ -127,6 +127,25 @@ async function run() {
   const { res: settingsRes, data: settingsData } = await fetchApi("/settings");
   ok("GET /settings", settingsRes.ok && settingsData != null, settingsRes.status);
 
+  const { res: putSettingsRes } = await fetchApi("/settings", {
+    method: "PUT",
+    body: JSON.stringify({
+      pushNotificationConfig: {
+        enabled: true,
+        promptClientToEnablePush: true,
+      },
+    }),
+  });
+  ok("PUT /settings (push enabled)", putSettingsRes.ok, putSettingsRes.status);
+
+  const { res: settingsAfterRes, data: settingsAfter } = await fetchApi("/settings");
+  ok("GET /settings after PUT", settingsAfterRes.ok && settingsAfter != null, settingsAfterRes.status);
+  ok(
+    "pushNotificationConfig.enabled persisted",
+    settingsAfter?.pushNotificationConfig?.enabled === true,
+    JSON.stringify(settingsAfter?.pushNotificationConfig)
+  );
+
   const occFrom = "2026-01-01T00:00:00.000Z";
   const occTo = "2026-12-31T23:59:59.999Z";
   const { res: statsOccRes, data: statsOccData } = await fetchApi(`/stats/occupancy?from=${occFrom}&to=${occTo}`);
