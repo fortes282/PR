@@ -37,6 +37,8 @@ Datum: 2026-02-03
 - **Stabilita testů:** Přihlášení v E2E: lokálně inject session (mock), proti Railway/form login (fixture detekuje PLAYWRIGHT_BASE_URL a volá formulářové přihlášení).
 - **Client E2E:** Přidány behaviorální testy: dashboard odkaz na rezervaci, book stránka (dny / prázdný stav), book flow (výběr dne → slot → potvrzovací modal → Zrušit), appointments/credits obsah.
 - **Reception E2E:** Přidány testy obsahu: kalendář (týden, filtr Terapeut), pracovní doba (nadpis), aktivace rezervací (tabulka Terapeut), rezervace (nadpis, odkaz na kalendář), nová rezervace (formulář Klient), klienti, čekací list, fakturace (nadpisy).
+- **Employee E2E:** Kalendář (nadpis „Můj kalendář“, tlačítko Dnes), Moje rezervace, Kolegové (nadpisy).
+- **Admin E2E:** Explicitní kontrola nadpisů: Uživatelé, Služby, Místnosti, Nastavení, Statistiky, Pozadí algoritmů.
 - **Dokumentace:** Inventář všech funkcí a endpointů v [docs/e2e-feature-inventory.md](e2e-feature-inventory.md).
 
 Žádné opravy kódu aplikace (bugfixy) nebyly v tomto kole nutné; změny jsou pouze přidání testů a konfigurace.
@@ -55,7 +57,7 @@ Datum: 2026-02-03
 
 - **Stabilita:** Aplikace se v mock režimu chová stabilně; všechny otestované obrazovky (Admin, Client, Reception, Employee, Notifications) jsou dostupné a po fixture přihlášení na ně E2E testy navigují a ověří URL (popř. základní obsah).
 - **Unit testy:** `pnpm test` – 5 souborů, 27 testů (refund, billing totals, behavior profile, RBAC, date helpers) – **prošly**.
-- **E2E testy:** **48 testů – všechny prošly** (proti nasazené aplikaci na Railway). Auth, Client (book flow), Reception (obsah stránek) a ostatní role ověřeny.
+- **E2E testy:** **57 testů – všechny prošly** (proti nasazené aplikaci na Railway). Auth, Client, Reception, Employee a Admin včetně ověření obsahu (nadpisy, formuláře).
 - **Zbývající rizika:** Chování přihlašovacího formuláře a redirectů v reálném nasazení je potřeba ověřit ručně nebo E2E proti produkci; integrace e-mail/SMS/push a banky zůstávají závislé na konfiguraci a přístupech.
 
 ---
@@ -77,5 +79,5 @@ Datum: 2026-02-03
 - **Unit testy:** `pnpm test` → **27 passed** (refund, billing totals, behavior, RBAC, date).
 - **E2E testy (lokálně):** `pnpm test:e2e` → **28 passed, 7 skipped**.
 - **E2E testy proti nasazené aplikaci (Railway):**  
-  `PLAYWRIGHT_BASE_URL=https://web-production-21de7.up.railway.app pnpm test:e2e` → **48 passed** (~21 s).
+  `PLAYWRIGHT_BASE_URL=https://web-production-21de7.up.railway.app pnpm test:e2e` → **57 passed** (~27 s).
 - **Opravy:** (1) Admin › clients: `getByRole('heading', { name: /Klienti/ })`. (2) Notifications: `getByRole('heading', { name: 'Oznámení' })`. (3) Auth testy zapnuty – form login na produkci. (4) Fixture: při PLAYWRIGHT_BASE_URL se používá form login místo inject session. (5) Client: přísnější selektory (book empty state, main-scoped linky), přidaný book flow test.
