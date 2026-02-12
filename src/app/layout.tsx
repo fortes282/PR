@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "@/styles/globals.css";
 import { ToasterProvider } from "@/components/layout/Toaster";
+import { BackendGuard } from "@/components/BackendGuard";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin", "latin-ext"],
@@ -23,7 +24,9 @@ export default function RootLayout({
   return (
     <html lang="cs" className={plusJakarta.variable}>
       <body className="font-sans">
-        <ToasterProvider>{children}</ToasterProvider>
+        <ToasterProvider>
+          <BackendGuard>{children}</BackendGuard>
+        </ToasterProvider>
       </body>
     </html>
   );

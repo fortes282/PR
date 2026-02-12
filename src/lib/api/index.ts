@@ -1,7 +1,7 @@
 /**
  * Data gateway: single abstraction for all data access.
- * Switch implementation via NEXT_PUBLIC_API_MODE=mock|http (default: mock).
- * Backend: replace MockApiClient with HttpApiClient when backend is ready.
+ * Aplikace běží pouze s backendem (NEXT_PUBLIC_API_MODE=http).
+ * Bez něj se zobrazí hláška, že backend neběží.
  */
 import type {
   LoginCredentials,
@@ -58,7 +58,6 @@ import type {
   ClientRecommendation,
 } from "@/lib/contracts/admin-background";
 import type { MedicalReport, MedicalReportCreate } from "@/lib/contracts";
-import { MockApiClient } from "./mock/mockClient";
 import { HttpApiClient } from "./http/httpClient";
 
 /** Per-client behavior score summary (reliability 0–100, etc.). */
@@ -219,13 +218,14 @@ export type ApiClient = {
   };
 };
 
-const apiMode = process.env.NEXT_PUBLIC_API_MODE ?? "mock";
+/** True pouze když je nastaveno NEXT_PUBLIC_API_MODE=http. Jinak zobrazit hlášku „Backend neběží“. */
+export const isBackendConfigured = process.env.NEXT_PUBLIC_API_MODE === "http";
+
 const useProxy = process.env.NEXT_PUBLIC_USE_API_PROXY === "true";
 const directUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-const baseUrl = apiMode === "http" && useProxy ? "/api/proxy" : directUrl;
+const baseUrl = useProxy ? "/api/proxy" : directUrl;
 
-const apiInstance =
-  apiMode === "http" ? new HttpApiClient(baseUrl) : new MockApiClient();
+const apiInstance = new HttpApiClient(baseUrl);
 
 // Ensure availability.bookableDays exists (avoids undefined after stale build)
 if (!apiInstance.availability.bookableDays) {

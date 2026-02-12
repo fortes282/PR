@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS users (
   notification_preferences_json TEXT
 );
 
+CREATE TABLE IF NOT EXISTS user_passwords (
+  user_id TEXT PRIMARY KEY,
+  password_hash TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS services (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,

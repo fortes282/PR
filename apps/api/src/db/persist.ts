@@ -16,6 +16,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "./client.js";
 import {
   users as usersTable,
+  userPasswords as userPasswordsTable,
   services as servicesTable,
   rooms as roomsTable,
   appointments as appointmentsTable,
@@ -36,6 +37,15 @@ import type { Store } from "../store.js";
 function json<T>(v: T | undefined): string | null {
   if (v === undefined) return null;
   return JSON.stringify(v);
+}
+
+export function persistPassword(store: Store, userId: string, passwordHash: string): void {
+  store.passwords.set(userId, passwordHash);
+  const db = getDb();
+  db.insert(userPasswordsTable)
+    .values({ userId, passwordHash })
+    .onConflictDoUpdate({ target: userPasswordsTable.userId, set: { passwordHash } })
+    .run();
 }
 
 export function persistUser(store: Store, user: User): void {
@@ -371,6 +381,7 @@ export function deletePushSubscription(store: Store, endpoint: string): void {
 /** Persist entire store to DB (e.g. after seed). */
 export function persistAll(store: Store): void {
   for (const u of store.users.values()) persistUser(store, u);
+  for (const [userId, hash] of store.passwords) persistPassword(store, userId, hash);
   for (const s of store.services.values()) persistService(store, s);
   for (const r of store.rooms.values()) persistRoom(store, r);
   for (const a of store.appointments.values()) persistAppointment(store, a);

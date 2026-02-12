@@ -1,41 +1,33 @@
 # Pristav Radosti — Rehab Center Management
 
-Next.js App Router PWA for multi-role rehab center management. Data goes through a single gateway: **mock** (default, in-memory) or **HTTP** (Fastify backend in `apps/api` with SQLite). See **[docs/About.md](docs/About.md)** for a full overview of features, infrastructure, deployment, and operations.
+Next.js App Router PWA for multi-role rehab center management. **Aplikace vyžaduje běžící backend** (Fastify API v `apps/api` s SQLite). Bez něj se zobrazí hláška „Backend neběží“. Mock režim není podporován.
 
-## Run
+**Návod k nasazení (lokálně i na Railway):** **[NASAZENI.md](NASAZENI.md)**  
+Přehled funkcí a infrastruktury: **[docs/About.md](docs/About.md)**
 
-```bash
-pnpm install
-pnpm dev
-```
+## Rychlý start (lokálně)
 
-Open [http://localhost:3000](http://localhost:3000). Use **Login** and choose a role (ADMIN, RECEPTION, EMPLOYEE, CLIENT) to enter the app.
-
-### Running with the backend
-
-To run the app against the real API (Fastify backend in `apps/api`):
-
-1. Set environment variables:
+1. **Backend:** Z kořene repozitáře spusťte API (např. `pnpm dev:api`). Běží na http://localhost:3001.
+2. **Frontend:** V `.env.local` nastavte:
    - `NEXT_PUBLIC_API_MODE=http`
    - `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001`
-2. **První spuštění (API s SQLite):** Pokud API spadne s chybou „Could not locate the bindings file“, spusťte z kořene projektu jednou: `pnpm build:sqlite`. (Zkompiluje se nativní modul `better-sqlite3`.)
-3. **Porty:** Ujistěte se, že **port 3000 je volný** (Next.js). Pokud je 3000 obsazený, Next naběhne na 3001 a dojde ke konfliktu s API. Zastavte jiný proces na 3000 nebo spouštějte Next a API zvlášť v různých terminálech.
-4. Start both processes:
-   - **Option A:** From repo root run `pnpm dev:all` (Next.js on 3000, API on 3001).
-   - **Option B:** In one terminal run `pnpm dev` (Next.js), in another run `pnpm dev:api` (API on port 3001).
-5. Restart the Next.js dev server after changing env so `NEXT_PUBLIC_*` is picked up.
+3. Spusťte Next.js: `pnpm dev` → http://localhost:3000.
 
-### Environment variables
+Nebo obojí najednou: `pnpm dev:all` (z kořene).
 
-| Variable | Where | Description |
-|----------|--------|-------------|
-| `NEXT_PUBLIC_API_MODE` | Frontend | `mock` (default) or `http` |
-| `NEXT_PUBLIC_API_BASE_URL` | Frontend | Backend URL when mode is `http`, e.g. `http://localhost:3001` |
-| `PORT` | Backend (apps/api) | API server port (default `3001`) |
-| `JWT_SECRET` | Backend (apps/api) | Secret for JWT signing; set a strong value in production |
-| `DATABASE_PATH` | Backend (apps/api) | SQLite file path (default `./data/pristav.db`). Use an absolute path in production and back up regularly. |
+Po změně `NEXT_PUBLIC_*` vždy restartujte Next.js. Podrobný postup včetně produkce: **[NASAZENI.md](NASAZENI.md)**.
 
-See `.env.example` for a template.
+### Environment variables (základ)
+
+| Variable | Kde | Popis |
+|----------|-----|-------|
+| `NEXT_PUBLIC_API_MODE` | Frontend | **http** (povinné) – bez toho se zobrazí „Backend neběží“ |
+| `NEXT_PUBLIC_API_BASE_URL` | Frontend | URL backendu, např. `http://localhost:3001` |
+| `PORT` | Backend | Port API (default 3001) |
+| `JWT_SECRET` | Backend | Secret pro JWT; v produkci silný náhodný řetězec |
+| `DATABASE_PATH` | Backend | Cesta k SQLite; v produkci např. na Volume |
+
+Více v `.env.example` a **[NASAZENI.md](NASAZENI.md)**.
 
 ### Jak ověřit, že běží frontend, backend a databáze
 
@@ -53,8 +45,8 @@ See `.env.example` for a template.
    Očekávaná odpověď: `{"ok":true,"service":"api","database":"connected"}`.  
    Pokud je `"database":"error"`, backend běží, ale připojení k SQLite selhalo (zkuste `pnpm build:sqlite` z kořene projektu).
 
-4. **Ukládání nastavení (Admin)**  
-   Přihlaste se jako Admin → Nastavení. Nahoře uvidíte buď **Režim server** (data jdou do DB), nebo **Režim mock** (data jen v paměti, po F5 se ztratí). Aby se nastavení trvale ukládalo, musí běžet backend a frontend musí mít `NEXT_PUBLIC_API_MODE=http` (pak restart Next.js).
+4. **Nastavení (Admin)**  
+   Nastavení se ukládá do databáze na backendu (vždy, když je backend připojen).
 
 - **Port 3001:** `pnpm run dev:3001` (dev) or `pnpm run start:3001` (after `pnpm build`).
 - **404 on `/_next/static/chunks/...`:** The browser is loading a page that expects the **dev** server (or the opposite). Fix: use one mode only — run `pnpm dev` (or `pnpm run dev:3001`) for development; do a **hard refresh** (Cmd+Shift+R / Ctrl+Shift+R) so the HTML and chunk URLs match the running server. If you use production, run `pnpm build && pnpm start` and open the app fresh (no cached dev HTML).
@@ -84,7 +76,7 @@ Feature and quality criteria are defined in **[docs/acceptance-criteria.md](docs
 - **Employee (E1–E4):** Calendar, appointments + sign-up, colleagues, client reports.
 - **Admin (AD1–AD5):** Users, services, rooms, settings, stats.
 - **Shared (S1–S2):** Notifications, offline fallback.
-- **Data (D1–D4):** Mock/HTTP modes, activation-aware availability.
+- **Data (D1–D4):** Backend-only (HTTP), activation-aware availability.
 - **Behavior (B1–B2):** Optional profile and refund rules.
 
 Use the doc as the source of truth for scope and for manual/automated checks.
@@ -93,9 +85,7 @@ Use the doc as the source of truth for scope and for manual/automated checks.
 
 - `src/app/` — App Router routes: `(public)/login`, `(client)/client/*`, `(reception)/reception/*`, `(employee)/employee/*`, `(admin)/admin/*`, `notifications/`
 - `src/components/` — Layout, nav, calendar, tables, forms, modals
-- `src/lib/api/` — **Data gateway**: single abstraction for all data. Implementations:
-  - `mock/` — In-memory mock with deterministic seed (default)
-  - `http/` — REST client (disabled by default)
+- `src/lib/api/` — **Data gateway**: REST klient k backendu (`http/`). Aplikace běží pouze s `NEXT_PUBLIC_API_MODE=http`.
 - `src/lib/contracts/` — Zod schemas + inferred TS types for DTOs
 - `src/lib/auth/` — Session (localStorage) and RBAC (route guard, `can(role, action)`)
 - `src/lib/behavior/` — **Behavior algorithm**: events, metrics, scores, tags, notification personalization. See [docs/behavior-algorithm.md](docs/behavior-algorithm.md).
@@ -109,16 +99,11 @@ The repo includes a Fastify backend in `apps/api` that implements the full API c
 - **Data:** Data is stored in a **SQLite** file. On first start (empty DB), seed data is loaded and saved; on later starts the DB is loaded into memory. All writes go to both memory and SQLite so data survives restarts.
 - **Database:** Path is `./data/pristav.db` by default. Override with `DATABASE_PATH` (e.g. `/var/lib/pristav/pristav.db` in production). Back up this file regularly.
 - **Native dependency:** `better-sqlite3` must be compiled. If you see "Could not locate the bindings file", run from repo root: `pnpm build:sqlite` or `pnpm rebuild better-sqlite3`.
-- **HTTP mode gaps:** The backend does not yet implement medical reports, behavior scores (client list), or client profile log. Those features work in **mock** mode; for HTTP mode either add the routes or accept that those UIs will not have data.
+- Některé endpointy (medical reports, behavior scores, client profile log) vrací prázdná data přes proxy, pokud je backend nemá – viz proxy fallback v `src/app/api/proxy/`.
 
-## Backend preparation guide (historical)
+## Backend – přehled
 
-### Switch from mock to HTTP
-
-1. Set env:
-   - `NEXT_PUBLIC_API_MODE=http`
-   - `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001` (or your API URL)
-2. Implement the backend endpoints below. The frontend already calls them via `src/lib/api/http/httpClient.ts`.
+Návod k nasazení backendu i frontendu: **[NASAZENI.md](NASAZENI.md)**. Shrnutí:
 
 ### Auth strategy
 

@@ -15,6 +15,10 @@ import type { Settings } from "@pristav/shared/settings";
 
 export const store = {
   users: new Map<string, User>(),
+  /** userId -> password hash (pbkdf2). Loaded from DB on startup. */
+  passwords: new Map<string, string>(),
+  /** phone -> { code, expiresAt }. Short-lived, not persisted. */
+  smsVerificationCodes: new Map<string, { code: string; expiresAt: number }>(),
   services: new Map<string, Service>(),
   rooms: new Map<string, Room>(),
   appointments: new Map<string, Appointment>(),

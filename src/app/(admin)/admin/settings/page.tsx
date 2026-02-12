@@ -189,7 +189,7 @@ export default function AdminSettingsPage(): React.ReactElement {
     }
   };
 
-  const isServerMode = process.env.NEXT_PUBLIC_API_MODE === "http";
+  const isServerMode = true; // Aplikace běží jen s backendem (http režim)
 
   useEffect(() => {
     if (isServerMode) {
@@ -281,19 +281,8 @@ export default function AdminSettingsPage(): React.ReactElement {
     <div className="space-y-8">
       <h1 className="text-2xl font-bold text-gray-900">Nastavení</h1>
 
-      <div
-        className={`rounded-lg border p-4 text-sm ${isServerMode ? "border-green-200 bg-green-50 text-green-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}
-        role="status"
-      >
-        {isServerMode ? (
-          <>
-            <strong>Režim server.</strong> Nastavení se ukládá do databáze na backendu a přežije restart aplikace i obnovení stránky.
-          </>
-        ) : (
-          <>
-            <strong>Režim mock (paměť prohlížeče).</strong> Po obnovení stránky (F5) se nastavení vrátí na výchozí. Pro trvalé ukládání nastavte v .env <code className="rounded bg-amber-100 px-1">NEXT_PUBLIC_API_MODE=http</code>, <code className="rounded bg-amber-100 px-1">NEXT_PUBLIC_API_BASE_URL=http://localhost:3001</code> a spusťte backend (<code className="rounded bg-amber-100 px-1">pnpm dev:api</code>). Po změně env restartujte Next.js.
-          </>
-        )}
+      <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">
+        <strong>Režim server.</strong> Nastavení se ukládá do databáze na backendu a přežije restart aplikace i obnovení stránky.
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
@@ -469,7 +458,7 @@ export default function AdminSettingsPage(): React.ReactElement {
         <section className="card space-y-4 p-4">
           <h2 className="font-medium text-gray-900">Testovací e-mail</h2>
           <p className="text-sm text-gray-600">
-            Odešle jeden e-mail z nastaveného odesílatele na zadanou adresu. Slouží k ověření SMTP a zobrazení jména/adresy odesílatele. V režimu mock se e-mail neodesílá; použijte režim http a nastavte SMTP na backendu.
+            Odešle jeden e-mail z nastaveného odesílatele na zadanou adresu. Slouží k ověření SMTP a zobrazení jména/adresy odesílatele. Vyžaduje nastavené SMTP na backendu (env: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS).
           </p>
           <div
             className="space-y-3"

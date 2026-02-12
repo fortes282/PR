@@ -36,11 +36,15 @@ export default function RegisterPage(): React.ReactElement {
   const handleRegister = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!email.trim() || !password || !name.trim()) return;
-    if (phone.trim() && !codeSent) {
-      setError("Nejprve vyžádejte a zadejte SMS kód.");
+    if (!phone.trim()) {
+      setError("Telefon je povinný. Vyplňte číslo a vyžádejte si SMS kód.");
       return;
     }
-    if (phone.trim() && codeSent && !smsCode.trim()) {
+    if (!codeSent) {
+      setError("Nejprve klikněte na „Odeslat SMS kód“ a zadejte kód z SMS.");
+      return;
+    }
+    if (!smsCode.trim()) {
       setError("Zadejte kód z SMS.");
       return;
     }
@@ -51,8 +55,8 @@ export default function RegisterPage(): React.ReactElement {
         email: email.trim(),
         password,
         name: name.trim(),
-        phone: phone.trim() || undefined,
-        smsCode: phone.trim() && smsCode.trim() ? smsCode.trim() : undefined,
+        phone: phone.trim(),
+        smsCode: smsCode.trim(),
       });
       setSession(session, user);
       router.push(getDefaultRoute(session.role));
@@ -68,7 +72,7 @@ export default function RegisterPage(): React.ReactElement {
     <main className="flex min-h-screen flex-col items-center justify-center bg-surface-50 p-4">
       <div className="card w-full max-w-md p-6">
         <h1 className="text-xl font-bold text-primary-700">Registrace klienta</h1>
-        <p className="mt-1 text-sm text-gray-600">Vyplňte údaje. Volitelně ověřte telefon SMS kódem.</p>
+        <p className="mt-1 text-sm text-gray-600">Vyplňte údaje. Telefon je povinný – ověříme ho kódem z SMS.</p>
 
         <form onSubmit={handleRegister} className="mt-6 space-y-4">
           <label>
@@ -84,19 +88,33 @@ export default function RegisterPage(): React.ReactElement {
             <input type="text" className="input mt-1 w-full" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Jan Novák" />
           </label>
           <label>
-            <span className="block text-sm font-medium text-gray-700">Telefon (volitelné, pro SMS ověření)</span>
-            <input type="tel" className="input mt-1 w-full" value={phone} onChange={(e) => { setPhone(e.target.value); setCodeSent(false); }} placeholder="+420…" />
+            <span className="block text-sm font-medium text-gray-700">Telefon * (ověříme SMS kódem)</span>
+            <input
+              type="tel"
+              className="input mt-1 w-full"
+              value={phone}
+              onChange={(e) => { setPhone(e.target.value); setCodeSent(false); }}
+              placeholder="+420 123 456 789"
+              required
+            />
           </label>
-          {phone.trim() && (
-            <div className="flex gap-2">
-              <button type="button" className="btn-secondary" disabled={loading || codeSent} onClick={handleRequestSmsCode}>
-                {codeSent ? "Kód odeslán" : "Odeslat SMS kód"}
-              </button>
-              {codeSent && (
-                <input type="text" className="input flex-1" value={smsCode} onChange={(e) => setSmsCode(e.target.value)} placeholder="Kód z SMS" maxLength={6} />
-              )}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-2 items-end">
+            <button type="button" className="btn-secondary" disabled={loading || !phone.trim() || codeSent} onClick={handleRequestSmsCode}>
+              {codeSent ? "Kód odeslán" : "Odeslat SMS kód"}
+            </button>
+            {codeSent && (
+              <input
+                type="text"
+                className="input flex-1 min-w-[120px]"
+                value={smsCode}
+                onChange={(e) => setSmsCode(e.target.value)}
+                placeholder="Kód z SMS (6 číslic)"
+                maxLength={6}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+              />
+            )}
+          </div>
 
           {error && (
             <p className="text-sm text-red-600" role="alert">{error}</p>

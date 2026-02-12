@@ -83,13 +83,7 @@ export default function LoginPage(): React.ReactElement {
           <div className="mt-2 space-y-1" role="alert">
             <p className="text-sm text-red-600">{error}</p>
             <p className="text-xs text-gray-500">
-              API: {process.env.NEXT_PUBLIC_API_MODE === "http" ? "HTTP" : "mock"}
-              {process.env.NEXT_PUBLIC_USE_API_PROXY === "true" ? " (proxy)" : ""} →{" "}
-              {process.env.NEXT_PUBLIC_API_MODE === "http"
-                ? process.env.NEXT_PUBLIC_USE_API_PROXY === "true"
-                  ? "/api/proxy"
-                  : process.env.NEXT_PUBLIC_API_BASE_URL || "(nevyplněno)"
-                : "lokální mock"}
+              API: {process.env.NEXT_PUBLIC_USE_API_PROXY === "true" ? "proxy" : process.env.NEXT_PUBLIC_API_BASE_URL || "(nevyplněno)"}
             </p>
           </div>
         )}

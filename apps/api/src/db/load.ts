@@ -15,6 +15,7 @@ import type { Settings } from "@pristav/shared/settings";
 import { getDb } from "./client.js";
 import {
   users as usersTable,
+  userPasswords as userPasswordsTable,
   services as servicesTable,
   rooms as roomsTable,
   appointments as appointmentsTable,
@@ -65,6 +66,12 @@ export function loadFromDbIntoStore(store: Store): void {
       notificationPreferences: parseJson(r.notificationPreferencesJson),
     };
     store.users.set(u.id, u);
+  }
+
+  const passwordRows = db.select().from(userPasswordsTable).all();
+  store.passwords.clear();
+  for (const r of passwordRows) {
+    store.passwords.set(r.userId, r.passwordHash);
   }
 
   const serviceRows = db.select().from(servicesTable).all();

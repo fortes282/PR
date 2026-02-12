@@ -1,6 +1,5 @@
 /**
- * HTTP API client: real REST calls. Disabled by default (NEXT_PUBLIC_API_MODE=mock).
- * Set NEXT_PUBLIC_API_MODE=http and NEXT_PUBLIC_API_BASE_URL to use.
+ * HTTP API client: real REST calls. Aplikace běží pouze s backendem (NEXT_PUBLIC_API_MODE=http).
  * Backend: implement endpoints per BACKEND CONTRACT comments below and in contracts.
  */
 
@@ -176,11 +175,26 @@ export class HttpApiClient implements ApiClient {
         } catch {}
       }
     },
-    register: async (body: RegisterBody) =>
-      fetchApi<{ user: User; session: Session }>(this.baseUrl, "/auth/register", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
+    register: async (body: RegisterBody): Promise<{ user: User; session: Session }> => {
+      const res = await fetchApi<{ user: User; accessToken: string; expiresIn?: number }>(
+        this.baseUrl,
+        "/auth/register",
+        { method: "POST", body: JSON.stringify(body) }
+      );
+      const session: Session = {
+        userId: res.user.id,
+        role: res.user.role,
+        accessToken: res.accessToken,
+        expiresAt: res.expiresIn ? Date.now() + res.expiresIn * 1000 : undefined,
+      };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("pristav_session", JSON.stringify(session));
+          localStorage.setItem("pristav_user", JSON.stringify(res.user));
+        } catch {}
+      }
+      return { user: res.user, session };
+    },
     requestSmsCode: async (body: RequestSmsCodeBody) =>
       fetchApi<{ expiresInSeconds: number }>(this.baseUrl, "/auth/sms/request", {
         method: "POST",
