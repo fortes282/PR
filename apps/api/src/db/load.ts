@@ -238,7 +238,7 @@ export function loadFromDbIntoStore(store: Store): void {
       smsFaynConfig: parseJson(firstSettings.smsFaynConfigJson),
       reservationNotificationTiming: parseJson(firstSettings.reservationNotificationTimingJson),
       pushNotificationConfig: (() => {
-        const raw = parseJson(firstSettings.pushNotificationConfigJson);
+        const raw = parseJson<Record<string, unknown>>(firstSettings.pushNotificationConfigJson);
         if (!raw || typeof raw !== "object") return undefined;
         return { ...raw, enabled: raw.enabled === true };
       })(),
