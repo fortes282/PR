@@ -53,7 +53,7 @@ Datum: 2026-02-03
 
 - **Stabilita:** Aplikace se v mock režimu chová stabilně; všechny otestované obrazovky (Admin, Client, Reception, Employee, Notifications) jsou dostupné a po fixture přihlášení na ně E2E testy navigují a ověří URL (popř. základní obsah).
 - **Unit testy:** `pnpm test` – 5 souborů, 27 testů (refund, billing totals, behavior profile, RBAC, date helpers) – **prošly**.
-- **E2E testy:** 30 běžících testů (5 auth testů skipnuto) – **všechny běžící prošly**. Skipnuté: login redirects (4), unauthenticated redirect (1), CLIENT cannot open admin (1), logout redirect (1).
+- **E2E testy:** **35 testů – všechny prošly** (proti nasazené aplikaci na Railway). Auth testy (login formulář, redirecty, logout) běží a procházejí na produkci (NEXT_PUBLIC_API_MODE=http).
 - **Zbývající rizika:** Chování přihlašovacího formuláře a redirectů v reálném nasazení je potřeba ověřit ručně nebo E2E proti produkci; integrace e-mail/SMS/push a banky zůstávají závislé na konfiguraci a přístupech.
 
 ---
@@ -75,5 +75,5 @@ Datum: 2026-02-03
 - **Unit testy:** `pnpm test` → **27 passed** (refund, billing totals, behavior, RBAC, date).
 - **E2E testy (lokálně):** `pnpm test:e2e` → **28 passed, 7 skipped**.
 - **E2E testy proti nasazené aplikaci (Railway):**  
-  `PLAYWRIGHT_BASE_URL=https://web-production-21de7.up.railway.app pnpm test:e2e` → **28 passed, 7 skipped** (9.3 s).
-- **Oprava:** Test „Admin › clients page loads“ na produkci padal (strict mode: 2 prvky s textem „Klienti“ – odkaz v menu a nadpis). Upraven na `getByRole('heading', { name: /Klienti/ })`.
+  `PLAYWRIGHT_BASE_URL=https://web-production-21de7.up.railway.app pnpm test:e2e` → **35 passed** (12.3 s).
+- **Opravy:** (1) Admin › clients: `getByRole('heading', { name: /Klienti/ })` kvůli strict mode. (2) Notifications: `getByRole('heading', { name: 'Oznámení' })`. (3) Auth testy zapnuty – na produkci (HTTP API) přihlášení formulářem a redirecty fungují.

@@ -21,34 +21,34 @@ test.describe("Auth", () => {
   });
 
   for (const role of ROLES) {
-    test.skip(`${role} login redirects to default route`, async ({ page }) => {
+    test(`${role} login redirects to default route`, async ({ page }) => {
       await page.goto("/login");
       await page.locator("#role").selectOption(role);
       const btn = page.getByRole("button", { name: /Přihlásit se/i });
       await expect(btn).toBeEnabled();
       await btn.click();
-      await expect(page).toHaveURL(new RegExp(DEFAULT_ROUTES[role].replace(/\//g, "\\/")), { timeout: 20_000 });
+      await expect(page).toHaveURL(new RegExp(DEFAULT_ROUTES[role].replace(/\//g, "\\/")), { timeout: 25_000 });
     });
   }
 
-  test.skip("unauthenticated access to protected route redirects to login", async ({ page }) => {
+  test("unauthenticated access to protected route redirects to login", async ({ page }) => {
     await page.goto("/admin/users");
-    await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/login/, { timeout: 15_000 });
   });
 
-  test.skip("CLIENT cannot open admin route", async ({ page }) => {
+  test("CLIENT cannot open admin route", async ({ page }) => {
     const { loginByRole } = await import("./fixtures");
     await loginByRole(page, "CLIENT");
     await expect(page).toHaveURL(/\/client\/dashboard/);
     await page.goto("/admin/users");
-    await expect(page).toHaveURL(/\/client\/dashboard/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/client\/dashboard/, { timeout: 15_000 });
   });
 
-  test.skip("logout clears session and redirects to login", async ({ page }) => {
+  test("logout clears session and redirects to login", async ({ page }) => {
     const { loginByRole } = await import("./fixtures");
     await loginByRole(page, "ADMIN");
     await expect(page).toHaveURL(/\/admin/);
     await page.getByRole("button", { name: /Odhlásit/i }).click();
-    await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/login/, { timeout: 15_000 });
   });
 });
