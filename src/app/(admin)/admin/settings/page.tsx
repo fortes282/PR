@@ -297,7 +297,8 @@ export default function AdminSettingsPage(): React.ReactElement {
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
-        <section className="card max-w-md space-y-4 p-4">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <section className="card space-y-4 p-4">
           <h2 className="font-medium text-gray-900">Obecné</h2>
           <p className="text-sm text-gray-600">
             Lhůta bezplatného zrušení (hodin). Dostupnost rezervací řídí aktivace pracovní doby v sekci Recepce.
@@ -314,7 +315,7 @@ export default function AdminSettingsPage(): React.ReactElement {
           </label>
         </section>
 
-        <section className="card max-w-lg space-y-4 p-4">
+        <section className="card space-y-4 p-4">
           <h2 className="font-medium text-gray-900">Fakturace</h2>
           <p className="text-sm text-gray-600">
             Číslování faktur a výchozí splatnost. Hlavička (vystavovatel) se zobrazí na fakturách.
@@ -421,7 +422,7 @@ export default function AdminSettingsPage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="card max-w-lg space-y-4 p-4">
+        <section className="card space-y-4 p-4">
           <h2 className="font-medium text-gray-900">Oznámení – odesílatel e-mailů</h2>
           <p className="text-sm text-gray-600">
             Odesílatel se načítá ze serveru: pokud je v prostředí nastaven <strong>SMTP_USER</strong>, použije se ten (stačí změnit env a restart API – bez úprav zde). Jinak se bere e-mail vyplněný níže. Jméno odesílatele můžete doplnit vždy. SMTP: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS – viz .env.example.
@@ -465,7 +466,7 @@ export default function AdminSettingsPage(): React.ReactElement {
           </button>
         </section>
 
-        <section className="card max-w-lg space-y-4 p-4">
+        <section className="card space-y-4 p-4">
           <h2 className="font-medium text-gray-900">Testovací e-mail</h2>
           <p className="text-sm text-gray-600">
             Odešle jeden e-mail z nastaveného odesílatele na zadanou adresu. Slouží k ověření SMTP a zobrazení jména/adresy odesílatele. V režimu mock se e-mail neodesílá; použijte režim http a nastavte SMTP na backendu.
@@ -542,7 +543,7 @@ export default function AdminSettingsPage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="card max-w-lg space-y-4 p-4">
+        <section className="card space-y-4 p-4">
           <h2 className="font-medium text-gray-900">SMS – FAYN brána</h2>
           <p className="text-sm text-gray-600">
             Integrace s FAYN SMS API (
@@ -595,7 +596,7 @@ export default function AdminSettingsPage(): React.ReactElement {
           )}
         </section>
 
-        <section className="card max-w-lg space-y-4 p-4">
+        <section className="card space-y-4 p-4">
           <h2 className="font-medium text-gray-900">Rezervace – načasování připomínek</h2>
           <p className="text-sm text-gray-600">
             Kdy posílat 1. a 2. e-mail a volitelně SMS vzhledem k začátku termínu (hodiny předem).
@@ -652,7 +653,7 @@ export default function AdminSettingsPage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="card max-w-lg space-y-4 p-4">
+        <section className="card space-y-4 p-4 lg:col-span-2">
           <h2 className="font-medium text-gray-900">Push notifikace</h2>
           <p className="text-sm text-gray-600">
             Na serveru nastavte VAPID_PUBLIC_KEY a VAPID_PRIVATE_KEY (npx web-push generate-vapid-keys). Veřejný klíč můžete přepsat níže.
@@ -802,6 +803,8 @@ export default function AdminSettingsPage(): React.ReactElement {
             </div>
           )}
         </section>
+
+        </div>
 
         <button type="submit" className="btn-primary" disabled={saving}>
           {saving ? "Ukládám…" : "Uložit vše"}
