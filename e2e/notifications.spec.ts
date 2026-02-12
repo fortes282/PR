@@ -9,6 +9,6 @@ test.describe("Notifications", () => {
     await loginByRole(page, "ADMIN");
     await page.goto("/notifications");
     await expect(page).toHaveURL(/\/notifications/, { timeout: 15_000 });
-    await expect(page.locator("main").getByText(/Oznámení|Načítám|Žádná oznámení/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: "Oznámení" })).toBeVisible({ timeout: 15_000 });
   });
 });
