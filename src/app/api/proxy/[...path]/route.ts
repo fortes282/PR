@@ -1,9 +1,14 @@
 /**
  * API proxy - forwards requests to backend. Use when CORS or 502 from direct API calls.
- * Set NEXT_PUBLIC_USE_API_PROXY=true and API_BACKEND_URL (or NEXT_PUBLIC_API_BASE_URL).
+ * Set NEXT_PUBLIC_USE_API_PROXY=true and API_BACKEND_URL to your API server URL.
+ * Do not set API_BACKEND_URL to the frontend URL (e.g. Vercel app URL) – that causes 404.
  */
 const BACKEND_URL =
   process.env.API_BACKEND_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+
+const isProduction = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+const isLocalhostBackend =
+  BACKEND_URL.startsWith("http://localhost") || BACKEND_URL.startsWith("http://127.0.0.1");
 
 function errorResponse(status: number, message: string, detail?: string): Response {
   return Response.json(
@@ -81,7 +86,36 @@ async function getPath(context: RouteContext): Promise<string[]> {
   return params.path;
 }
 
+function getRequestHost(request: Request): string | null {
+  try {
+    const url = new URL(request.url);
+    return url.host;
+  } catch {
+    return null;
+  }
+}
+
 async function handle(request: Request, context: RouteContext): Promise<Response> {
+  if (isProduction && isLocalhostBackend) {
+    return errorResponse(
+      503,
+      "Backend URL not configured for production",
+      "Set API_BACKEND_URL (server env) to your API server URL, e.g. https://your-api.up.railway.app. Do not use the frontend URL."
+    );
+  }
+  try {
+    const backendHost = new URL(BACKEND_URL).host;
+    const requestHost = getRequestHost(request);
+    if (requestHost && backendHost === requestHost) {
+      return errorResponse(
+        502,
+        "API_BACKEND_URL must be the API server, not the frontend",
+        `Backend is set to the same host as this app (${requestHost}). Set API_BACKEND_URL to your API deployment URL (e.g. Railway API), not the frontend URL.`
+      );
+    }
+  } catch {
+    // ignore URL parse errors
+  }
   const path = await getPath(context);
   if (path[0] === "__debug") {
     try {
