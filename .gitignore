@@ -36,6 +36,9 @@ Thumbs.db
 # Debug / test
 coverage/
 .nyc_output/
+test-results/
+playwright-report/
+playwright/.cache/
 *.log
 npm-debug.log*
 pnpm-debug.log*
