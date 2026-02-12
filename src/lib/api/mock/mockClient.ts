@@ -60,6 +60,8 @@ import { computeBehaviorProfile } from "@/lib/behavior/profile";
 import { canRefund } from "@/lib/cancellation";
 import { addDays, subDays, startOfDay, addMonths, getDayOfWeek, parseTimeHHmm, setHours, setMinutes, monthKey } from "@/lib/utils/date";
 
+const MOCK_SETTINGS_STORAGE_KEY = "pristav_mock_settings";
+
 let seeded = false;
 function ensureSeed(): void {
   if (!seeded) {
@@ -1202,11 +1204,29 @@ export class MockApiClient implements ApiClient {
   settings = {
     get: async (): Promise<Settings> => {
       ensureSeed();
+      if (typeof window !== "undefined") {
+        try {
+          const saved = window.localStorage.getItem(MOCK_SETTINGS_STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved) as Partial<Settings>;
+            db.settings = { ...db.settings, ...parsed };
+          }
+        } catch {
+          // ignore invalid or missing stored settings
+        }
+      }
       return { ...db.settings };
     },
     update: async (data: SettingsUpdate): Promise<Settings> => {
       ensureSeed();
       db.settings = { ...db.settings, ...data };
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem(MOCK_SETTINGS_STORAGE_KEY, JSON.stringify(db.settings));
+        } catch {
+          // ignore quota or other storage errors
+        }
+      }
       return { ...db.settings };
     },
     getEmailStatus: async (): Promise<{ ok: boolean; message: string; details?: string }> => {
