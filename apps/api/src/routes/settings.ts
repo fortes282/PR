@@ -25,10 +25,14 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
         : undefined;
 
     const settingsOut = { ...store.settings };
-    if (vapidFromEnv && settingsOut.pushNotificationConfig) {
-      const cleaned = { ...settingsOut.pushNotificationConfig, vapidPublicKey: undefined };
-      settingsOut.pushNotificationConfig = cleaned;
-      if (store.settings.pushNotificationConfig?.vapidPublicKey != null) {
+    if (settingsOut.pushNotificationConfig) {
+      const raw = settingsOut.pushNotificationConfig;
+      settingsOut.pushNotificationConfig = {
+        ...raw,
+        vapidPublicKey: vapidFromEnv ? undefined : raw.vapidPublicKey,
+        enabled: raw.enabled === true,
+      };
+      if (vapidFromEnv && store.settings.pushNotificationConfig?.vapidPublicKey != null) {
         store.settings.pushNotificationConfig = { ...store.settings.pushNotificationConfig!, vapidPublicKey: undefined };
         persistSettings(store, { ...store.settings });
       }
@@ -97,10 +101,15 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       return;
     }
     let updated = { ...store.settings, ...parse.data };
-    if (process.env.VAPID_PUBLIC_KEY?.trim() && updated.pushNotificationConfig) {
+    if (updated.pushNotificationConfig) {
+      const raw = updated.pushNotificationConfig;
       updated = {
         ...updated,
-        pushNotificationConfig: { ...updated.pushNotificationConfig, vapidPublicKey: undefined },
+        pushNotificationConfig: {
+          ...raw,
+          enabled: raw.enabled === true,
+          vapidPublicKey: process.env.VAPID_PUBLIC_KEY?.trim() ? undefined : (raw.vapidPublicKey || undefined),
+        },
       };
     }
     persistSettings(store, updated);

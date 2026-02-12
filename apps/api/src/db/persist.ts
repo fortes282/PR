@@ -324,7 +324,11 @@ export function persistSettings(store: Store, settings: Settings): void {
     notificationEmailSenderJson: json(settings.notificationEmailSender),
     smsFaynConfigJson: json(settings.smsFaynConfig),
     reservationNotificationTimingJson: json(settings.reservationNotificationTiming),
-    pushNotificationConfigJson: json(settings.pushNotificationConfig),
+    pushNotificationConfigJson: json(
+      settings.pushNotificationConfig
+        ? { ...settings.pushNotificationConfig, enabled: settings.pushNotificationConfig.enabled === true }
+        : undefined
+    ),
   };
   const existing = db.select().from(settingsTable).limit(1).all();
   if (existing.length === 0) {
