@@ -41,6 +41,27 @@ const emptyPush: PushNotificationConfig = {
 };
 
 const PUSH_CONFIG_STORAGE_KEY = "pristav_push_config";
+const SMS_CONFIG_STORAGE_KEY = "pristav_sms_config";
+
+function loadStoredSmsConfig(): Partial<SmsSmsapiConfig> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(SMS_CONFIG_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as Partial<SmsSmsapiConfig>;
+  } catch {
+    return null;
+  }
+}
+
+function saveStoredSmsConfig(config: SmsSmsapiConfig): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(SMS_CONFIG_STORAGE_KEY, JSON.stringify(config));
+  } catch {
+    // ignore
+  }
+}
 
 function loadStoredPushConfig(): Partial<PushNotificationConfig> | null {
   if (typeof window === "undefined") return null;
@@ -107,7 +128,10 @@ export default function AdminSettingsPage(): React.ReactElement {
         );
         setEmailFromEnv(false);
       }
-      setSmsSmsapiConfig(s.smsSmsapiConfig ? { ...emptySmsSmsapi, ...s.smsSmsapiConfig } : emptySmsSmsapi);
+      const smsFromApi = s.smsSmsapiConfig ? { ...emptySmsSmsapi, ...s.smsSmsapiConfig } : emptySmsSmsapi;
+      const storedSms = loadStoredSmsConfig();
+      const sms = storedSms ? { ...emptySmsSmsapi, ...smsFromApi, ...storedSms } : smsFromApi;
+      setSmsSmsapiConfig(sms);
       setReservationTiming(s.reservationNotificationTiming ? { ...emptyTiming, ...s.reservationNotificationTiming } : emptyTiming);
       const pushFromApi = s.pushNotificationConfig ? { ...emptyPush, ...s.pushNotificationConfig } : emptyPush;
       const stored = loadStoredPushConfig();
@@ -163,6 +187,9 @@ export default function AdminSettingsPage(): React.ReactElement {
       const savedPush = s.pushNotificationConfig ? { ...emptyPush, ...s.pushNotificationConfig } : emptyPush;
       setPushConfig(savedPush);
       saveStoredPushConfig(savedPush);
+      const savedSms = s.smsSmsapiConfig ? { ...emptySmsSmsapi, ...s.smsSmsapiConfig } : emptySmsSmsapi;
+      setSmsSmsapiConfig(savedSms);
+      saveStoredSmsConfig(savedSms);
       const effectivePushAfter = (s as { effectivePushVapid?: { vapidPublicKey: string; fromEnv: boolean } }).effectivePushVapid;
       if (effectivePushAfter) {
         setEffectiveVapidPublicKey(effectivePushAfter.vapidPublicKey);
@@ -550,9 +577,14 @@ export default function AdminSettingsPage(): React.ReactElement {
             <input
               type="checkbox"
               checked={smsSmsapiConfig.enabled}
-              onChange={(e) =>
-                setSmsSmsapiConfig((p) => ({ ...p, enabled: e.target.checked }))
-              }
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setSmsSmsapiConfig((p) => {
+                  const next = { ...p, enabled: checked };
+                  saveStoredSmsConfig(next);
+                  return next;
+                });
+              }}
               className="rounded border-gray-300"
             />
             <span className="text-sm font-medium text-gray-700">SMS brána zapnuta</span>
@@ -563,9 +595,14 @@ export default function AdminSettingsPage(): React.ReactElement {
               type="text"
               className="input mt-1 w-full"
               value={smsSmsapiConfig.senderName ?? ""}
-              onChange={(e) =>
-                setSmsSmsapiConfig((p) => ({ ...p, senderName: e.target.value || undefined }))
-              }
+              onChange={(e) => {
+                const value = e.target.value || undefined;
+                setSmsSmsapiConfig((p) => {
+                  const next = { ...p, senderName: value };
+                  saveStoredSmsConfig(next);
+                  return next;
+                });
+              }}
               placeholder="Test"
             />
             <p className="mt-1 text-xs text-gray-500">Výchozí „Test“. Ověřená jména nastavíte v SMSAPI portálu (Sendernames).</p>
