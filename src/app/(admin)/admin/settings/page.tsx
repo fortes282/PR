@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/layout/Toaster";
 import type {
@@ -108,6 +108,16 @@ export default function AdminSettingsPage(): React.ReactElement {
   const [testPushMessage, setTestPushMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [testPushUserId, setTestPushUserId] = useState<string>("");
+  const smsSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const smsConfigRef = useRef<SmsSmsapiConfig>(smsSmsapiConfig);
+  smsConfigRef.current = smsSmsapiConfig;
+  const submitButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (smsSaveTimeoutRef.current) clearTimeout(smsSaveTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     api.settings.get().then((s) => {
@@ -213,6 +223,8 @@ export default function AdminSettingsPage(): React.ReactElement {
       toast(e instanceof Error ? e.message : "Chyba", "error");
     } finally {
       setSaving(false);
+      // Obnovit focus na tlačítko, aby stránka neposkočila k testovacímu e-mailu
+      setTimeout(() => submitButtonRef.current?.focus(), 0);
     }
   };
 
@@ -501,7 +513,7 @@ export default function AdminSettingsPage(): React.ReactElement {
                 value={testEmail.to}
                 onChange={(e) => setTestEmail((p) => ({ ...p, to: e.target.value }))}
                 placeholder="vas@email.cz"
-                required
+                aria-required="true"
               />
             </label>
             <label>
@@ -573,6 +585,9 @@ export default function AdminSettingsPage(): React.ReactElement {
             </a>
             . Na serveru nastavte proměnnou <strong>SMSAPI_TOKEN</strong> (OAuth token z portálu SMSAPI). Jméno odesílatele musí být ověřeno v SMSAPI (Sendernames).
           </p>
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+            Po zapnutí nebo změně jména odesílatele se nastavení ihned odešle na server (nemusíte klikat na „Uložit vše“). Bez toho by hromadné SMS nefungovaly.
+          </p>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -582,6 +597,9 @@ export default function AdminSettingsPage(): React.ReactElement {
                 setSmsSmsapiConfig((p) => {
                   const next = { ...p, enabled: checked };
                   saveStoredSmsConfig(next);
+                  api.settings.update({ smsSmsapiConfig: next }).catch(() => {
+                    toast("Nepodařilo se uložit SMS nastavení na server. Klikněte na „Uložit vše“.", "error");
+                  });
                   return next;
                 });
               }}
@@ -600,6 +618,14 @@ export default function AdminSettingsPage(): React.ReactElement {
                 setSmsSmsapiConfig((p) => {
                   const next = { ...p, senderName: value };
                   saveStoredSmsConfig(next);
+                  if (smsSaveTimeoutRef.current) clearTimeout(smsSaveTimeoutRef.current);
+                  smsSaveTimeoutRef.current = setTimeout(() => {
+                    smsSaveTimeoutRef.current = null;
+                    const toSend = smsConfigRef.current;
+                    api.settings.update({ smsSmsapiConfig: toSend }).catch(() => {
+                      toast("Nepodařilo se uložit SMS nastavení na server. Klikněte na „Uložit vše“.", "error");
+                    });
+                  }, 600);
                   return next;
                 });
               }}
@@ -819,7 +845,13 @@ export default function AdminSettingsPage(): React.ReactElement {
 
         </div>
 
-        <button type="submit" className="btn-primary" disabled={saving}>
+        <button
+          ref={submitButtonRef}
+          type="submit"
+          className="btn-primary"
+          disabled={saving}
+          data-testid="settings-save-all"
+        >
           {saving ? "Ukládám…" : "Uložit vše"}
         </button>
 

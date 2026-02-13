@@ -51,6 +51,27 @@ test.describe("Admin", () => {
     await expect(page.getByRole("heading", { name: "Nastavení" })).toBeVisible({ timeout: 15_000 });
   });
 
+  test("settings: Uložit vše shows success toast and keeps focus on submit button", async ({ page }) => {
+    await page.goto("/admin/settings");
+    await expect(page.getByRole("heading", { name: "Nastavení" })).toBeVisible({ timeout: 15_000 });
+    const saveBtn = page.getByTestId("settings-save-all");
+    await expect(saveBtn).toBeVisible();
+    await saveBtn.click();
+    await expect(page.getByText("Nastavení bylo uloženo.")).toBeVisible({ timeout: 15_000 });
+    const activeTestId = await page.evaluate(() => (document.activeElement as HTMLElement)?.getAttribute("data-testid"));
+    expect(activeTestId).toBe("settings-save-all");
+  });
+
+  test("settings: SMS section exists and Uložit vše includes it", async ({ page }) => {
+    await page.goto("/admin/settings");
+    await expect(page.getByRole("heading", { name: "Nastavení" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("SMS brána zapnuta")).toBeVisible();
+    const smsCheckbox = page.getByRole("checkbox", { name: /SMS brána zapnuta/ });
+    await smsCheckbox.check();
+    await page.getByTestId("settings-save-all").click();
+    await expect(page.getByText("Nastavení bylo uloženo.")).toBeVisible({ timeout: 15_000 });
+  });
+
   test("clients page loads", async ({ page }) => {
     await page.goto("/admin/clients");
     await expect(page).toHaveURL(/\/admin\/clients/);
