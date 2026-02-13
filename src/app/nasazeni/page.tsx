@@ -52,7 +52,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001`}
             <li>Nový service v Railway, root podle toho, odkud budete buildit (kořen nebo apps/api)</li>
             <li>Build: <code className="rounded bg-gray-200 px-1">pnpm install && pnpm --filter api build</code> (z kořene)</li>
             <li>Start: <code className="rounded bg-gray-200 px-1">node apps/api/dist/index.js</code></li>
-            <li>Env: <strong>JWT_SECRET</strong>, <strong>CORS_ORIGIN</strong> (URL frontendu), <strong>DATABASE_PATH</strong>, popř. FAYN_SMS_PASSWORD, SMTP_*, VAPID_*</li>
+            <li>Env: <strong>JWT_SECRET</strong>, <strong>CORS_ORIGIN</strong> (URL frontendu), <strong>DATABASE_PATH</strong>, popř. <strong>SMSAPI_TOKEN</strong>, SMTP_*, VAPID_*</li>
           </ul>
           <h3 className="font-medium text-gray-800 mt-4">Frontend (Next.js)</h3>
           <ul className="list-disc list-inside space-y-1 text-gray-700 text-sm">
@@ -79,7 +79,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001`}
           <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
             <li><strong>„Backend neběží“</strong> — Chybí NEXT_PUBLIC_API_MODE=http nebo restart Next.js po změně env.</li>
             <li><strong>CORS / 404</strong> — Použijte proxy: NEXT_PUBLIC_USE_API_PROXY=true a API_BACKEND_URL na serveru.</li>
-            <li><strong>SMS při registraci</strong> — V API nastavit FAYN v Nastavení a env FAYN_SMS_PASSWORD.</li>
+            <li><strong>SMS při registraci</strong> — V Admin → Nastavení zapnout SMS (SMSAPI) a na serveru nastavit env <strong>SMSAPI_TOKEN</strong> (OAuth token z SMSAPI.com).</li>
           </ul>
         </section>
 

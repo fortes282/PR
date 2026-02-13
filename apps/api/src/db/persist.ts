@@ -332,7 +332,7 @@ export function persistSettings(store: Store, settings: Settings): void {
     invoiceDueDays: settings.invoiceDueDays ?? null,
     invoiceIssuerJson: json(settings.invoiceIssuer),
     notificationEmailSenderJson: json(settings.notificationEmailSender),
-    smsFaynConfigJson: json(settings.smsFaynConfig),
+    smsFaynConfigJson: json(settings.smsSmsapiConfig),
     reservationNotificationTimingJson: json(settings.reservationNotificationTiming),
     pushNotificationConfigJson: json(settings.pushNotificationConfig),
   };

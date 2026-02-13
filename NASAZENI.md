@@ -78,7 +78,7 @@ pnpm dev:all
    | `JWT_SECRET` | ano | Silný secret pro JWT (vygenerujte náhodný řetězec) |
    | `DATABASE_PATH` | doporučeno | Cesta k SQLite (např. `/data/pristav.db`). Railway může mít ephemeral disk – pro trvalá data zvažte Railway Volume nebo externí úložiště. |
    | `CORS_ORIGIN` | ano (produkce) | URL frontendu, např. `https://vase-app.up.railway.app` |
-   | `FAYN_SMS_PASSWORD` | pro SMS | Heslo k FAYN účtu (ověření telefonu při registraci) |
+   | `SMSAPI_TOKEN` | pro SMS | OAuth token z SMSAPI.com (ověření telefonu při registraci) |
    | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | pro e-maily | Odesílání notifikací a testovacích e-mailů |
    | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | pro push | Vygenerujte: `npx web-push generate-vapid-keys` |
 
@@ -122,7 +122,34 @@ pnpm dev:all
 - **„Backend neběží“** – Frontend nemá `NEXT_PUBLIC_API_MODE=http` nebo nebyl po změně env restartován. Zkontrolujte env a restartujte build/start.
 - **CORS / 404 z frontendu na API** – Použijte proxy: `NEXT_PUBLIC_USE_API_PROXY=true` a na Next.js serveru `API_BACKEND_URL` na URL API.
 - **API padá / „bindings“** – Na platformě, kde se nativní moduly (better-sqlite3) musí kompilovat, zkontrolujte, že build běží ve stejném prostředí jako runtime (např. Railway build step s `pnpm install` zkompiluje sqlite pro jejich prostředí).
-- **Registrace / SMS** – Aby šly odesílat SMS kódy, musí být v API nastaveno FAYN (Admin → Nastavení → SMS) a env **FAYN_SMS_PASSWORD**.
+- **Registrace / SMS** – Aby šly odesílat SMS kódy, zapněte v Admin → Nastavení → SMS (SMSAPI) bránu a na serveru nastavte env **SMSAPI_TOKEN** (OAuth token z portálu SMSAPI.com).
+
+---
+
+## 6. SMS (SMSAPI.com) – co máš udělat
+
+Aby šla odesílat SMS (např. ověřovací kód při registraci):
+
+1. **Účet SMSAPI**  
+   Zaregistruj se na [smsapi.com](https://www.smsapi.com/en/signup) (business e-mail, heslo). Účet je ihned použitelný; výchozí odesílatel je „Test“.
+
+2. **OAuth token**  
+   Přihlas se do [SMSAPI portálu](https://ssl.smsapi.com/), sekce **OAuth Tokens** ([ssl.smsapi.com/react/oauth/manage](https://ssl.smsapi.com/react/oauth/manage)). Vygeneruj nový token s oprávněním pro odesílání SMS a zkopíruj ho.
+
+3. **Env na serveru (API)**  
+   Na serveru, kde běží backend (Railway, VPS, …), nastav proměnnou:
+   ```bash
+   SMSAPI_TOKEN=váš_vygenerovaný_oauth_token
+   ```
+   (V Railway: Service → Variables → Add variable.)
+
+4. **Nastavení v aplikaci**  
+   Přihlas se do aplikace jako Admin → **Nastavení** → sekce **SMS – SMSAPI**. Zaškrtni **SMS brána zapnuta** a volitelně vyplň **Jméno odesílatele** (musí být ověřené v SMSAPI v sekci Sendernames; jinak se použije „Test“). Ulož.
+
+5. **Ověření**  
+   Otevři registrační stránku, zadej e-mail, heslo, jméno a **telefon** (včetně předvolby, např. +420 123 456 789), klikni na **Odeslat SMS kód**. Měla by přijet SMS s kódem. Pokud ne, zkontroluj v logách API chybovou hlášku (chybí token, neplatné číslo, nedostatek kreditu atd.).
+
+**Poznámka:** Čísla se posílají ve formátu s předvolbou (420 pro CZ). Kredity a ceny spravuješ v SMSAPI portálu.
 
 ---
 

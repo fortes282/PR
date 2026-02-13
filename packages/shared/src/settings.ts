@@ -18,15 +18,15 @@ export const NotificationEmailSenderSchema = z.object({
 });
 export type NotificationEmailSender = z.infer<typeof NotificationEmailSenderSchema>;
 
-/** FAYN SMS gateway (https://smsapi.fayn.cz/mex/api-docs/): login with username/password, then send via /sms/send. */
-export const SmsFaynConfigSchema = z.object({
+/** SMSAPI.com (https://www.smsapi.com/docs): OAuth token v env SMSAPI_TOKEN, odeslání přes POST sms.do. */
+export const SmsSmsapiConfigSchema = z.object({
   enabled: z.boolean().default(false),
-  baseUrl: z.string().url().default("https://smsapi.fayn.cz/mex/"),
+  /** Jméno odesílatele (ověřené v SMSAPI portálu). Výchozí „Test“. */
+  senderName: z.string().optional(),
+  /** Zpětná kompatibilita: dříve uložené username lze použít jako senderName. */
   username: z.string().optional(),
-  /** Stored encrypted on backend; not returned to client in full. */
-  passwordSet: z.boolean().optional(),
 });
-export type SmsFaynConfig = z.infer<typeof SmsFaynConfigSchema>;
+export type SmsSmsapiConfig = z.infer<typeof SmsSmsapiConfigSchema>;
 
 /** When to send 1st and 2nd reservation reminder email, and optional SMS. All in hours before appointment start. */
 export const ReservationNotificationTimingSchema = z.object({
@@ -67,8 +67,8 @@ export const SettingsSchema = z.object({
   invoiceIssuer: InvoiceIssuerSchema.optional(),
   /** Sender address for all notification emails. */
   notificationEmailSender: NotificationEmailSenderSchema.optional(),
-  /** FAYN SMS gateway configuration. */
-  smsFaynConfig: SmsFaynConfigSchema.optional(),
+  /** SMSAPI.com konfigurace (odesílatel). Token se bere z env SMSAPI_TOKEN. */
+  smsSmsapiConfig: SmsSmsapiConfigSchema.optional(),
   /** When to send reservation reminder emails and optional SMS. */
   reservationNotificationTiming: ReservationNotificationTimingSchema.optional(),
   /** Push notification (Web Push) configuration. */

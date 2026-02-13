@@ -7,7 +7,7 @@ import type {
   Settings,
   InvoiceIssuer,
   NotificationEmailSender,
-  SmsFaynConfig,
+  SmsSmsapiConfig,
   ReservationNotificationTiming,
   PushNotificationConfig,
   TestEmailBody,
@@ -24,7 +24,7 @@ const emptyIssuer: InvoiceIssuer = {
 };
 
 const emptyEmailSender: NotificationEmailSender = { email: "", name: "" };
-const emptySmsFayn: SmsFaynConfig = { enabled: false, baseUrl: "https://smsapi.fayn.cz/mex/", username: "" };
+const emptySmsSmsapi: SmsSmsapiConfig = { enabled: false, senderName: "" };
 const emptyTiming: ReservationNotificationTiming = {
   firstEmailHoursBefore: 48,
   secondEmailHoursBefore: 24,
@@ -71,7 +71,7 @@ export default function AdminSettingsPage(): React.ReactElement {
   const [invoiceDueDays, setInvoiceDueDays] = useState(14);
   const [invoiceIssuer, setInvoiceIssuer] = useState<InvoiceIssuer>(emptyIssuer);
   const [notificationEmailSender, setNotificationEmailSender] = useState<NotificationEmailSender>(emptyEmailSender);
-  const [smsFaynConfig, setSmsFaynConfig] = useState<SmsFaynConfig>(emptySmsFayn);
+  const [smsSmsapiConfig, setSmsSmsapiConfig] = useState<SmsSmsapiConfig>(emptySmsSmsapi);
   const [reservationTiming, setReservationTiming] = useState<ReservationNotificationTiming>(emptyTiming);
   const [pushConfig, setPushConfig] = useState<PushNotificationConfig>(emptyPush);
   const [saving, setSaving] = useState(false);
@@ -107,7 +107,7 @@ export default function AdminSettingsPage(): React.ReactElement {
         );
         setEmailFromEnv(false);
       }
-      setSmsFaynConfig(s.smsFaynConfig ? { ...emptySmsFayn, ...s.smsFaynConfig } : emptySmsFayn);
+      setSmsSmsapiConfig(s.smsSmsapiConfig ? { ...emptySmsSmsapi, ...s.smsSmsapiConfig } : emptySmsSmsapi);
       setReservationTiming(s.reservationNotificationTiming ? { ...emptyTiming, ...s.reservationNotificationTiming } : emptyTiming);
       const pushFromApi = s.pushNotificationConfig ? { ...emptyPush, ...s.pushNotificationConfig } : emptyPush;
       const stored = loadStoredPushConfig();
@@ -140,7 +140,7 @@ export default function AdminSettingsPage(): React.ReactElement {
             : undefined,
         notificationEmailSender:
           notificationEmailSender.email ? notificationEmailSender : undefined,
-        smsFaynConfig: smsFaynConfig.enabled || smsFaynConfig.username ? smsFaynConfig : undefined,
+        smsSmsapiConfig: smsSmsapiConfig.enabled || smsSmsapiConfig.senderName ? smsSmsapiConfig : undefined,
         reservationNotificationTiming: reservationTiming,
         pushNotificationConfig: {
           enabled: pushConfig.enabled,
@@ -533,56 +533,43 @@ export default function AdminSettingsPage(): React.ReactElement {
         </section>
 
         <section className="card space-y-4 p-4">
-          <h2 className="font-medium text-gray-900">SMS – FAYN brána</h2>
+          <h2 className="font-medium text-gray-900">SMS – SMSAPI</h2>
           <p className="text-sm text-gray-600">
-            Integrace s FAYN SMS API (
+            Odesílání SMS přes{" "}
             <a
-              href="https://smsapi.fayn.cz/mex/api-docs/"
+              href="https://www.smsapi.com/docs"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary-600 hover:underline"
             >
-              dokumentace
+              SMSAPI.com
             </a>
-            ). Přihlášení uživatelským jménem a heslem; heslo se na backendu ukládá šifrovaně.
+            . Na serveru nastavte proměnnou <strong>SMSAPI_TOKEN</strong> (OAuth token z portálu SMSAPI). Jméno odesílatele musí být ověřeno v SMSAPI (Sendernames).
           </p>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={smsFaynConfig.enabled}
+              checked={smsSmsapiConfig.enabled}
               onChange={(e) =>
-                setSmsFaynConfig((p) => ({ ...p, enabled: e.target.checked }))
+                setSmsSmsapiConfig((p) => ({ ...p, enabled: e.target.checked }))
               }
               className="rounded border-gray-300"
             />
             <span className="text-sm font-medium text-gray-700">SMS brána zapnuta</span>
           </label>
           <label>
-            <span className="block text-sm text-gray-600">URL API</span>
-            <input
-              type="url"
-              className="input mt-1 w-full"
-              value={smsFaynConfig.baseUrl ?? ""}
-              onChange={(e) =>
-                setSmsFaynConfig((p) => ({ ...p, baseUrl: e.target.value || "https://smsapi.fayn.cz/mex/" }))
-              }
-            />
-          </label>
-          <label>
-            <span className="block text-sm text-gray-600">Uživatelské jméno (FAYN)</span>
+            <span className="block text-sm text-gray-600">Jméno odesílatele (sender name)</span>
             <input
               type="text"
               className="input mt-1 w-full"
-              value={smsFaynConfig.username ?? ""}
+              value={smsSmsapiConfig.senderName ?? ""}
               onChange={(e) =>
-                setSmsFaynConfig((p) => ({ ...p, username: e.target.value || undefined }))
+                setSmsSmsapiConfig((p) => ({ ...p, senderName: e.target.value || undefined }))
               }
-              placeholder="jan.novak"
+              placeholder="Test"
             />
+            <p className="mt-1 text-xs text-gray-500">Výchozí „Test“. Ověřená jména nastavíte v SMSAPI portálu (Sendernames).</p>
           </label>
-          {smsFaynConfig.passwordSet && (
-            <p className="text-sm text-gray-500">Heslo je nastaveno na serveru.</p>
-          )}
         </section>
 
         <section className="card space-y-4 p-4">

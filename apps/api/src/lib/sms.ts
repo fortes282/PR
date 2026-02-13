@@ -1,78 +1,66 @@
 /**
- * FAYN MEX API: login then POST /sms/send with Bearer token.
- * See https://smsapi.fayn.cz/mex/api-docs/
- * Config from store.settings.smsFaynConfig; password from env FAYN_SMS_PASSWORD.
+ * SMSAPI.com (https://www.smsapi.com/docs): OAuth Bearer token, POST sms.do.
+ * Token z env SMSAPI_TOKEN. Konfigurace odesílatele z store.settings.smsSmsapiConfig.
  */
 import type { Store } from "../store.js";
 
-/** Normalize phone to E.164 for FAYN: 00[1-9]... */
+const SMSAPI_URL = "https://api.smsapi.com/sms.do";
+
+/** Normalize phone for SMSAPI: předvolba bez +, např. 420123456789 pro CZ. */
 function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
-  if (digits.startsWith("420") && digits.length >= 12) return "00" + digits;
-  if (digits.startsWith("420") && digits.length === 9) return "00420" + digits;
-  if (digits.length >= 9 && digits.length <= 15) return "00" + digits;
-  return "00" + digits;
-}
-
-let cachedToken: { token: string; expiresAt: number } | null = null;
-
-async function getFaynToken(baseUrl: string, username: string, password: string): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expiresAt - 60_000) return cachedToken.token;
-  const url = `${baseUrl.replace(/\/$/, "")}/login`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`FAYN login failed: ${res.status} ${err}`);
+  if (digits.startsWith("420") && digits.length === 12) return digits;
+  if (digits.startsWith("420") && digits.length > 12) return digits.slice(0, 12);
+  if (digits.length === 9) {
+    if (digits.startsWith("0")) return "420" + digits.slice(1);
+    return "420" + digits;
   }
-  const data = (await res.json()) as { token?: string; expiresIn?: number };
-  const token = data.token;
-  if (!token) throw new Error("FAYN login: no token in response");
-  cachedToken = {
-    token,
-    expiresAt: Date.now() + (data.expiresIn ?? 86400) * 1000,
-  };
-  return token;
+  if (digits.length >= 10 && digits.length <= 15) return digits;
+  return "420" + digits;
 }
 
 /**
- * Send one SMS via FAYN. Uses store.settings.smsFaynConfig and env FAYN_SMS_PASSWORD.
- * Returns true if sent, throws on config or API error.
+ * Odešle jednu SMS přes SMSAPI.com.
+ * Používá store.settings.smsSmsapiConfig a env SMSAPI_TOKEN.
  */
 export async function sendSms(store: Store, phone: string, text: string): Promise<void> {
-  const config = store.settings.smsFaynConfig;
-  if (!config?.enabled || !config.username?.trim()) {
-    throw new Error("SMS brána není zapnutá nebo chybí uživatelské jméno FAYN. Nastavte v Admin → Nastavení → SMS – FAYN brána.");
+  const config = store.settings.smsSmsapiConfig;
+  if (!config?.enabled) {
+    throw new Error("SMS brána není zapnutá. Zapněte ji v Admin → Nastavení → SMS (SMSAPI).");
   }
-  const password = process.env.FAYN_SMS_PASSWORD?.trim();
-  if (!password) {
-    throw new Error("Na serveru chybí proměnná FAYN_SMS_PASSWORD. Nastavte ji v prostředí (heslo k FAYN účtu).");
+  const token = process.env.SMSAPI_TOKEN?.trim();
+  if (!token) {
+    throw new Error("Na serveru chybí proměnná SMSAPI_TOKEN. Vygenerujte OAuth token v SMSAPI portálu (OAuth Tokens) a nastavte ji v prostředí.");
   }
-  const baseUrl = config.baseUrl ?? "https://smsapi.fayn.cz/mex/";
-  const token = await getFaynToken(baseUrl, config.username, password);
-  const bNumber = normalizePhone(phone);
-  const sendUrl = `${baseUrl.replace(/\/$/, "")}/sms/send`;
-  const res = await fetch(sendUrl, {
+  const to = normalizePhone(phone);
+  const from = (config.senderName ?? config.username ?? "Test").trim() || "Test";
+  const params = new URLSearchParams({
+    to,
+    from,
+    message: text.slice(0, 918),
+    format: "json",
+  });
+  const res = await fetch(SMSAPI_URL, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
+      "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: JSON.stringify([
-      {
-        bNumber,
-        messageType: "SMS",
-        text: text.slice(0, 1600),
-      },
-    ]),
+    body: params.toString(),
     signal: AbortSignal.timeout(15000),
   });
+  const body = await res.text();
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`FAYN send SMS failed: ${res.status} ${err}`);
+    throw new Error(`SMSAPI odeslání selhalo: ${res.status} ${body}`);
+  }
+  let data: { error?: number; message?: string; invalid_numbers?: unknown[] };
+  try {
+    data = JSON.parse(body) as { error?: number; message?: string; invalid_numbers?: unknown[] };
+  } catch {
+    throw new Error(`SMSAPI neplatná odpověď: ${body}`);
+  }
+  if (data.error != null) {
+    const msg = data.message ?? `Chyba ${data.error}`;
+    throw new Error(`SMSAPI: ${msg}`);
   }
 }

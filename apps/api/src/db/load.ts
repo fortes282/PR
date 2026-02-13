@@ -242,7 +242,7 @@ export function loadFromDbIntoStore(store: Store): void {
       invoiceDueDays: firstSettings.invoiceDueDays ?? undefined,
       invoiceIssuer: parseJson(firstSettings.invoiceIssuerJson),
       notificationEmailSender: parseJson(firstSettings.notificationEmailSenderJson),
-      smsFaynConfig: parseJson(firstSettings.smsFaynConfigJson),
+      smsSmsapiConfig: parseJson(firstSettings.smsFaynConfigJson),
       reservationNotificationTiming: parseJson(firstSettings.reservationNotificationTimingJson),
       pushNotificationConfig: parseJson(firstSettings.pushNotificationConfigJson),
     } as Settings);
