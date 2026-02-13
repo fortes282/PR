@@ -83,14 +83,22 @@ export default function ReceptionClientsPage(): React.ReactElement {
     }
     setSending(true);
     try {
-      const { sent } = await api.notifications.sendBulk({
+      const res = await api.notifications.sendBulk({
         clientIds: Array.from(selectedIds),
         channel,
         subject: channel === "EMAIL" ? bulkSubject : undefined,
         message: bulkMessage.trim(),
         title: channel === "EMAIL" ? bulkSubject : undefined,
       });
-      toast(`Odesláno: ${sent} ${channel === "EMAIL" ? "e-mailů" : "SMS"}.`, "success");
+      const label = channel === "EMAIL" ? "e-mailů" : "SMS";
+      let msg = `Odesláno: ${res.sent} ${label}.`;
+      if (res.sent === 0 || (res.skippedNoPhone ?? 0) > 0 || (res.errors?.length ?? 0) > 0) {
+        const parts: string[] = [];
+        if ((res.skippedNoPhone ?? 0) > 0) parts.push(`${res.skippedNoPhone} klientů nemá vyplněný telefon`);
+        if ((res.errors?.length ?? 0) > 0) parts.push(...(res.errors ?? []));
+        if (parts.length > 0) msg += " Důvod: " + parts.join(". ");
+      }
+      toast(msg, res.sent > 0 ? "success" : "error");
       setBulkModal(null);
       setSelectedIds(new Set());
     } catch (e) {

@@ -1128,12 +1128,17 @@ export class MockApiClient implements ApiClient {
         db.notifications.set(id, n);
       }
     },
-    sendBulk: async (body: NotificationBulkSendBody): Promise<{ sent: number }> => {
+    sendBulk: async (body: NotificationBulkSendBody): Promise<{ sent: number; skippedNoPhone?: number; errors?: string[] }> => {
       ensureSeed();
       let sent = 0;
+      let skippedNoPhone = 0;
       for (const clientId of body.clientIds) {
         const user = db.users.get(clientId);
         if (!user) continue;
+        if (body.channel === "SMS" && !user.phone?.trim()) {
+          skippedNoPhone += 1;
+          continue;
+        }
         const n: Notification = {
           id: nextId("n"),
           userId: clientId,
@@ -1153,7 +1158,10 @@ export class MockApiClient implements ApiClient {
         );
         sent += 1;
       }
-      return { sent };
+      return {
+        sent,
+        ...(skippedNoPhone > 0 ? { skippedNoPhone } : {}),
+      };
     },
   };
 

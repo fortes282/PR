@@ -602,7 +602,7 @@ export class HttpApiClient implements ApiClient {
     read: async (id: string) =>
       fetchApi<void>(this.baseUrl, `/notifications/${id}/read`, { method: "PATCH" }),
     sendBulk: async (body: NotificationBulkSendBody) =>
-      fetchApi<{ sent: number }>(this.baseUrl, "/notifications/send-bulk", {
+      fetchApi<{ sent: number; skippedNoPhone?: number; errors?: string[] }>(this.baseUrl, "/notifications/send-bulk", {
         method: "POST",
         body: JSON.stringify(body),
       }),

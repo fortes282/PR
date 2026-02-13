@@ -182,7 +182,7 @@ export type ApiClient = {
     list: (params?: NotificationListParams) => Promise<Notification[]>;
     send: (body: NotificationSendBody) => Promise<void>;
     /** Send email or SMS to selected client IDs (bulk). */
-    sendBulk: (body: NotificationBulkSendBody) => Promise<{ sent: number }>;
+    sendBulk: (body: NotificationBulkSendBody) => Promise<{ sent: number; skippedNoPhone?: number; errors?: string[] }>;
     read: (id: string) => Promise<void>;
   };
   pushSubscriptions: {

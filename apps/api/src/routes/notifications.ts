@@ -47,15 +47,22 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
       }
       const body = parse.data;
       let sent = 0;
+      let skippedNoPhone = 0;
+      const errors: string[] = [];
       for (const clientId of body.clientIds) {
         const user = store.users.get(clientId);
         if (!user) continue;
         if (body.channel === "SMS") {
           const phone = user.phone?.trim();
-          if (!phone) continue;
+          if (!phone) {
+            skippedNoPhone += 1;
+            continue;
+          }
           try {
             await sendSms(store, phone, body.message);
           } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            if (!errors.includes(msg)) errors.push(msg);
             request.log.warn({ err, clientId, phone }, "Bulk SMS skip (send failed)");
             continue;
           }
@@ -73,7 +80,11 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
         persistNotification(store, n);
         sent += 1;
       }
-      reply.send({ sent });
+      reply.send({
+        sent,
+        ...(skippedNoPhone > 0 ? { skippedNoPhone } : {}),
+        ...(errors.length > 0 ? { errors } : {}),
+      });
     }
   );
 
