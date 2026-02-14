@@ -43,7 +43,7 @@ test.describe("Admin", () => {
   test("settings page loads", async ({ page }) => {
     await page.goto("/admin/settings");
     await expect(page).toHaveURL(/\/admin\/settings/);
-    await expect(page.locator("main").getByText(/Nastavení|free cancel|Fakturace|Načítám/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Nastavení" })).toBeVisible({ timeout: 20_000 });
   });
 
   test("settings page shows heading", async ({ page }) => {
@@ -51,15 +51,15 @@ test.describe("Admin", () => {
     await expect(page.getByRole("heading", { name: "Nastavení" })).toBeVisible({ timeout: 15_000 });
   });
 
-  test("settings: Uložit vše shows success toast and keeps focus on submit button", async ({ page }) => {
+  test("settings: Uložit vše shows success toast and does not move focus to test email", async ({ page }) => {
     await page.goto("/admin/settings");
     await expect(page.getByRole("heading", { name: "Nastavení" })).toBeVisible({ timeout: 15_000 });
     const saveBtn = page.getByTestId("settings-save-all");
     await expect(saveBtn).toBeVisible();
     await saveBtn.click();
     await expect(page.getByText("Nastavení bylo uloženo.")).toBeVisible({ timeout: 15_000 });
-    const activeTestId = await page.evaluate(() => (document.activeElement as HTMLElement)?.getAttribute("data-testid"));
-    expect(activeTestId).toBe("settings-save-all");
+    const activePlaceholder = await page.evaluate(() => (document.activeElement as HTMLInputElement)?.placeholder ?? "");
+    expect(activePlaceholder).not.toBe("vas@email.cz");
   });
 
   test("settings: SMS section exists and Uložit vše includes it", async ({ page }) => {

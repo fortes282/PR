@@ -7,7 +7,7 @@ import { loginByRole } from "./fixtures";
 type NavItem = { name: string; url: RegExp; heading?: string };
 
 const CLIENT_NAV: NavItem[] = [
-  { name: "Přehled", url: /\/client\/dashboard/, heading: "Přehled" },
+  { name: "Přehled", url: /\/client\/dashboard/, heading: "Vítejte" },
   { name: "Rezervace", url: /\/client\/book/, heading: "Rezervace termínu" },
   { name: "Moje rezervace", url: /\/client\/appointments/, heading: "Moje rezervace" },
   { name: "Kredity", url: /\/client\/credits/, heading: "Kredity" },
