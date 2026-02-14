@@ -53,6 +53,24 @@ pnpm dev:all
 ```
 (Next.js na 3000, API na 3001.)
 
+### 2.4 E2E testy (Playwright)
+
+Behaviorální E2E testy pro celou aplikaci (přihlášení, navigace, formuláře, Nastavení, rezervace atd.).
+
+**Požadavky:** Stejné jako lokální spuštění – v kořeni `.env.local` (nebo `.env`) s `NEXT_PUBLIC_API_MODE=http` a `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001`.
+
+**Spuštění (dva způsoby):**
+- **Jedním příkazem:** `pnpm test:e2e:full` – spustí `dev:all`, počká na http://localhost:3000 (až 3 min), spustí testy a na závěr ukončí server.
+- **Dva terminály:** (1) `pnpm dev:all` (2) po naběhnutí `pnpm test:e2e`.
+
+Při prvním běhu se z `.env.example` vytvoří `.env`, pokud neexistuje (skript `scripts/ensure-env-e2e.mjs`).
+
+**Proti nasazené aplikaci:**
+```bash
+PLAYWRIGHT_BASE_URL=https://vase-app.example.com pnpm test:e2e
+```
+Server se nespouští, testy běží proti zadané URL.
+
 ---
 
 ## 3. Nasazení na produkci (např. Railway)

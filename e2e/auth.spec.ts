@@ -51,4 +51,11 @@ test.describe("Auth", () => {
     await page.getByRole("button", { name: /Odhlásit/i }).click();
     await expect(page).toHaveURL(/\/login/, { timeout: 15_000 });
   });
+
+  test("after login header shows user and logout button", async ({ page }) => {
+    const { loginByRole } = await import("./fixtures");
+    await loginByRole(page, "ADMIN");
+    await expect(page.getByRole("button", { name: /Odhlásit/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("header").getByText(/Admin|admin/i)).toBeVisible({ timeout: 5_000 });
+  });
 });

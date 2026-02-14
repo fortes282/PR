@@ -37,4 +37,23 @@ test.describe("Employee", () => {
     await page.goto("/employee/colleagues");
     await expect(page.getByRole("heading", { name: "Kolegové" })).toBeVisible({ timeout: 15_000 });
   });
+
+  test("navigate via sidebar: Kolegové → colleagues page", async ({ page }) => {
+    await page.getByRole("link", { name: "Kolegové" }).first().click();
+    await expect(page).toHaveURL(/\/employee\/colleagues/, { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Kolegové" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("navigate via sidebar: Seznam rezervací → appointments list", async ({ page }) => {
+    await page.getByRole("link", { name: "Seznam rezervací" }).first().click();
+    await expect(page).toHaveURL(/\/employee\/appointments/, { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Moje rezervace" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("calendar: Dnes button visible and clickable", async ({ page }) => {
+    const todayBtn = page.locator("main").getByRole("button", { name: /Dnes/ });
+    await expect(todayBtn).toBeVisible({ timeout: 10_000 });
+    await todayBtn.click();
+    await expect(page).toHaveURL(/\/employee\/calendar/, { timeout: 5_000 });
+  });
 });

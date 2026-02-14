@@ -89,4 +89,36 @@ test.describe("Client", () => {
     await page.goto("/client/waitlist");
     await expect(page).toHaveURL(/\/client\/waitlist/, { timeout: 15_000 });
   });
+
+  test("navigate via sidebar: Rezervace → book page", async ({ page }) => {
+    await page.getByRole("link", { name: "Rezervace" }).first().click();
+    await expect(page).toHaveURL(/\/client\/book/, { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Rezervace termínu" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("navigate via sidebar: Kredity → credits page", async ({ page }) => {
+    await page.getByRole("link", { name: "Kredity" }).first().click();
+    await expect(page).toHaveURL(/\/client\/credits/, { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Kredity" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("navigate via sidebar: Nastavení → settings page", async ({ page }) => {
+    await page.getByRole("link", { name: "Nastavení" }).first().click();
+    await expect(page).toHaveURL(/\/client\/settings/, { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Nastavení" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("client settings: save preferences shows success toast", async ({ page }) => {
+    await page.goto("/client/settings");
+    await expect(page.getByRole("heading", { name: "Nastavení" })).toBeVisible({ timeout: 15_000 });
+    const saveBtn = page.getByRole("button", { name: /Uložit preference/i });
+    await expect(saveBtn).toBeVisible();
+    await saveBtn.click();
+    await expect(page.getByText("Nastavení bylo uloženo.")).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("dashboard link Rezervovat termín goes to book", async ({ page }) => {
+    await page.locator("main").getByRole("link", { name: /Rezervovat termín/ }).first().click();
+    await expect(page).toHaveURL(/\/client\/book/, { timeout: 10_000 });
+  });
 });

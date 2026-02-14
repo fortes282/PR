@@ -104,4 +104,33 @@ test.describe("Admin", () => {
     await page.goto("/admin/background");
     await expect(page.getByRole("heading", { name: "Pozadí algoritmů" })).toBeVisible({ timeout: 15_000 });
   });
+
+  test("navigate via sidebar: Služby → services page", async ({ page }) => {
+    await page.getByRole("link", { name: "Služby" }).first().click();
+    await expect(page).toHaveURL(/\/admin\/services/, { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Služby" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("navigate via sidebar: Nastavení → settings page", async ({ page }) => {
+    await page.getByRole("link", { name: "Nastavení" }).first().click();
+    await expect(page).toHaveURL(/\/admin\/settings/, { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Nastavení" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("users: open edit role modal then cancel", async ({ page }) => {
+    await page.goto("/admin/users");
+    await expect(page.getByRole("heading", { name: "Uživatelé" })).toBeVisible({ timeout: 15_000 });
+    const editBtn = page.getByRole("button", { name: "Upravit roli" }).first();
+    if ((await editBtn.count()) > 0) {
+      await editBtn.click();
+      await expect(page.getByRole("dialog").getByText(/Upravit roli a aktivitu/)).toBeVisible({ timeout: 5_000 });
+      await page.getByRole("dialog").getByRole("button", { name: "Zrušit" }).click();
+      await expect(page.getByRole("dialog")).not.toBeVisible();
+    }
+  });
+
+  test("admin clients: search input visible", async ({ page }) => {
+    await page.goto("/admin/clients");
+    await expect(page.getByPlaceholder(/Hledat jméno|e-mail/i)).toBeVisible({ timeout: 10_000 });
+  });
 });

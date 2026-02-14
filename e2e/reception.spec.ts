@@ -90,4 +90,35 @@ test.describe("Reception", () => {
     await page.goto("/reception/billing");
     await expect(page.getByRole("heading", { name: "Fakturace" })).toBeVisible({ timeout: 15_000 });
   });
+
+  test("navigate via sidebar: Rezervace → appointments list", async ({ page }) => {
+    await page.getByRole("link", { name: "Rezervace" }).first().click();
+    await expect(page).toHaveURL(/\/reception\/appointments/, { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Rezervace" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("navigate via sidebar: Klienti → clients list", async ({ page }) => {
+    await page.getByRole("link", { name: "Klienti" }).first().click();
+    await expect(page).toHaveURL(/\/reception\/clients/, { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Klienti" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("appointments list: link Zobrazit kalendář goes to calendar", async ({ page }) => {
+    await page.goto("/reception/appointments");
+    await expect(page.getByRole("heading", { name: "Rezervace" })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("link", { name: /Zobrazit kalendář/ }).click();
+    await expect(page).toHaveURL(/\/reception\/calendar/, { timeout: 10_000 });
+  });
+
+  test("new appointment form: has Klient select and submit", async ({ page }) => {
+    await page.goto("/reception/appointments/new");
+    await expect(page.getByRole("heading", { name: "Nová rezervace" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByLabel(/Klient \*/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Vytvořit rezervaci" })).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("clients page: search input visible", async ({ page }) => {
+    await page.goto("/reception/clients");
+    await expect(page.getByPlaceholder(/Hledat jméno|e-mail/i)).toBeVisible({ timeout: 10_000 });
+  });
 });
