@@ -53,3 +53,17 @@ export const ResetPasswordByAdminBodySchema = z.object({
   message: z.string().optional(),
 });
 export type ResetPasswordByAdminBody = z.infer<typeof ResetPasswordByAdminBodySchema>;
+
+/** Change password (required after first login when invited). */
+export const ChangePasswordBodySchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+export type ChangePasswordBody = z.infer<typeof ChangePasswordBodySchema>;
+
+/** Admin invites user by email; they receive one-time password and must change on first login. */
+export const InviteUserBodySchema = z.object({
+  email: z.string().email(),
+  role: Role.refine((r) => r !== "CLIENT", { message: "Klienta nelze pozvat tímto způsobem; použijte registraci." }),
+});
+export type InviteUserBody = z.infer<typeof InviteUserBodySchema>;

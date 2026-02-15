@@ -10,6 +10,8 @@ import type {
   RequestSmsCodeBody,
   VerifySmsCodeBody,
   ResetPasswordByAdminBody,
+  ChangePasswordBody,
+  InviteUserBody,
 } from "@/lib/contracts/auth";
 import type { ClientProfileLogEntry, ClientProfileLogListParams } from "@/lib/contracts";
 import type { User, UserListParams, UserUpdate } from "@/lib/contracts/users";
@@ -80,6 +82,8 @@ export type ApiClient = {
     requestSmsCode: (body: RequestSmsCodeBody) => Promise<{ expiresInSeconds: number }>;
     /** Verify SMS code. */
     verifySmsCode: (body: VerifySmsCodeBody) => Promise<{ verified: boolean }>;
+    /** Change password (required after first login when invited). */
+    changePassword: (body: ChangePasswordBody) => Promise<void>;
   };
   clientProfileLog: {
     list: (params: ClientProfileLogListParams) => Promise<ClientProfileLogEntry[]>;
@@ -88,6 +92,8 @@ export type ApiClient = {
     list: (params?: UserListParams) => Promise<{ users: User[]; total: number }>;
     get: (id: string) => Promise<User | null>;
     update: (id: string, data: UserUpdate) => Promise<User>;
+    /** Admin: invite user by email; they receive one-time password and must change on first login. */
+    invite: (body: InviteUserBody) => Promise<{ user: Pick<User, "id" | "email" | "name" | "role">; message: string }>;
   };
   services: {
     list: () => Promise<Service[]>;

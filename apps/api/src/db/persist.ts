@@ -68,8 +68,9 @@ export function persistUser(store: Store, user: User): void {
       childName: user.childName ?? null,
       billingAddressJson: json(user.billingAddress),
       notificationPreferencesJson: json(user.notificationPreferences),
+      mustChangePassword: user.mustChangePassword ?? false,
     })
-    .onConflictDoUpdate({ target: usersTable.id, set: { email: user.email, name: user.name, role: user.role, phone: user.phone ?? null, active: user.active ?? true, createdAt: user.createdAt ?? null, workingHoursJson: json(user.workingHours), lunchBreaksJson: json(user.lunchBreaks), defaultPricePerSessionCzk: user.defaultPricePerSessionCzk ?? null, firstName: user.firstName ?? null, lastName: user.lastName ?? null, childName: user.childName ?? null, billingAddressJson: json(user.billingAddress), notificationPreferencesJson: json(user.notificationPreferences) } })
+    .onConflictDoUpdate({ target: usersTable.id, set: { email: user.email, name: user.name, role: user.role, phone: user.phone ?? null, active: user.active ?? true, createdAt: user.createdAt ?? null, workingHoursJson: json(user.workingHours), lunchBreaksJson: json(user.lunchBreaks), defaultPricePerSessionCzk: user.defaultPricePerSessionCzk ?? null, firstName: user.firstName ?? null, lastName: user.lastName ?? null, childName: user.childName ?? null, billingAddressJson: json(user.billingAddress), notificationPreferencesJson: json(user.notificationPreferences), mustChangePassword: user.mustChangePassword ?? false } })
     .run();
 }
 

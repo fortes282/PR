@@ -175,4 +175,9 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 export function runMigrations(): void {
   const sqlite = initDb();
   sqlite.exec(initialSql);
+  try {
+    sqlite.exec("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0");
+  } catch {
+    // Column already exists
+  }
 }

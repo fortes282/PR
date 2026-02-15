@@ -4,6 +4,7 @@ import {
   RegisterBodySchema,
   RequestSmsCodeBodySchema,
   VerifySmsCodeBodySchema,
+  ChangePasswordBodySchema,
 } from "@pristav/shared/auth";
 import { store } from "../store.js";
 import { signToken, authMiddleware } from "../middleware/auth.js";
@@ -43,11 +44,16 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
       user = Array.from(store.users.values()).find((u) => u.email === credentials.email);
     }
     if (!user) {
-      reply.status(401).send({ code: "UNAUTHORIZED", message: "Invalid credentials" });
+      reply.status(401).send({ code: "UNAUTHORIZED", message: "Neplatný e-mail nebo heslo." });
       return;
     }
     const storedHash = store.passwords.get(user.id);
-    if (storedHash !== undefined && !verifyPassword(credentials.password ?? "", storedHash)) {
+    if (credentials.email && credentials.password !== undefined) {
+      if (!storedHash || !verifyPassword(credentials.password, storedHash)) {
+        reply.status(401).send({ code: "UNAUTHORIZED", message: "Neplatný e-mail nebo heslo." });
+        return;
+      }
+    } else if (storedHash !== undefined && !verifyPassword(credentials.password ?? "", storedHash)) {
       reply.status(401).send({ code: "UNAUTHORIZED", message: "Invalid credentials" });
       return;
     }
@@ -69,10 +75,41 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
         lastName: user.lastName,
         childName: user.childName,
         billingAddress: user.billingAddress,
+        mustChangePassword: user.mustChangePassword,
       },
       accessToken,
       expiresIn,
     });
+  });
+
+  app.post("/auth/change-password", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
+    const parse = ChangePasswordBodySchema.safeParse(request.body);
+    if (!parse.success) {
+      reply.status(400).send({
+        code: "VALIDATION_ERROR",
+        message: "Neplatná data",
+        details: parse.error.flatten(),
+      });
+      return;
+    }
+    const { currentPassword, newPassword } = parse.data;
+    const user = store.users.get(request.user!.userId);
+    if (!user) {
+      reply.status(401).send({ code: "UNAUTHORIZED", message: "Uživatel nenalezen." });
+      return;
+    }
+    const storedHash = store.passwords.get(user.id);
+    if (!storedHash || !verifyPassword(currentPassword, storedHash)) {
+      reply.status(401).send({ code: "UNAUTHORIZED", message: "Aktuální heslo není správné." });
+      return;
+    }
+    const newHash = hashPassword(newPassword);
+    store.passwords.set(user.id, newHash);
+    persistPassword(store, user.id, newHash);
+    const updatedUser = { ...user, mustChangePassword: false as const };
+    store.users.set(user.id, updatedUser);
+    persistUser(store, updatedUser);
+    reply.send({ ok: true });
   });
 
   app.post("/auth/register", async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {

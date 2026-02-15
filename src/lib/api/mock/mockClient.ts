@@ -52,7 +52,7 @@ import type { OccupancyStat, CancellationStat, ClientTagStat } from "@/lib/contr
 import type { BehaviorEvaluationRecord, SentCommunication, SentCommunicationListParams, ClientRecommendation } from "@/lib/contracts/admin-background";
 import type { ClientProfileLogEntry, ClientProfileLogKind, ClientProfileLogListParams } from "@/lib/contracts";
 import type { MedicalReport, MedicalReportCreate } from "@/lib/contracts";
-import type { RegisterBody, RequestSmsCodeBody, VerifySmsCodeBody, ResetPasswordByAdminBody } from "@/lib/contracts/auth";
+import type { RegisterBody, RequestSmsCodeBody, VerifySmsCodeBody, ResetPasswordByAdminBody, ChangePasswordBody, InviteUserBody } from "@/lib/contracts/auth";
 import type { ClientBehaviorScore } from "../index";
 import { computeRecommendations } from "@/lib/behavior/recommendations";
 import { deriveEventsFromAppointments } from "@/lib/behavior/derive-events";
@@ -221,6 +221,10 @@ export class MockApiClient implements ApiClient {
       }
       return { verified: true };
     },
+
+    changePassword: async (_body: ChangePasswordBody): Promise<void> => {
+      // Mock: no-op; real API verifies current password and sets new one
+    },
   };
 
   clientProfileLog = {
@@ -289,6 +293,27 @@ export class MockApiClient implements ApiClient {
         }
       }
       return updated;
+    },
+
+    invite: async (body: InviteUserBody): Promise<{ user: Pick<User, "id" | "email" | "name" | "role">; message: string }> => {
+      ensureSeed();
+      if (this.session?.role !== "ADMIN") throw new Error("Pouze administrátor může pozvat uživatele.");
+      const normalizedEmail = body.email.trim().toLowerCase();
+      const existing = Array.from(db.users.values()).find((u) => u.email.toLowerCase() === normalizedEmail);
+      if (existing) throw new Error("Uživatel s tímto e-mailem již existuje.");
+      const id = nextId("u");
+      const nameFromEmail = normalizedEmail.split("@")[0];
+      const user: User = {
+        id,
+        email: normalizedEmail,
+        name: nameFromEmail,
+        role: body.role,
+        active: true,
+        createdAt: new Date().toISOString(),
+        mustChangePassword: true,
+      };
+      db.users.set(id, user);
+      return { user: { id, email: user.email, name: user.name, role: user.role }, message: "Uživatel vytvořen (mock – e-mail neodeslán)." };
     },
   };
 

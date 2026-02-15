@@ -62,6 +62,8 @@ export const UserSchema = z.object({
   diagnosis: z.string().optional(),
   billingAddress: BillingAddressSchema.optional(),
   notificationPreferences: NotificationPreferencesSchema.optional(),
+  /** True if user was invited with one-time password and must set new password on first login. */
+  mustChangePassword: z.boolean().optional(),
 });
 export type User = z.infer<typeof UserSchema>;
 

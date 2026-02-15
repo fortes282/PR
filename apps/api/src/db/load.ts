@@ -64,6 +64,7 @@ export function loadFromDbIntoStore(store: Store): void {
       childName: r.childName ?? undefined,
       billingAddress: parseJson(r.billingAddressJson),
       notificationPreferences: parseJson(r.notificationPreferencesJson),
+      mustChangePassword: r.mustChangePassword ?? undefined,
     };
     store.users.set(u.id, u);
   }

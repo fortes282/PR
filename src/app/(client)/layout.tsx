@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { getSession } from "@/lib/auth/session";
+import { getSession, getUser } from "@/lib/auth/session";
 import { getDefaultRoute, canAccessRoute } from "@/lib/auth/rbac";
 import { AppShell } from "@/components/layout/AppShell";
 import { PushPromptBanner } from "@/components/client/PushPromptBanner";
@@ -19,6 +19,11 @@ export default function ClientLayout({
     const session = getSession();
     if (!session) {
       router.replace("/login");
+      return;
+    }
+    const user = getUser();
+    if ((user as { mustChangePassword?: boolean })?.mustChangePassword) {
+      router.replace("/change-password");
       return;
     }
     if (session.role !== "CLIENT") {

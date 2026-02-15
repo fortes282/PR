@@ -9,7 +9,10 @@ import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import type { User } from "@/lib/contracts/users";
 import type { Role } from "@/lib/contracts/auth";
 
+type InviteRole = Exclude<Role, "CLIENT">;
+
 const ROLES: Role[] = ["ADMIN", "RECEPTION", "EMPLOYEE", "CLIENT"];
+const INVITE_ROLES: InviteRole[] = ["ADMIN", "RECEPTION", "EMPLOYEE"];
 
 export default function AdminUsersPage(): React.ReactElement {
   const toast = useToast();
@@ -19,6 +22,10 @@ export default function AdminUsersPage(): React.ReactElement {
   const [editRole, setEditRole] = useState<Role>("CLIENT");
   const [editActive, setEditActive] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<InviteRole>("RECEPTION");
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   const load = useCallback(() => {
     return api.users.list({}).then((r) => setUsers(r.users));
@@ -51,18 +58,48 @@ export default function AdminUsersPage(): React.ReactElement {
     }
   };
 
+  const handleInvite = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setInviteLoading(true);
+    try {
+      await api.users.invite({ email: inviteEmail.trim(), role: inviteRole });
+      load();
+      setInviteOpen(false);
+      setInviteEmail("");
+      setInviteRole("RECEPTION");
+      toast("Pozvánka odeslána. Uživateli byl e-mailem zaslán jednorázový přístup; po prvním přihlášení bude vyzván ke změně hesla.", "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Pozvání selhalo", "error");
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
   if (loading) return <p className="text-gray-600">Načítám…</p>;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Uživatelé</h1>
-      <p className="flex items-center gap-2 text-sm text-gray-600">
-        Pouze administrátor může měnit roli a aktivitu uživatelů. Klikněte na „Upravit roli“ u vybraného uživatele.
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Uživatelé</h1>
+          <p className="mt-1 flex items-center gap-2 text-sm text-gray-600">
+            Pouze administrátor může měnit roli a aktivitu uživatelů. Klikněte na „Upravit roli“ u vybraného uživatele.
         <HelpTooltip
           title="Změna role a aktivity"
           description="Umožňuje nastavit roli (ADMIN, RECEPTION, EMPLOYEE, CLIENT) a zda je uživatel aktivní. Tuto akci může provádět pouze přihlášený administrátor."
         />
-      </p>
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => setInviteOpen(true)}
+          aria-label="Pozvat uživatele"
+        >
+          Pozvat uživatele
+        </button>
+      </div>
       <DataTable<User>
         columns={[
           { key: "name", header: "Jméno" },
@@ -134,6 +171,60 @@ export default function AdminUsersPage(): React.ReactElement {
               </button>
               <button type="submit" className="btn-primary" disabled={saving}>
                 {saving ? "Ukládám…" : "Uložit"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {inviteOpen && (
+        <Modal
+          open={true}
+          onClose={() => !inviteLoading && setInviteOpen(false)}
+          title="Pozvat uživatele"
+        >
+          <form onSubmit={handleInvite} className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Na e-mail bude odesláno jednorázové heslo. Po prvním přihlášení bude uživatel vyzván ke změně hesla.
+            </p>
+            <label>
+              <span className="block text-sm font-medium text-gray-700">E-mail</span>
+              <input
+                type="email"
+                className="input mt-1 w-full"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                required
+                placeholder="email@example.cz"
+                aria-label="E-mail pozvaného uživatele"
+              />
+            </label>
+            <label>
+              <span className="block text-sm font-medium text-gray-700">Role</span>
+              <select
+                className="input mt-1 w-full"
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value as InviteRole)}
+                aria-label="Role"
+              >
+                {INVITE_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r === "RECEPTION" ? "Recepce" : r === "EMPLOYEE" ? "Terapeut" : r}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setInviteOpen(false)}
+                disabled={inviteLoading}
+              >
+                Zrušit
+              </button>
+              <button type="submit" className="btn-primary" disabled={inviteLoading}>
+                {inviteLoading ? "Odesílám…" : "Pozvat a odeslat e-mail"}
               </button>
             </div>
           </form>

@@ -24,6 +24,7 @@ export const users = sqliteTable("users", {
   childName: text("child_name"),
   billingAddressJson: text("billing_address_json"),
   notificationPreferencesJson: text("notification_preferences_json"),
+  mustChangePassword: integer("must_change_password", { mode: "boolean" }).default(false),
 });
 
 export const services = sqliteTable("services", {

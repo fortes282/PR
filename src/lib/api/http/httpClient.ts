@@ -12,6 +12,8 @@ import type {
   RequestSmsCodeBody,
   VerifySmsCodeBody,
   ResetPasswordByAdminBody,
+  ChangePasswordBody,
+  InviteUserBody,
 } from "@/lib/contracts/auth";
 import type { ClientProfileLogEntry, ClientProfileLogListParams } from "@/lib/contracts";
 import type { UserListParams, UserUpdate } from "@/lib/contracts/users";
@@ -205,6 +207,12 @@ export class HttpApiClient implements ApiClient {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    changePassword: async (body: ChangePasswordBody): Promise<void> => {
+      await fetchApi<{ ok: boolean }>(this.baseUrl, "/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
   };
 
   clientProfileLog = {
@@ -246,6 +254,9 @@ export class HttpApiClient implements ApiClient {
      */
     update: async (id: string, data: UserUpdate): Promise<User> => {
       return fetchApi(this.baseUrl, `/users/${id}`, { method: "PUT", body: JSON.stringify(data) });
+    },
+    invite: async (body: InviteUserBody): Promise<{ user: Pick<User, "id" | "email" | "name" | "role">; message: string }> => {
+      return fetchApi(this.baseUrl, "/users/invite", { method: "POST", body: JSON.stringify(body) });
     },
   };
 
