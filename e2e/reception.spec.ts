@@ -121,4 +121,10 @@ test.describe("Reception", () => {
     await page.goto("/reception/clients");
     await expect(page.getByPlaceholder(/Hledat jméno|e-mail/i)).toBeVisible({ timeout: 10_000 });
   });
+
+  test("slot-offer-approvals page accessible for reception", async ({ page }) => {
+    await page.goto("/admin/slot-offer-approvals");
+    await expect(page).toHaveURL(/\/admin\/slot-offer-approvals/);
+    await expect(page.getByRole("heading", { name: "Schválení nabídek slotů" })).toBeVisible({ timeout: 15_000 });
+  });
 });

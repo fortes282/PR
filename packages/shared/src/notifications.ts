@@ -3,6 +3,18 @@ import { z } from "zod";
 export const NotificationChannel = z.enum(["EMAIL", "SMS", "PUSH", "IN_APP"]);
 export type NotificationChannel = z.infer<typeof NotificationChannel>;
 
+/** Purpose/type of notification for filtering and role rules (e.g. REMINDER, SLOT_OFFER, APPROVAL_REQUEST). */
+export const NotificationPurpose = z.enum([
+  "REMINDER",
+  "SLOT_OFFER",
+  "APPROVAL_REQUEST",
+  "SYSTEM_ALERT",
+  "BULK",
+  "REENGAGE",
+  "OTHER",
+]);
+export type NotificationPurpose = z.infer<typeof NotificationPurpose>;
+
 export const NotificationSchema = z.object({
   id: z.string(),
   userId: z.string().optional(),
@@ -13,6 +25,8 @@ export const NotificationSchema = z.object({
   createdAt: z.string().datetime(),
   appointmentId: z.string().optional(),
   blockId: z.string().optional(),
+  /** Optional: for filtering in overview (REMINDER, SLOT_OFFER, APPROVAL_REQUEST, SYSTEM_ALERT, BULK, OTHER). */
+  purpose: NotificationPurpose.optional(),
 });
 export type Notification = z.infer<typeof NotificationSchema>;
 
@@ -60,5 +74,9 @@ export const NotificationListParamsSchema = z.object({
   limit: z.number().optional(),
   appointmentId: z.string().optional(),
   blockId: z.string().optional(),
+  /** RECEPTION/ADMIN only: filter by target user (client or staff). */
+  userId: z.string().optional(),
+  /** RECEPTION/ADMIN: filter by purpose (REMINDER, SLOT_OFFER, APPROVAL_REQUEST, SYSTEM_ALERT, BULK, OTHER). */
+  purpose: z.string().optional(),
 });
 export type NotificationListParams = z.infer<typeof NotificationListParamsSchema>;

@@ -73,6 +73,10 @@ export const SettingsSchema = z.object({
   reservationNotificationTiming: ReservationNotificationTimingSchema.optional(),
   /** Push notification (Web Push) configuration. */
   pushNotificationConfig: PushNotificationConfigSchema.optional(),
+  /** When a freed slot is offered: auto = send to candidates immediately; manual = create draft and notify admin/reception for approval. */
+  behaviorSlotOfferMode: z.enum(["auto", "manual"]).optional(),
+  /** Optional: extra emails to notify when a slot offer is pending approval (in addition to in-app for admin/reception). */
+  approvalNotifyEmails: z.array(z.string().email()).optional(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 

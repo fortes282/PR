@@ -13,6 +13,7 @@ import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
 import { persistAppointment, persistCreditAccount, persistCreditTransaction, persistNotification } from "../db/persist.js";
+import { createSlotOfferDraft, getWaitlistCandidateClientIds, sendSlotOfferToClients } from "../lib/slot-offer-draft.js";
 
 export default async function appointmentsRoutes(app: FastifyInstance): Promise<void> {
   app.get(
@@ -214,6 +215,44 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
           persistCreditTransaction(store, creditTransaction);
         }
       }
+
+      const behaviorSlotOfferMode = (store.settings as { behaviorSlotOfferMode?: string }).behaviorSlotOfferMode;
+      if (behaviorSlotOfferMode === "manual" || behaviorSlotOfferMode === "auto") {
+        const candidateClientIds = getWaitlistCandidateClientIds(store, appointment.serviceId, 20);
+        if (candidateClientIds.length > 0) {
+          const startDate = new Date(appointment.startAt);
+          const dateStr = startDate.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
+          const serviceName = store.services.get(appointment.serviceId)?.name ?? "termín";
+          const messageTemplate = `Uvolnil se termín ${dateStr} (${serviceName}). Máte zájem? Rezervujte si ho v aplikaci.`;
+          try {
+            if (behaviorSlotOfferMode === "manual") {
+              await createSlotOfferDraft(
+                store,
+                { appointmentIds: [id], clientIds: candidateClientIds, messageTemplate },
+                request.log
+              );
+            } else {
+              await sendSlotOfferToClients(store, candidateClientIds, messageTemplate, request.log);
+            }
+          } catch (err) {
+            request.log.warn({ err, appointmentId: id }, "Slot offer failed");
+          }
+        }
+      }
+
+      const reengage = {
+        id: nextId("n"),
+        userId: appointment.clientId,
+        channel: "IN_APP" as const,
+        title: "Termín zrušen",
+        message: "Zrušil jste termín. Můžete si vybrat jiný volný termín v aplikaci.",
+        read: false,
+        createdAt: new Date().toISOString(),
+        purpose: "REENGAGE" as const,
+      };
+      store.notifications.set(reengage.id, reengage);
+      persistNotification(store, reengage);
+
       reply.send({ appointment: updated, creditTransaction });
     }
   );

@@ -108,6 +108,8 @@ export default function AdminSettingsPage(): React.ReactElement {
   const [testPushMessage, setTestPushMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [testPushUserId, setTestPushUserId] = useState<string>("");
+  const [behaviorSlotOfferMode, setBehaviorSlotOfferMode] = useState<"auto" | "manual">("manual");
+  const [approvalNotifyEmails, setApprovalNotifyEmails] = useState("");
   const smsSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const smsConfigRef = useRef<SmsSmsapiConfig>(smsSmsapiConfig);
   smsConfigRef.current = smsSmsapiConfig;
@@ -155,6 +157,9 @@ export default function AdminSettingsPage(): React.ReactElement {
         setEffectiveVapidPublicKey(null);
         setVapidFromEnv(false);
       }
+      setBehaviorSlotOfferMode((s as { behaviorSlotOfferMode?: "auto" | "manual" }).behaviorSlotOfferMode ?? "manual");
+      const emails = (s as { approvalNotifyEmails?: string[] }).approvalNotifyEmails;
+      setApprovalNotifyEmails(emails?.length ? emails.join("\n") : "");
     });
   }, []);
 
@@ -185,6 +190,14 @@ export default function AdminSettingsPage(): React.ReactElement {
           icon: pushConfig.icon || undefined,
           promptClientToEnablePush: pushConfig.promptClientToEnablePush,
         },
+        behaviorSlotOfferMode,
+        approvalNotifyEmails: approvalNotifyEmails.trim()
+          ? approvalNotifyEmails
+              .trim()
+              .split(/[\n,]+/)
+              .map((e) => e.trim())
+              .filter(Boolean)
+          : undefined,
       });
       const s = await api.settings.get();
       setSettings(s);
@@ -339,6 +352,36 @@ export default function AdminSettingsPage(): React.ReactElement {
               className="input mt-1 w-24"
               value={freeCancelHours}
               onChange={(e) => setFreeCancelHours(parseInt(e.target.value, 10))}
+            />
+          </label>
+        </section>
+
+        <section className="card space-y-4 p-4">
+          <h2 className="font-medium text-gray-900">Nabídka uvolněných slotů</h2>
+          <p className="text-sm text-gray-600">
+            Režim: Auto = algoritmus odešle nabídku klientům hned. Manual = vytvoří se návrh a admin/recepce musí schválit (přehled v Schválení nabídek).
+          </p>
+          <label>
+            <span className="block text-sm font-medium text-gray-700">Režim</span>
+            <select
+              className="input mt-1 w-full max-w-xs"
+              value={behaviorSlotOfferMode}
+              onChange={(e) => setBehaviorSlotOfferMode(e.target.value as "auto" | "manual")}
+              aria-label="Režim nabídky slotů"
+            >
+              <option value="auto">Auto (odeslat hned)</option>
+              <option value="manual">Manual (schválení admin/recepce)</option>
+            </select>
+          </label>
+          <label>
+            <span className="block text-sm font-medium text-gray-700">E-maily pro upozornění na čekající schválení (volitelné)</span>
+            <textarea
+              className="input mt-1 w-full min-h-[80px]"
+              value={approvalNotifyEmails}
+              onChange={(e) => setApprovalNotifyEmails(e.target.value)}
+              placeholder="jeden e-mail na řádek nebo oddělené čárkou"
+              rows={3}
+              aria-label="E-maily pro upozornění na schválení"
             />
           </label>
         </section>

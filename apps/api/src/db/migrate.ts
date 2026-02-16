@@ -180,4 +180,35 @@ export function runMigrations(): void {
   } catch {
     // Column already exists
   }
+  try {
+    sqlite.exec("ALTER TABLE notifications ADD COLUMN purpose TEXT");
+  } catch {
+    // Column already exists
+  }
+  sqlite.exec(`
+CREATE TABLE IF NOT EXISTS behavior_reset_log (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL,
+  performed_by TEXT NOT NULL,
+  performed_at TEXT NOT NULL,
+  reason TEXT,
+  previous_scores_json TEXT
+)`);
+  sqlite.exec(`
+CREATE TABLE IF NOT EXISTS slot_offer_approvals (
+  id TEXT PRIMARY KEY,
+  appointment_ids_json TEXT NOT NULL,
+  client_ids_json TEXT NOT NULL,
+  message_template TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  decided_by TEXT,
+  decided_at TEXT
+)`);
+  try {
+    sqlite.exec("ALTER TABLE settings ADD COLUMN behavior_slot_offer_mode TEXT");
+  } catch {}
+  try {
+    sqlite.exec("ALTER TABLE settings ADD COLUMN approval_notify_emails_json TEXT");
+  } catch {}
 }

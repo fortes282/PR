@@ -18,6 +18,7 @@
     "./reports": "./dist/reports.js",
     "./waitlist": "./dist/waitlist.js",
     "./settings": "./dist/settings.js",
+    "./slot-offer-approval": "./dist/slot-offer-approval.js",
     "./stats": "./dist/stats.js",
     "./booking-activation": "./dist/booking-activation.js",
     "./invoices": "./dist/invoices.js",

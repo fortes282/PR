@@ -25,7 +25,7 @@ export default function AdminLayout({
       router.replace("/change-password");
       return;
     }
-    if (session.role !== "ADMIN") {
+    if (session.role !== "ADMIN" && !(session.role === "RECEPTION" && pathname?.startsWith("/admin/slot-offer-approvals"))) {
       router.replace(getDefaultRoute(session.role));
       return;
     }

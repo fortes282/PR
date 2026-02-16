@@ -48,6 +48,7 @@ const receptionNav: NavItem[] = [
   { href: "/reception/appointments", label: "Rezervace", icon: Calendar },
   { href: "/reception/clients", label: "Klienti", icon: Users },
   { href: "/reception/waitlist", label: "Čekací list", icon: List },
+  { href: "/admin/slot-offer-approvals", label: "Schválení nabídek", icon: CalendarCheck },
   { href: "/reception/billing", label: "Fakturace", icon: Receipt },
 ];
 
@@ -65,6 +66,8 @@ const adminNav: NavItem[] = [
   { href: "/admin/rooms", label: "Místnosti", icon: DoorOpen },
   { href: "/admin/billing", label: "Fakturace", icon: Receipt },
   { href: "/admin/background", label: "Pozadí algoritmů", icon: Cpu },
+  { href: "/admin/behavior-log", label: "Behavior / Log", icon: List },
+  { href: "/admin/slot-offer-approvals", label: "Schválení nabídek", icon: CalendarCheck },
   { href: "/admin/settings", label: "Nastavení", icon: Settings },
   { href: "/admin/stats", label: "Statistiky", icon: BarChart3 },
 ];

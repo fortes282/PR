@@ -54,6 +54,7 @@ import type {
   SentCommunicationListParams,
   ClientRecommendation,
 } from "@/lib/contracts/admin-background";
+import type { SlotOfferApproval, SlotOfferApprovalCreate } from "@/lib/contracts/slot-offer-approval";
 import type { MedicalReport, MedicalReportCreate } from "@/lib/contracts";
 import type { ClientBehaviorScore } from "../index";
 import { computeRecommendations } from "@/lib/behavior/recommendations";
@@ -707,5 +708,33 @@ export class HttpApiClient implements ApiClient {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    /** Reset client behavior score (audit logged). Admin only. */
+    behaviorReset: async (clientId: string, body?: { reason?: string }) =>
+      fetchApi<{ ok: boolean; message: string }>(this.baseUrl, `/admin/clients/${encodeURIComponent(clientId)}/behavior-reset`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+    slotOfferApprovals: {
+      list: async (params?: { status?: string; limit?: number; offset?: number }) => {
+        const q = new URLSearchParams();
+        if (params?.status) q.set("status", params.status);
+        if (params?.limit != null) q.set("limit", String(params.limit));
+        if (params?.offset != null) q.set("offset", String(params.offset));
+        return fetchApi<{ approvals: SlotOfferApproval[]; total: number }>(
+          this.baseUrl,
+          `/admin/slot-offer-approvals?${q}`
+        );
+      },
+      create: async (body: SlotOfferApprovalCreate) =>
+        fetchApi<SlotOfferApproval>(this.baseUrl, "/admin/slot-offer-approvals", {
+          method: "POST",
+          body: JSON.stringify(body),
+        }),
+      decide: async (id: string, body: { status: "APPROVED" | "REJECTED" }) =>
+        fetchApi<SlotOfferApproval>(this.baseUrl, `/admin/slot-offer-approvals/${encodeURIComponent(id)}`, {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        }),
+    },
   };
 }

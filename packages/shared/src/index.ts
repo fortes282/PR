@@ -11,6 +11,7 @@ export * from "./notifications.js";
 export * from "./reports.js";
 export * from "./waitlist.js";
 export * from "./settings.js";
+export * from "./slot-offer-approval.js";
 export * from "./stats.js";
 export * from "./booking-activation.js";
 export * from "./invoices.js";

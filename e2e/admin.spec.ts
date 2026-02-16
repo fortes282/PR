@@ -87,7 +87,7 @@ test.describe("Admin", () => {
   test("stats page loads", async ({ page }) => {
     await page.goto("/admin/stats");
     await expect(page).toHaveURL(/\/admin\/stats/);
-    await expect(page.locator("main").getByText(/Statistiky|Vytíženost|Načítám/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Statistiky" })).toBeVisible({ timeout: 20_000 });
   });
 
   test("stats page shows heading", async ({ page }) => {
@@ -132,5 +132,55 @@ test.describe("Admin", () => {
   test("admin clients: search input visible", async ({ page }) => {
     await page.goto("/admin/clients");
     await expect(page.getByPlaceholder(/Hledat jméno|e-mail/i)).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("users: Pozvat uživatele button visible", async ({ page }) => {
+    await page.goto("/admin/users");
+    await expect(page.getByRole("heading", { name: "Uživatelé" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "Pozvat uživatele" })).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("slot-offer-approvals page loads", async ({ page }) => {
+    await page.goto("/admin/slot-offer-approvals");
+    await expect(page).toHaveURL(/\/admin\/slot-offer-approvals/);
+    await expect(page.getByRole("heading", { name: "Schválení nabídek slotů" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("slot-offer-approvals: create draft form can be opened", async ({ page }) => {
+    await page.goto("/admin/slot-offer-approvals");
+    await expect(page.getByRole("heading", { name: "Schválení nabídek slotů" })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Vytvořit nabídku (draft)" }).click();
+    await expect(page.getByRole("button", { name: "Zavřít formulář" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByLabel("Text zprávy")).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("behavior-log page loads", async ({ page }) => {
+    await page.goto("/admin/behavior-log");
+    await expect(page).toHaveURL(/\/admin\/behavior-log/);
+    await expect(page.getByRole("heading", { name: "Behavior / Log" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("behavior-log: Vyhodnocení and Oslovení tabs visible", async ({ page }) => {
+    await page.goto("/admin/behavior-log");
+    await expect(page.getByRole("button", { name: "Vyhodnocení" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: "Oslovení" })).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("settings: Nabídka uvolněných slotů section and režim select", async ({ page }) => {
+    await page.goto("/admin/settings");
+    await expect(page.getByRole("heading", { name: "Nastavení" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: "Nabídka uvolněných slotů" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByLabel("Režim nabídky slotů")).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("client detail: Resetovat behaviorální skóre button when client exists", async ({ page }) => {
+    await page.goto("/admin/clients");
+    await expect(page.getByRole("heading", { name: /Klienti/ })).toBeVisible({ timeout: 15_000 });
+    const detailLink = page.getByRole("link", { name: "Detail" }).first();
+    if ((await detailLink.count()) > 0) {
+      await detailLink.click();
+      await expect(page).toHaveURL(/\/admin\/clients\/[^/]+$/);
+      await expect(page.getByRole("button", { name: "Resetovat behaviorální skóre" })).toBeVisible({ timeout: 10_000 });
+    }
   });
 });

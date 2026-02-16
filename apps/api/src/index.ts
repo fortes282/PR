@@ -29,6 +29,7 @@ import notificationsRoutes from "./routes/notifications.js";
 import settingsRoutes from "./routes/settings.js";
 import statsRoutes from "./routes/stats.js";
 import pushRoutes from "./routes/push.js";
+import adminRoutes from "./routes/admin.js";
 
 const PORT = Number(process.env.PORT ?? 3001);
 
@@ -83,28 +84,24 @@ async function main() {
     }
   });
 
-  const routeModules = [
-    authRoutes,
-    usersRoutes,
-    servicesRoutes,
-    roomsRoutes,
-    appointmentsRoutes,
-    creditsRoutes,
-    availabilityRoutes,
-    bookingActivationsRoutes,
-    billingRoutes,
-    invoicesRoutes,
-    bankTransactionsRoutes,
-    waitlistRoutes,
-    reportsRoutes,
-    notificationsRoutes,
-    settingsRoutes,
-    statsRoutes,
-    pushRoutes,
-  ];
-  for (const fn of routeModules) {
-    await app.register(fn);
-  }
+  await app.register(authRoutes);
+  await app.register(usersRoutes);
+  await app.register(servicesRoutes);
+  await app.register(roomsRoutes);
+  await app.register(appointmentsRoutes);
+  await app.register(creditsRoutes);
+  await app.register(availabilityRoutes);
+  await app.register(bookingActivationsRoutes);
+  await app.register(billingRoutes);
+  await app.register(invoicesRoutes);
+  await app.register(bankTransactionsRoutes);
+  await app.register(waitlistRoutes);
+  await app.register(reportsRoutes);
+  await app.register(notificationsRoutes);
+  await app.register(settingsRoutes);
+  await app.register(statsRoutes);
+  await app.register(pushRoutes);
+  await app.register(adminRoutes, { prefix: "/admin" });
 
   await app.listen({ port: PORT, host: "0.0.0.0" });
   console.log(`API listening on http://localhost:${PORT}`);

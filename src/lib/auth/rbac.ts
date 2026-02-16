@@ -79,7 +79,10 @@ export function getDefaultRoute(role: Role): string {
 }
 
 export function canAccessRoute(role: Role, pathname: string): boolean {
-  if (pathname.startsWith("/admin")) return role === "ADMIN";
+  if (pathname.startsWith("/admin")) {
+    if (pathname.startsWith("/admin/slot-offer-approvals")) return role === "ADMIN" || role === "RECEPTION";
+    return role === "ADMIN";
+  }
   if (pathname.startsWith("/reception")) return role === "RECEPTION" || role === "ADMIN";
   if (pathname.startsWith("/employee")) return role === "EMPLOYEE";
   if (pathname.startsWith("/client")) return role === "CLIENT";

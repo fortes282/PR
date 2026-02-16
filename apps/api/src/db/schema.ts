@@ -110,6 +110,7 @@ export const notifications = sqliteTable("notifications", {
   createdAt: text("created_at").notNull(),
   appointmentId: text("appointment_id"),
   blockId: text("block_id"),
+  purpose: text("purpose"),
 });
 
 export const therapyReports = sqliteTable("therapy_reports", {
@@ -152,6 +153,8 @@ export const settings = sqliteTable("settings", {
   smsFaynConfigJson: text("sms_fayn_config_json"),
   reservationNotificationTimingJson: text("reservation_notification_timing_json"),
   pushNotificationConfigJson: text("push_notification_config_json"),
+  behaviorSlotOfferMode: text("behavior_slot_offer_mode"),
+  approvalNotifyEmailsJson: text("approval_notify_emails_json"),
 });
 
 export const bookingActivations = sqliteTable(
@@ -174,4 +177,26 @@ export const pushSubscriptions = sqliteTable("push_subscriptions", {
   auth: text("auth").notNull(),
   userAgent: text("user_agent"),
   createdAt: text("created_at"),
+});
+
+/** Audit log: admin reset of client behavior score (score_reset). */
+export const behaviorResetLog = sqliteTable("behavior_reset_log", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id").notNull(),
+  performedBy: text("performed_by").notNull(),
+  performedAt: text("performed_at").notNull(),
+  reason: text("reason"),
+  previousScoresJson: text("previous_scores_json"),
+});
+
+/** Slot offer approval (Manual mode): draft → APPROVED sends notifications to clients. */
+export const slotOfferApprovals = sqliteTable("slot_offer_approvals", {
+  id: text("id").primaryKey(),
+  appointmentIdsJson: text("appointment_ids_json").notNull(),
+  clientIdsJson: text("client_ids_json").notNull(),
+  messageTemplate: text("message_template").notNull(),
+  status: text("status").notNull(),
+  createdAt: text("created_at").notNull(),
+  decidedBy: text("decided_by"),
+  decidedAt: text("decided_at"),
 });

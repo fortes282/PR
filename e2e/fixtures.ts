@@ -15,6 +15,6 @@ export async function loginByRole(page: Page, role: "ADMIN" | "RECEPTION" | "EMP
   const path = ROUTES[role];
   await page.goto("/login");
   await page.locator("#role").selectOption(role);
-  await page.getByRole("button", { name: /Přihlásit se/i }).click();
+  await page.getByRole("button", { name: "Přihlásit se (demo)" }).click();
   await page.waitForURL(new RegExp(path.replace(/\//g, "\\/")), { timeout: 25_000 });
 }

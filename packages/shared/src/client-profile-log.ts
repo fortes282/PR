@@ -7,6 +7,7 @@ export const ClientProfileLogKindSchema = z.enum([
   "EVALUATION_UPDATE",
   "PASSWORD_RESET_REQUESTED",
   "ROLE_OR_ACTIVE_CHANGED",
+  "BEHAVIOR_SCORE_RESET",
 ]);
 export type ClientProfileLogKind = z.infer<typeof ClientProfileLogKindSchema>;
 

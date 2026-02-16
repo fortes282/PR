@@ -14,18 +14,40 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
   app.get(
     "/notifications",
     { preHandler: [authMiddleware] },
-    async (request: FastifyRequest<{ Querystring: { read?: string; limit?: string; appointmentId?: string; blockId?: string } }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Querystring: { read?: string; limit?: string; appointmentId?: string; blockId?: string; userId?: string; purpose?: string } }>, reply: FastifyReply) => {
       const parse = NotificationListParamsSchema.safeParse({
         read: request.query.read === "true" ? true : request.query.read === "false" ? false : undefined,
         limit: request.query.limit ? Number(request.query.limit) : undefined,
         appointmentId: request.query.appointmentId,
         blockId: request.query.blockId,
+        userId: request.query.userId,
+        purpose: request.query.purpose,
       });
       const params = parse.success ? parse.data : {};
+      const currentUserId = request.user!.userId;
+      const role = request.user!.role as string;
+
       let list = Array.from(store.notifications.values());
+
+      if (role === "CLIENT") {
+        list = list.filter((n) => n.userId === currentUserId);
+      } else if (role === "EMPLOYEE") {
+        const employeeBlockIds = new Set(
+          Array.from(store.appointments.values())
+            .filter((a) => a.employeeId === currentUserId && a.blockId)
+            .map((a) => a.blockId!)
+        );
+        list = list.filter(
+          (n) => n.userId === currentUserId || (n.blockId != null && employeeBlockIds.has(n.blockId))
+        );
+      } else if (role === "RECEPTION" || role === "ADMIN") {
+        if (params.userId) list = list.filter((n) => n.userId === params.userId);
+      }
+
       if (params.read !== undefined) list = list.filter((n) => n.read === params.read);
       if (params.appointmentId) list = list.filter((n) => n.appointmentId === params.appointmentId);
       if (params.blockId) list = list.filter((n) => n.blockId === params.blockId);
+      if (params.purpose) list = list.filter((n) => n.purpose === params.purpose);
       list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       const limit = params.limit ?? 50;
       reply.send(list.slice(0, limit));
@@ -75,6 +97,7 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
           title: body.title ?? (body.channel === "EMAIL" ? body.subject : undefined),
           read: false,
           createdAt: new Date().toISOString(),
+          purpose: "BULK" as const,
         };
         store.notifications.set(n.id, n);
         persistNotification(store, n);

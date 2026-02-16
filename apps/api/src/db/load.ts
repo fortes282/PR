@@ -12,6 +12,7 @@ import type { Notification, PushSubscription } from "@pristav/shared/notificatio
 import type { TherapyReportFile } from "@pristav/shared/reports";
 import type { WaitingListEntry } from "@pristav/shared/waitlist";
 import type { Settings } from "@pristav/shared/settings";
+import type { SlotOfferApproval } from "@pristav/shared/slot-offer-approval";
 import { getDb } from "./client.js";
 import {
   users as usersTable,
@@ -30,6 +31,7 @@ import {
   settings as settingsTable,
   bookingActivations as bookingActivationsTable,
   pushSubscriptions as pushSubscriptionsTable,
+  slotOfferApprovals as slotOfferApprovalsTable,
 } from "./schema.js";
 import type { Store } from "../store.js";
 
@@ -189,6 +191,7 @@ export function loadFromDbIntoStore(store: Store): void {
       createdAt: r.createdAt,
       appointmentId: r.appointmentId ?? undefined,
       blockId: r.blockId ?? undefined,
+      purpose: r.purpose ? (r.purpose as Notification["purpose"]) : undefined,
     });
   }
 
@@ -246,6 +249,8 @@ export function loadFromDbIntoStore(store: Store): void {
       smsSmsapiConfig: parseJson(firstSettings.smsFaynConfigJson),
       reservationNotificationTiming: parseJson(firstSettings.reservationNotificationTimingJson),
       pushNotificationConfig: parseJson(firstSettings.pushNotificationConfigJson),
+      behaviorSlotOfferMode: firstSettings.behaviorSlotOfferMode ?? undefined,
+      approvalNotifyEmails: parseJson(firstSettings.approvalNotifyEmailsJson),
     } as Settings);
   }
 
@@ -268,5 +273,21 @@ export function loadFromDbIntoStore(store: Store): void {
       createdAt: r.createdAt ?? undefined,
     };
     store.pushSubscriptions.set(r.endpoint, sub);
+  }
+
+  const approvalRows = db.select().from(slotOfferApprovalsTable).all();
+  store.slotOfferApprovals.clear();
+  for (const r of approvalRows) {
+    const a: SlotOfferApproval = {
+      id: r.id,
+      appointmentIds: parseJson<string[]>(r.appointmentIdsJson) ?? [],
+      clientIds: parseJson<string[]>(r.clientIdsJson) ?? [],
+      messageTemplate: r.messageTemplate,
+      status: r.status as SlotOfferApproval["status"],
+      createdAt: r.createdAt,
+      decidedBy: r.decidedBy ?? undefined,
+      decidedAt: r.decidedAt ?? undefined,
+    };
+    store.slotOfferApprovals.set(r.id, a);
   }
 }

@@ -15,16 +15,25 @@ const DEFAULT_ROUTES: Record<(typeof ROLES)[number], string> = {
 test.describe("Auth", () => {
   test("login page loads and shows role selector", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.getByRole("heading", { name: /Pristav Radosti/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Přístav radosti/i })).toBeVisible();
     await expect(page.locator("#role")).toBeVisible();
-    await expect(page.getByRole("button", { name: /Přihlásit se/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Přihlásit se (demo)" })).toBeVisible();
+  });
+
+  test("login page shows classic email+password section and register link", async ({ page }) => {
+    await page.goto("/login");
+    await expect(page.getByRole("heading", { name: "E-mail a heslo" })).toBeVisible();
+    await expect(page.getByPlaceholder("E-mail")).toBeVisible();
+    await expect(page.getByPlaceholder("Heslo")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Přihlásit se", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Registrace klienta \(e-mail/ })).toBeVisible();
   });
 
   for (const role of ROLES) {
-    test(`${role} login redirects to default route`, async ({ page }) => {
+    test(`${role} demo login redirects to default route`, async ({ page }) => {
       await page.goto("/login");
       await page.locator("#role").selectOption(role);
-      const btn = page.getByRole("button", { name: /Přihlásit se/i });
+      const btn = page.getByRole("button", { name: "Přihlásit se (demo)" });
       await expect(btn).toBeEnabled();
       await btn.click();
       await expect(page).toHaveURL(new RegExp(DEFAULT_ROUTES[role].replace(/\//g, "\\/")), { timeout: 25_000 });

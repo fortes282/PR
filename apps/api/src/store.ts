@@ -12,6 +12,7 @@ import type { Notification, PushSubscription } from "@pristav/shared/notificatio
 import type { TherapyReportFile } from "@pristav/shared/reports";
 import type { WaitingListEntry } from "@pristav/shared/waitlist";
 import type { Settings } from "@pristav/shared/settings";
+import type { SlotOfferApproval } from "@pristav/shared/slot-offer-approval";
 
 export const store = {
   users: new Map<string, User>(),
@@ -38,6 +39,7 @@ export const store = {
   } as Settings,
   bookingActivations: new Map<string, boolean>(),
   pushSubscriptions: new Map<string, PushSubscription>(), // key by endpoint
+  slotOfferApprovals: new Map<string, SlotOfferApproval>(),
 };
 
 export type Store = typeof store;

@@ -12,6 +12,7 @@ import type { Notification, PushSubscription } from "@pristav/shared/notificatio
 import type { TherapyReportFile } from "@pristav/shared/reports";
 import type { WaitingListEntry } from "@pristav/shared/waitlist";
 import type { Settings } from "@pristav/shared/settings";
+import type { SlotOfferApproval } from "@pristav/shared/slot-offer-approval";
 import { eq } from "drizzle-orm";
 import { getDb } from "./client.js";
 import {
@@ -31,6 +32,8 @@ import {
   settings as settingsTable,
   bookingActivations as bookingActivationsTable,
   pushSubscriptions as pushSubscriptionsTable,
+  behaviorResetLog as behaviorResetLogTable,
+  slotOfferApprovals as slotOfferApprovalsTable,
 } from "./schema.js";
 import type { Store } from "../store.js";
 
@@ -236,6 +239,7 @@ export function persistNotification(store: Store, notification: Notification): v
       createdAt: notification.createdAt,
       appointmentId: notification.appointmentId ?? null,
       blockId: notification.blockId ?? null,
+      purpose: notification.purpose ?? null,
     })
     .onConflictDoUpdate({
       target: notificationsTable.id,
@@ -248,6 +252,7 @@ export function persistNotification(store: Store, notification: Notification): v
         createdAt: notification.createdAt,
         appointmentId: notification.appointmentId ?? null,
         blockId: notification.blockId ?? null,
+        purpose: notification.purpose ?? null,
       },
     })
     .run();
@@ -336,6 +341,8 @@ export function persistSettings(store: Store, settings: Settings): void {
     smsFaynConfigJson: json(settings.smsSmsapiConfig),
     reservationNotificationTimingJson: json(settings.reservationNotificationTiming),
     pushNotificationConfigJson: json(settings.pushNotificationConfig),
+    behaviorSlotOfferMode: settings.behaviorSlotOfferMode ?? null,
+    approvalNotifyEmailsJson: json(settings.approvalNotifyEmails),
   };
   const existing = db.select().from(settingsTable).limit(1).all();
   if (existing.length === 0) {
@@ -402,4 +409,54 @@ export function persistAll(store: Store): void {
   for (const sub of store.pushSubscriptions.values()) {
     persistPushSubscription(store, sub);
   }
+}
+
+export function persistBehaviorResetLog(entry: {
+  id: string;
+  clientId: string;
+  performedBy: string;
+  performedAt: string;
+  reason?: string | null;
+  previousScoresJson?: string | null;
+}): void {
+  const db = getDb();
+  db.insert(behaviorResetLogTable)
+    .values({
+      id: entry.id,
+      clientId: entry.clientId,
+      performedBy: entry.performedBy,
+      performedAt: entry.performedAt,
+      reason: entry.reason ?? null,
+      previousScoresJson: entry.previousScoresJson ?? null,
+    })
+    .run();
+}
+
+export function persistSlotOfferApproval(store: Store, approval: SlotOfferApproval): void {
+  store.slotOfferApprovals.set(approval.id, approval);
+  const db = getDb();
+  db.insert(slotOfferApprovalsTable)
+    .values({
+      id: approval.id,
+      appointmentIdsJson: JSON.stringify(approval.appointmentIds),
+      clientIdsJson: JSON.stringify(approval.clientIds),
+      messageTemplate: approval.messageTemplate,
+      status: approval.status,
+      createdAt: approval.createdAt,
+      decidedBy: approval.decidedBy ?? null,
+      decidedAt: approval.decidedAt ?? null,
+    })
+    .onConflictDoUpdate({
+      target: slotOfferApprovalsTable.id,
+      set: {
+        appointmentIdsJson: JSON.stringify(approval.appointmentIds),
+        clientIdsJson: JSON.stringify(approval.clientIds),
+        messageTemplate: approval.messageTemplate,
+        status: approval.status,
+        createdAt: approval.createdAt,
+        decidedBy: approval.decidedBy ?? null,
+        decidedAt: approval.decidedAt ?? null,
+      },
+    })
+    .run();
 }

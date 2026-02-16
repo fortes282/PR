@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/layout/Toaster";
+import { Modal } from "@/components/modals/Modal";
 import { formatCzk } from "@/lib/utils/money";
 import { format } from "@/lib/utils/date";
 import type { User, NotificationPreferences } from "@/lib/contracts/users";
@@ -25,6 +26,9 @@ export default function AdminClientDetailPage(): React.ReactElement {
   const [profileLog, setProfileLog] = useState<ClientProfileLogEntry[]>([]);
   const [medicalReports, setMedicalReports] = useState<MedicalReport[]>([]);
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [behaviorResetOpen, setBehaviorResetOpen] = useState(false);
+  const [behaviorResetReason, setBehaviorResetReason] = useState("");
+  const [resettingBehavior, setResettingBehavior] = useState(false);
   const [edit, setEdit] = useState({
     firstName: "",
     lastName: "",
@@ -152,6 +156,21 @@ export default function AdminClientDetailPage(): React.ReactElement {
     }
   };
 
+  const handleBehaviorResetConfirm = async (): Promise<void> => {
+    setResettingBehavior(true);
+    try {
+      await api.admin.behaviorReset(id, { reason: behaviorResetReason.trim() || undefined });
+      setBehaviorResetOpen(false);
+      setBehaviorResetReason("");
+      loadLog();
+      toast("Behaviorální skóre bylo zresetováno. Záznam byl uložen do auditu.", "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Chyba", "error");
+    } finally {
+      setResettingBehavior(false);
+    }
+  };
+
   if (!user) return <p className="text-gray-600">Načítám…</p>;
 
   return (
@@ -161,15 +180,25 @@ export default function AdminClientDetailPage(): React.ReactElement {
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={handleResetPassword}
-          disabled={resettingPassword}
-          title="Odeslat klientovi e-mail s odkazem na nastavení nového hesla"
-        >
-          {resettingPassword ? "Odesílám…" : "Resetovat heslo a poslat e-mail"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setBehaviorResetOpen(true)}
+            title="Resetovat behaviorální skóre klienta (záznam do auditu)"
+          >
+            Resetovat behaviorální skóre
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={handleResetPassword}
+            disabled={resettingPassword}
+            title="Odeslat klientovi e-mail s odkazem na nastavení nového hesla"
+          >
+            {resettingPassword ? "Odesílám…" : "Resetovat heslo a poslat e-mail"}
+          </button>
+        </div>
       </div>
       <div className="flex flex-wrap gap-2 text-sm">
         <Link href={`/admin/clients/${id}/health-record`} className="text-primary-600 hover:underline">
@@ -372,6 +401,47 @@ export default function AdminClientDetailPage(): React.ReactElement {
           )}
         </ul>
       </section>
+
+      {behaviorResetOpen && (
+        <Modal
+          open={true}
+          onClose={() => !resettingBehavior && setBehaviorResetOpen(false)}
+          title="Resetovat behaviorální skóre"
+        >
+          <p className="text-sm text-gray-600">
+            Opravdu resetovat? Klient bude při příštím vyhodnocení brán jako bez historie. Transakční záznamy (rezervace, faktury) se nemění; resetuje se pouze behaviorální profil. Akce se zapíše do auditu.
+          </p>
+          <label className="mt-3 block">
+            <span className="text-sm text-gray-700">Důvod (volitelné)</span>
+            <input
+              type="text"
+              className="input mt-1 w-full"
+              value={behaviorResetReason}
+              onChange={(e) => setBehaviorResetReason(e.target.value)}
+              placeholder="např. žádost klienta, test"
+              aria-label="Důvod resetu"
+            />
+          </label>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setBehaviorResetOpen(false)}
+              disabled={resettingBehavior}
+            >
+              Zrušit
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleBehaviorResetConfirm}
+              disabled={resettingBehavior}
+            >
+              {resettingBehavior ? "Resetuji…" : "Resetovat skóre"}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

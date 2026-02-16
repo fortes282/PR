@@ -53,6 +53,7 @@ import type { BehaviorEvaluationRecord, SentCommunication, SentCommunicationList
 import type { ClientProfileLogEntry, ClientProfileLogKind, ClientProfileLogListParams } from "@/lib/contracts";
 import type { MedicalReport, MedicalReportCreate } from "@/lib/contracts";
 import type { RegisterBody, RequestSmsCodeBody, VerifySmsCodeBody, ResetPasswordByAdminBody, ChangePasswordBody, InviteUserBody } from "@/lib/contracts/auth";
+import type { SlotOfferApproval, SlotOfferApprovalCreate } from "@/lib/contracts/slot-offer-approval";
 import type { ClientBehaviorScore } from "../index";
 import { computeRecommendations } from "@/lib/behavior/recommendations";
 import { deriveEventsFromAppointments } from "@/lib/behavior/derive-events";
@@ -1399,5 +1400,83 @@ export class MockApiClient implements ApiClient {
       };
       db.notifications.set(emailNotif.id, emailNotif);
     },
+
+    behaviorReset: async (clientId: string, _body?: { reason?: string }): Promise<{ ok: boolean; message: string }> => {
+      ensureSeed();
+      if (this.session?.role !== "ADMIN") throw new Error("Pouze administrátor může resetovat behaviorální skóre.");
+      const client = db.users.get(clientId);
+      if (!client || client.role !== "CLIENT") throw new Error("Klient nenalezen.");
+      appendClientProfileLog(clientId, "BEHAVIOR_SCORE_RESET", "Administrátor resetoval behaviorální skóre", _body?.reason, this.session.userId);
+      return { ok: true, message: "Behaviorální skóre klienta bylo zresetováno (mock)." };
+    },
+    slotOfferApprovals: {
+      list: async (params?: { status?: string; limit?: number; offset?: number }) => {
+        ensureSeed();
+        let list = Array.from(MockApiClient.slotOfferApprovalsStore.values());
+        if (params?.status) list = list.filter((a) => a.status === params.status);
+        list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        const offset = params?.offset ?? 0;
+        const limit = params?.limit ?? 50;
+        return { approvals: list.slice(offset, offset + limit), total: list.length };
+      },
+      create: async (body: SlotOfferApprovalCreate): Promise<SlotOfferApproval> => {
+        ensureSeed();
+        if (this.session?.role !== "ADMIN" && this.session?.role !== "RECEPTION") throw new Error("Pouze admin nebo recepce.");
+        const id = nextId("soa");
+        const createdAt = new Date().toISOString();
+        const approval: SlotOfferApproval = {
+          id,
+          appointmentIds: body.appointmentIds,
+          clientIds: body.clientIds,
+          messageTemplate: body.messageTemplate,
+          status: "PENDING",
+          createdAt,
+        };
+        MockApiClient.slotOfferApprovalsStore.set(id, approval);
+        const message = `Čeká schválení: nabídka uvolněných termínů ${body.appointmentIds.length} slot(ů) pro ${body.clientIds.length} klientů.`;
+        const adminAndReception = Array.from(db.users.values()).filter((u) => u.role === "ADMIN" || u.role === "RECEPTION");
+        for (const u of adminAndReception) {
+          const n: Notification = {
+            id: nextId("n"),
+            userId: u.id,
+            channel: "IN_APP",
+            title: "Schválení nabídky slotů",
+            message,
+            read: false,
+            createdAt: new Date().toISOString(),
+            purpose: "APPROVAL_REQUEST",
+          };
+          db.notifications.set(n.id, n);
+        }
+        return approval;
+      },
+      decide: async (id: string, body: { status: "APPROVED" | "REJECTED" }): Promise<SlotOfferApproval> => {
+        ensureSeed();
+        if (this.session?.role !== "ADMIN" && this.session?.role !== "RECEPTION") throw new Error("Pouze admin nebo recepce.");
+        const approval = MockApiClient.slotOfferApprovalsStore.get(id);
+        if (!approval || approval.status !== "PENDING") throw new Error("Schválení nenalezeno nebo již bylo rozhodnuto.");
+        const decidedAt = new Date().toISOString();
+        const updated: SlotOfferApproval = { ...approval, status: body.status, decidedBy: this.session!.userId, decidedAt };
+        MockApiClient.slotOfferApprovalsStore.set(id, updated);
+        if (body.status === "APPROVED") {
+          for (const clientId of approval.clientIds) {
+            const n: Notification = {
+              id: nextId("n"),
+              userId: clientId,
+              channel: "IN_APP",
+              title: "Nabídka volného termínu",
+              message: approval.messageTemplate,
+              read: false,
+              createdAt: new Date().toISOString(),
+              purpose: "SLOT_OFFER",
+            };
+            db.notifications.set(n.id, n);
+          }
+        }
+        return updated;
+      },
+    },
   };
+
+  static slotOfferApprovalsStore = new Map<string, import("@/lib/contracts/slot-offer-approval").SlotOfferApproval>();
 }

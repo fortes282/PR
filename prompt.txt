@@ -1,302 +1,194 @@
-Act as a senior frontend architect. Generate ONLY the frontend for a multi-role PWA web app called “Pristav Radosti” (Rehab Center Management).
-Do not implement a backend. Instead, create a clear backend integration blueprint (API contracts, endpoints, payloads, auth flow) and wire the frontend to a mock API layer that can later be swapped to real HTTP calls.
-Language: TypeScript. UI: Tailwind. Framework: Next.js App Router.
-0) Output requirements (non-negotiable)
-Generate a runnable Next.js app (App Router) with PWA support and role-based navigation.
-All data access must go through a single abstraction: src/lib/api/ (a “data gateway”).
-Provide two implementations:
-MockApiClient (in-memory, deterministic seed data)
-HttpApiClient (real REST calls) but leave it disabled by default (no backend required to run).
-Add high-quality code comments everywhere the future backend will connect:
-what endpoint will exist
-request/response shapes
-authentication headers
-error handling expectations
-Include API contract types in src/lib/contracts/ (Zod + TS inferred types).
-Include a backend preparation guide in README.md:
-which endpoints to implement
-what each endpoint must return
-which pages depend on which endpoints
-auth/token handling
-Provide role-based demo login (no real auth):
-a “Switch Role” dev panel (or login screen) that sets a role in local storage/cookie
-also prepare the real auth integration points with comments
-1) Project structure
-Create:
-/apps/web
-  src/
-    app/
-      (public)/
-        login/
-        verify/
-      (client)/
-        client/
-          dashboard/
-          book/
-          appointments/
-          credits/
-          reports/
-          settings/
-          waitlist/
-      (reception)/
-        reception/
-          calendar/
-          appointments/[id]/
-          clients/
-          clients/[id]/
-          waitlist/
-          billing/
-      (employee)/
-        employee/
-          calendar/
-          colleagues/
-          appointments/[id]/
-          clients/[id]/reports/
-      (admin)/
-        admin/
-          users/
-          services/
-          rooms/
-          settings/
-          stats/
-      notifications/
-      layout.tsx
-      page.tsx
-    components/
-      layout/
-      nav/
-      calendar/
-      tables/
-      forms/
-      modals/
-      files/
-      badges/
-    lib/
-      api/
-        index.ts
-        mock/
-          mockClient.ts
-          mockDb.ts
-          seed.ts
-        http/
-          httpClient.ts
-      auth/
-        session.ts
-        rbac.ts
-      contracts/
-        auth.ts
-        users.ts
-        services.ts
-        rooms.ts
-        appointments.ts
-        credits.ts
-        billing.ts
-        notifications.ts
-        reports.ts
-        waitlist.ts
-        settings.ts
-        stats.ts
-      utils/
-        date.ts
-        money.ts
-        csv.ts
-    styles/
-  public/
-  next.config.js
-  tailwind.config.ts
-  README.md
-(If you’re not using a monorepo, just generate a single Next.js project, but keep the folder structure above.)
-2) Core domain rules (frontend must enforce in UI)
-Even without backend, implement UI logic + mock behaviors:
-2.1 Roles
-Roles:
-ADMIN
-RECEPTION
-EMPLOYEE
-CLIENT
-Frontend must:
-show different nav menus
-block routes (RBAC guard)
-hide unauthorized actions
-2.2 Booking window
-booking window is 60 days ahead (from “today”), configurable in Settings page (admin only) in mock mode.
-Client booking UI must disable days beyond window.
-2.3 Appointment cancellation / refund explanation
-global freeCancelHours (e.g., 48)
-cancel modal must show:
-whether refund would apply (if paid and within time)
-reason required for reception refunds
-2.4 Credits
-Client cannot top up credits.
-Reception/admin can adjust credits.
-Booking flow:
-if enough credits => mark appointment as PAID and deduct
-else => mark UNPAID (to be billed later)
-2.5 Billing report (V1)
-Reception page “Billing” shows:
-monthly report listing UNPAID appointments
-totals per client
-export CSV (frontend utility)
-“Mark as invoiced” (mock updates status to INVOICED)
-2.6 Waitlist suggestions (MVP)
-Provide a waitlist list and a “suggestions” panel that displays recommended clients for a freed slot.
-You can keep scoring simple/deterministic in mock mode, but the UI must be ready to display:
-score reasons
-priority buckets
-2.7 Therapy reports (files)
-Employee can upload a file (mock store as metadata only; for dev you can store in memory and show it).
-Client can download (mock: generate a dummy PDF blob or download placeholder text).
-Show visibleToClient toggle.
-2.8 Notifications inbox
-Notifications list page with read/unread
-“Send offer” in waitlist triggers a notification in mock DB
-Manual broadcast UI (admin/reception) can send to segment (mock)
-3) UI/UX requirements
-Minimal, clean Tailwind UI
-Responsive
-Reusable components
-Loading/empty/error states on every page
-Use a consistent design system:
-buttons, inputs, modal, toast
-Calendar:
-Week view for reception and employee
-Client “book” view can be simplified (day list + available slots)
-4) Data contracts (Zod + TS)
-In src/lib/contracts/* define:
-enums: Role, AppointmentStatus, PaymentStatus, ServiceType, RoomType, NotificationChannel
-Zod schemas for key DTOs:
-Appointment, Service, Room, CreditAccount, CreditTransaction, BillingReport, Notification, TherapyReportFile, WaitingListEntry, Settings
-Must export type from Zod inference for use across the app.
-5) API Gateway (the most important part)
-5.1 Interface
-Create src/lib/api/index.ts that exports api implementing:
-auth.login(roleOrCredentials)
-auth.me()
-users.list(...), users.update(...)
-services.list/create/update
-rooms.list/create/update
-appointments.list/create/update/cancel/complete
-credits.get(clientId), credits.adjust(clientId, ...)
-billing.generateMonthly(period), billing.getReport(id), billing.exportCsv(id), billing.markInvoiced(appointmentIds)
-waitlist.create/list/suggestions/notify
-reports.upload/list/download/updateVisibility
-notifications.list/send/read
-settings.get/update
-stats.occupancy/cancellations/clientTags
-5.2 MockApiClient
-Implement in-memory “DB” in src/lib/api/mock/mockDb.ts plus seed.ts.
-Deterministic seed:
-admin, receptionist, 3 therapists, 10 clients
-services, rooms
-sample appointments
-unpaid old >60 days
-waitlist entries
-Mock client must simulate:
-cancellations and refunds
-credits deduction
-marking invoiced
-generating a billing report
-5.3 HttpApiClient (disabled by default)
-Implement HttpApiClient with fetch calls but keep feature-flagged:
-NEXT_PUBLIC_API_MODE=mock|http (default mock)
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3001 (example)
-IMPORTANT: Add code comments for backend
-For every method, include a comment block like:
-/**
- * BACKEND CONTRACT (to implement later):
- * POST /appointments/:id/cancel
- * Headers: Authorization: Bearer <accessToken>
- * Body: { refund?: boolean, reason?: string }
- * Returns: { appointment: Appointment, creditTransaction?: CreditTransaction }
- * Errors:
- *  - 403 if RBAC denies
- *  - 409 if already cancelled
- */
-Do this consistently across the gateway.
-6) Auth & RBAC (frontend-only now, backend-ready)
-Implement src/lib/auth/session.ts:
-store a session in cookie/localStorage (mock)
-session includes userId, role, accessToken placeholder
-Implement src/lib/auth/rbac.ts:
-can(role, action) mapping
-route guard for layouts (client), (reception), (employee), (admin)
-Add comments for real backend:
-JWT access/refresh
-token refresh strategy
-401 handling
-7) Pages to implement (MVP screens)
-Public
-/login: role-based dev login + future credential login form
-/verify: placeholder for email/SMS verification (just UI + comments)
-Client
-Dashboard: next appointment, credits, quick actions
-Book: available slots (based on services + bookingWindowDays)
-Appointments list + cancel modal
-Credits page: balance + transactions
-Reports list + download
-Settings: notification preferences (mock toggles)
-Waitlist: create/edit entry
-Reception
-Calendar week view with filters (service/therapist)
-Appointment detail: reschedule, cancel with refund choice
-Clients list: search + tags
-Client detail: profile + credits adjust + timeline + reports
-Waitlist: list + suggestions + notify
-Billing: monthly report + export CSV + mark invoiced
-Employee
-My calendar + blocks
-Colleagues read-only view
-Appointment detail + internal notes
-Upload therapy report for a client
-Admin
-Users management
-Services management
-Rooms management
-Settings (bookingWindowDays, freeCancelHours)
-Stats pages (basic charts placeholders; can be tables)
-Notifications
-Inbox: list + mark read
-8) Components
-Implement shared components:
-AppShell with sidebar/topbar
-RoleSwitcher dev panel (only in mock mode)
-DataTable (sortable)
-Modal / ConfirmDialog
-Toast notifications
-CalendarWeekView component
-AppointmentCard, ClientCard
-CreditAdjustForm
-FileUpload component
-9) PWA requirements
-manifest.json with name/icons/theme color
-Service worker setup
-Offline fallback page or banner
-Cache static assets + last successful appointments list
-10) README backend preparation plan (must write)
-In README.md, include:
-Backend endpoints list (exact routes + payload shapes)
-Auth strategy (JWT + refresh, Authorization header)
-RBAC responsibilities (server authoritative)
-How to switch from mock to http
-Which pages call which endpoints
-Error conventions (problem+json recommended)
-File upload expectations (S3 presigned URLs suggested)
-11) Quality checks
-TypeScript strict true
-ESLint configured
-Basic unit tests for key pure functions:
-cancellation refund decision
-booking window guard
-billing report totals from appointments
-12) Step-by-step generation order
-Generate in this order:
-Next.js project + Tailwind + PWA setup
-Contracts (Zod schemas + types)
-API gateway interface + mock implementation + seed
-Auth + RBAC guards
-Layout + navigation
-Pages per role
-Components
-Utilities (CSV export, date helpers)
-README with backend blueprint
-Again: do NOT build a backend. The app must run fully with mock data.
+
+## 1. Systém notifikací — role, zobrazení a ukládání do přehledu
+
+### 1.1 Cíl
+
+Jednoznačně určit, které notifikace se kterým rolím zobrazují a které se ukládají do přehledu notifikací (stránka `/notifications`, API `GET /notifications`).
+
+### 1.2 Role
+
+**ADMIN**, **RECEPTION**, **EMPLOYEE**, **CLIENT** (RBAC v `src/lib/auth/rbac.ts`).
+
+### 1.3 Typy notifikací
+
+- **In-app** — záznam v `store.notifications`, `channel: IN_APP` nebo bez externího odeslání, s `userId` u notifikací pro konkrétního klienta.
+- **Bulk odeslané** — např. `POST /notifications/send-bulk`: záznamy s `userId = clientId`, `channel` EMAIL/SMS.
+- **Systémové / globální** — pro recepci nebo admina (schválení, upozornění): bez `userId` nebo s `userId` cílového pracovníka.
+- **Vázané na entitu** — `appointmentId` nebo `blockId` (připomínka termínu, zrušení).
+
+### 1.4 Pravidla zobrazení a ukládání
+
+| Role     | Co zobrazit v přehledu notifikací | Ukládání do přehledu |
+|----------|-----------------------------------|------------------------|
+| **CLIENT** | Pouze notifikace kde `userId === currentUser.id`. | Každá notifikace určená klientovi (`userId` = tento klient) se ukládá a zobrazuje v jeho přehledu. |
+| **EMPLOYEE** | Pouze notifikace kde `userId === currentUser.id` nebo vztahující se k jeho blokům/termínům (např. `blockId` v jeho blocích). | Notifikace přiřazené zaměstnanci (připomínka jeho termínu, změna) se ukládají a zobrazují. |
+| **RECEPTION** | Všechny notifikace (přehled za recepci), volitelně filtrovatelné podle `userId`, `appointmentId`, `blockId`. | Všechny notifikace odeslané klientům (`userId`) + systémové notifikace pro recepci (např. „Čeká schválení odeslání nabídky uvolněného termínu“) se ukládají a zobrazují. |
+| **ADMIN** | Stejně jako RECEPTION + systémové notifikace určené pouze adminovi (schválení algoritmu, reporty). | Stejné ukládání jako RECEPTION + notifikace typu „Vyžaduje schválení admina“. |
+
+### 1.5 Backend
+
+`GET /notifications` vrací seznam podle role:
+
+- **CLIENT / EMPLOYEE:** pouze záznamy kde `n.userId === request.user.id` (u EMPLOYEE případně i podle `blockId`/appointment dle modelu).
+- **RECEPTION / ADMIN:** všechny notifikace (s volitelným filtrem `userId` / `appointmentId` / `blockId`), včetně odeslaných klientům a systémových výzev ke schválení.
+
+Shrnutí: přehled notifikací zobrazuje každé roli jen jí příslušné záznamy; každá vytvořená notifikace v `store.notifications` se ukládá a zobrazení se řídí výše uvedeným filtrem podle role.
+
+---
+
+## 2. Behaviorální algoritmus — Auto / Manual a maximalizace obsazenosti
+
+### 2.1 Cíl
+
+- Maximalizovat obsazenost: dopředu (dlouhý horizont) i při náhlých výpadcích (zrušení na poslední chvíli).
+- U uvolněných termínů: vybrat vhodné klienty (tendence vyplňovat termíny, reaktivita), poslat nabídku (auto nebo po schválení) a při obsazení zvýšit jejich váhu pro další výzvy.
+
+### 2.2 Režimy: Auto vs Manual
+
+- **Auto:** Algoritmus sám vybere klienty a ihned odešle notifikace (e-mail / in-app dle `notificationStrategy`). Bez schvalování.
+- **Manual:** Algoritmus vybere klienty a vytvoří návrh (draft). Odešle se výzva ke schválení (e-mail + in-app) adminovi a recepci. Po schválení (jedním z nich) se teprve odešlou notifikace vybraným klientům. Vše se zapisuje do přehledu notifikací (systémové záznamy pro admin/recepci + záznamy pro klienty po odeslání).
+
+Režim může být globální (nastavení v settings) nebo per-akce (např. jen pro danou kampaň uvolněných slotů).
+
+### 2.3 Tok při uvolněném termínu
+
+1. **Trigger:** zrušení rezervace nebo detekce brzy realizovaného volného slotu.
+2. **Výběr kandidátů:**  
+   Vstup: klienti s behavior profilem, volný slot (čas, služba, místnost).  
+   Ranking: hlavně `fillHelperScore`, dále `reactivityScore`, `preferredChannel` a `contentHint` z `buildNotificationStrategy`.  
+   Filtry: vyřadit „ignores_notifications“, respektovat `maxPerDay`/`maxPerWeek` a cooldown.  
+   Výstup: seznam klientů s prioritou (např. top N nebo nad prahem).
+3. **Auto:** odeslat notifikace vybraným klientům a uložit do přehledu.  
+   **Manual:** vytvořit záznam Schválení (Approval): které sloty, kterým klientům, jaký text; odeslat adminovi a recepci e-mail + in-app „Čeká schválení: nabídka uvolněných termínů X klientům“; uložit do přehledu. Po schválení odeslat klientům a uložit jejich notifikace.
+4. **Po obsazení slotu klientem:** Zaznamenat event `slot_claimed`. Při příštím `computeBehaviorProfile` se zvýší `slotClaimedCount` → vyšší `fillHelperScore` → vyšší váha při dalším výběru.
+
+### 2.4 Datové rozšíření
+
+- **Typ notifikace:** Rozšířit notifikaci o `notificationType` / `purpose`: např. `REMINDER`, `SLOT_OFFER`, `APPROVAL_REQUEST`, `SYSTEM_ALERT`. Umožní filtrovat v přehledu a dodržet pravidla pro role.
+- **Schválení (Manual):** Entita např. `SlotOfferApproval`: `id`, `slotIds`/`appointmentIds`, `clientIds`, `messageTemplate`, `status: PENDING | APPROVED | REJECTED`, `createdAt`, `decidedBy`, `decidedAt`. Při vytvoření vytvořit systémové notifikace pro ADMIN/RECEPTION; při APPROVED odeslat klientům a uložit notifikace.
+- **Nastavení:** V settings např. `behaviorSlotOfferMode: "auto" | "manual"`, volitelně `approvalNotifyEmails: string[]`.
+
+### 2.5 Další systémy podporující cíl (obsazenost)
+
+- **Waitlist + behavior:** Při uvolnění slotu řadit nejen podle čekacího listu, ale podle `fillHelperScore` + `reactivityScore` a `notificationStrategy`. Nejlepší kandidáty notifikovat první (Auto) nebo nabídnout ke schválení (Manual).
+- **Proaktivní brzy realizované sloty:** Pravidelně (cron) hledat sloty blízké realizaci (např. 24–72 h), které jsou volné. Vybrat klienty s vysokým `fillHelperScore` a krátkým `avgBookingLeadTimeHours` a poslat nabídku (auto/manual).
+- **Remindery a no-show:** Posílat připomínky podle `notificationStrategy` (kanál, čas, `contentHint`) pro snížení no-show.
+- **Re-engagement po zrušení:** Po zrušení kromě nabídky waitlistu/vybraným klientům zařadit klienta do re-engagement (např. „Zrušil jste termín – zde jsou volné alternativy“).
+- **Metriky kampaní:** U každé kampaně (nabídka slotů) ukládat režim (auto/manual), počet odeslaných, otevření, konverze (`slot_claimed`) pro vyhodnocení efektivity.
+- **Limity:** Respektovat `maxPerDay`/`maxPerWeek` a cooldown z `buildNotificationStrategy`.
+
+---
+
+## 3. Admin log vyhodnocení a oslovení
+
+### 3.1 Účel
+
+V adminu jeden centrální log: všechna behaviorální vyhodnocení a související oslovení — kdo dostal jaké skóre, proč, kdy byl osloven a z jakého důvodu. Pro audit, ladění algoritmu a podporu.
+
+### 3.2 Co se loguje
+
+**A) Záznam vyhodnocení skóre (evaluation)**
+
+Pro každé vyhodnocení profilu klienta ukládat:
+
+| Pole | Popis |
+|------|--------|
+| `id` | Unikátní ID záznamu |
+| `clientId` | ID klienta |
+| `clientName` | Jméno klienta (pro filtrování) |
+| `evaluatedAt` | Datum a čas vyhodnocení (ISO) |
+| `triggerEvent` | Co vyhodnocení spustilo (`booking_completed`, `booking_cancelled`, `manual_refresh`, `scheduled_job`) |
+| `reason` | Lidsky čitelný důvod |
+| `previousScores` | Předchozí skóre (volitelně): reliabilityScore, cancellationRiskScore, reactivityScore, fillHelperScore |
+| `newScores` | Nová skóre po vyhodnocení |
+| `scoreChanges` | Volitelně: které skóre se změnilo a o kolik |
+| `tagsAdded` | Tagy přidané při tomto vyhodnocení |
+| `tagsRemoved` | Tagy odebrány |
+| `tagsCurrent` | Aktuální sada tagů po vyhodnocení |
+
+**B) Záznam oslovení (outreach)**
+
+Při každém odeslání notifikace klientovi z algoritmu nebo manuální akce:
+
+| Pole | Popis |
+|------|--------|
+| `id` | Unikátní ID |
+| `clientId` | ID klienta |
+| `clientName` | Jméno klienta |
+| `sentAt` | Datum a čas odeslání (ISO) |
+| `channel` | EMAIL, SMS, PUSH, IN_APP |
+| `type` / `purpose` | SLOT_OFFER, REMINDER_UPCOMING, WAITLIST_OFFER, REENGAGE_AFTER_REFUND, MANUAL_BULK, … |
+| `reason` | Proč byl klient vybrán |
+| `relatedEntityIds` | appointmentId, blockId, approvalId (volitelně) |
+| `mode` | auto | manual |
+| `outcome` | Volitelně později: opened, clicked, converted, ignored |
+
+### 3.3 Umístění
+
+- Backend: např. tabulky `behavior_evaluation_log` a `behavior_outreach_log` (nebo rozšíření stávajícího „sent communications“).
+- API: např. `GET /admin/behavior-log` s parametry pro oba typy záznamů a filtry níže.
+- Admin UI: stránka „Behavior / Log“ (záložky „Vyhodnocení“ a „Oslovení“) s tabulkou a filtry.
+
+### 3.4 Kompletní filtrování (admin)
+
+**Log vyhodnocení (evaluations):**
+
+| Filter | Popis | Příklad |
+|--------|--------|--------|
+| Jméno klienta | Full-text nebo prefix na `clientName` | „Novák“ |
+| clientId | Přesné ID klienta | c-123 |
+| Typ změny | Co se změnilo | fillHelperScore, reliabilityScore, tag_added, tag_removed, any |
+| Konkrétní skóre | Které skóre | Reliability / Cancellation risk / Reactivity / Fill-helper |
+| Směr změny | Zvýšení / snížení / jakákoliv | increased / decreased / any |
+| Tag | Přidaný nebo přítomný tag | super_substitute, frequently_cancels |
+| Trigger event | Co spustilo vyhodnocení | booking_cancelled, slot_claimed, manual_refresh |
+| Datum a čas | Rozsah `evaluatedAt` | od – do (date + čas) |
+| Období | Presety | Dnes, Posledních 7 dní, 30 dní, Vlastní |
+
+**Log oslovení (outreach):**
+
+| Filter | Popis | Příklad |
+|--------|--------|--------|
+| Jméno klienta | Full-text nebo prefix | „Novák“ |
+| clientId | Přesné ID | c-123 |
+| Typ oslovení | purpose / type | SLOT_OFFER, REMINDER_UPCOMING, … |
+| Kanál | EMAIL, SMS, PUSH, IN_APP | |
+| Režim | auto / manual | |
+| Datum a čas | Rozsah `sentAt` | od – do |
+| Období | Presety | jako u evaluations |
+
+**Společné:** Řazení podle data (nejnovější / nejstarší), stránkování (limit, offset nebo cursor), volitelně export CSV/Excel.
+
+---
+
+## 4. Reset kompletního skóre klienta (admin)
+
+### 4.1 Požadavek
+
+V adminu možnost u konkrétního klienta **resetovat kompletní behaviorální skóre**, aby byl profil při příštím vyhodnocení jako „od nuly“.
+
+### 4.2 Co reset znamená
+
+- Vymazat nebo vyřadit z výpočtu **behaviorální události** (`BehaviorEvent`) pro daného `clientId` (fyzické smazání nebo soft delete s ohledem na GDPR a audit).
+- Při příštím `computeBehaviorProfile(clientId, events, …)` bude `events` pro tohoto klienta prázdné (nebo jen neignorované), takže metriky = default, skóre = výchozí, tagy = žádné, notification strategy = default.
+
+### 4.3 Co nemazat
+
+- Reálné transakční záznamy (rezervace, faktury, návštěvy) nemazat — pouze behavior event store (nebo odvozené/aggregované záznamy pro tohoto klienta).
+
+### 4.4 Implementace
+
+- **API:** Např. `POST /admin/clients/:clientId/behavior-reset` (pouze ADMIN). Volitelně v těle `reason?: string`.
+- **Oprávnění:** Pouze ADMIN (např. `behavior:reset` nebo admin-only route).
+- **Audit:** Záznam do admin logu: typ „score_reset“, clientId, performedBy, performedAt, reason; volitelně uložit poslední skóre před resetem.
+- **Admin UI:** U detailu klienta (nebo v seznamu) tlačítko „Resetovat behaviorální skóre“ s potvrzením (modal: „Opravdu resetovat? Klient bude při příštím vyhodnocení brán jako bez historie.“).
+
+---
+
+## 5. Shrnutí
+
+1. **Notifikace:** Přehled podle role (CLIENT/EMPLOYEE jen vlastní, RECEPTION/ADMIN vše); každá notifikace se ukládá, zobrazení se filtruje dle role.
+2. **Algoritmus:** Režimy Auto (okamžité odeslání) a Manual (schválení admin/recepce); výběr dle fillHelperScore/reactivityScore; po obsazení slot_claimed → vyšší váha; podpora waitlistu, proaktivních slotů, reminderů, re-engagementu a metrik.
+3. **Admin log:** Log vyhodnocení (kdo, jaké skóre, proč, kdy) a log oslovení (kdo, kdy osloven, proč); kompletní filtrování podle jména, typu změny, typu skóre, data a času, tagů, triggeru, kanálu, režimu.
+4. **Reset skóre:** Pouze ADMIN; reset = vymazání/vyřazení behaviorálních událostí klienta; audit a potvrzení v UI.
+

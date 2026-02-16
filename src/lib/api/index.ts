@@ -221,6 +221,13 @@ export type ApiClient = {
     getRecommendations: () => Promise<ClientRecommendation[]>;
     /** Reset client password and send email to set new one. Admin only. */
     resetClientPassword: (body: ResetPasswordByAdminBody) => Promise<void>;
+    /** Reset client behavior score; audit logged. Admin only. */
+    behaviorReset: (clientId: string, body?: { reason?: string }) => Promise<{ ok: boolean; message: string }>;
+    slotOfferApprovals: {
+      list: (params?: { status?: string; limit?: number; offset?: number }) => Promise<{ approvals: import("@/lib/contracts/slot-offer-approval").SlotOfferApproval[]; total: number }>;
+      create: (body: import("@/lib/contracts/slot-offer-approval").SlotOfferApprovalCreate) => Promise<import("@/lib/contracts/slot-offer-approval").SlotOfferApproval>;
+      decide: (id: string, body: { status: "APPROVED" | "REJECTED" }) => Promise<import("@/lib/contracts/slot-offer-approval").SlotOfferApproval>;
+    };
   };
 };
 
