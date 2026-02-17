@@ -100,7 +100,7 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
     toast(`Vybráno ${clients.length} klientů.`, "success");
   };
 
-  const handleUseTemplate7Days = async (): void => {
+  const handleUseTemplate7Days = async (): Promise<void> => {
     const selectedAppointments = appointments
       .filter((a) => selectedAppointmentIds.has(a.id))
       .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
