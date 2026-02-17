@@ -942,6 +942,11 @@ export class MockApiClient implements ApiClient {
       db.waitlist.set(id, updated);
       return updated;
     },
+    delete: async (id: string): Promise<void> => {
+      ensureSeed();
+      if (!db.waitlist.has(id)) throw new Error("Waitlist entry not found");
+      db.waitlist.delete(id);
+    },
     /**
      * BACKEND CONTRACT (to implement later):
      * GET /waitlist/suggestions?slotStart=&slotEnd=&serviceId=

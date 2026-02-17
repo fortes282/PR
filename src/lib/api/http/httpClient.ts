@@ -502,6 +502,8 @@ export class HttpApiClient implements ApiClient {
       fetchApi<WaitingListEntry>(this.baseUrl, "/waitlist", { method: "POST", body: JSON.stringify(data) }),
     update: async (id: string, data: Partial<WaitingListEntry>) =>
       fetchApi<WaitingListEntry>(this.baseUrl, `/waitlist/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    delete: async (id: string) =>
+      fetchApi<void>(this.baseUrl, `/waitlist/${id}`, { method: "DELETE" }),
     /**
      * GET /waitlist/suggestions?slotStart=&slotEnd=&serviceId=
      * Returns: WaitlistSuggestion[]

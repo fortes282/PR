@@ -135,6 +135,8 @@ export const waitlist = sqliteTable("waitlist", {
   preferredDaysJson: text("preferred_days_json"),
   preferredTimeStart: text("preferred_time_start"),
   preferredTimeEnd: text("preferred_time_end"),
+  preferredMonthFrom: integer("preferred_month_from"),
+  preferredMonthTo: integer("preferred_month_to"),
   priority: integer("priority"),
   notes: text("notes"),
   createdAt: text("created_at").notNull(),
@@ -155,6 +157,8 @@ export const settings = sqliteTable("settings", {
   pushNotificationConfigJson: text("push_notification_config_json"),
   behaviorSlotOfferMode: text("behavior_slot_offer_mode"),
   approvalNotifyEmailsJson: text("approval_notify_emails_json"),
+  slotOfferGreeting: text("slot_offer_greeting"),
+  slotOfferClosing: text("slot_offer_closing"),
 });
 
 export const bookingActivations = sqliteTable(
@@ -195,6 +199,7 @@ export const slotOfferApprovals = sqliteTable("slot_offer_approvals", {
   appointmentIdsJson: text("appointment_ids_json").notNull(),
   clientIdsJson: text("client_ids_json").notNull(),
   messageTemplate: text("message_template").notNull(),
+  pushTitle: text("push_title"),
   status: text("status").notNull(),
   createdAt: text("created_at").notNull(),
   decidedBy: text("decided_by"),

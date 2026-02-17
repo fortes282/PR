@@ -4,15 +4,27 @@ import type { WaitingListEntry } from "@pristav/shared/waitlist";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
-import { persistWaitlistEntry, persistNotification } from "../db/persist.js";
+import { persistWaitlistEntry, persistNotification, deleteWaitlistEntry } from "../db/persist.js";
+
+function canManageEntry(request: FastifyRequest, entry: WaitingListEntry): boolean {
+  const user = (request as FastifyRequest & { user?: { userId: string; role: string } }).user;
+  if (!user) return false;
+  if (user.role === "ADMIN" || user.role === "RECEPTION") return true;
+  return entry.clientId === user.userId;
+}
 
 export default async function waitlistRoutes(app: FastifyInstance): Promise<void> {
-  app.get("/waitlist", { preHandler: [authMiddleware] }, async (_request: FastifyRequest, reply: FastifyReply) => {
-    const list = Array.from(store.waitlist.values()).sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
+  app.get("/waitlist", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = (request as FastifyRequest & { user?: { userId: string; role: string } }).user;
+    let list = Array.from(store.waitlist.values()).sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
+    if (user?.role === "CLIENT") {
+      list = list.filter((e) => e.clientId === user.userId);
+    }
     reply.send(list);
   });
 
   app.post("/waitlist", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
+    const user = (request as FastifyRequest & { user?: { userId: string; role: string } }).user;
     const parse = WaitingListEntrySchema.omit({ id: true, createdAt: true }).safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({
@@ -22,8 +34,10 @@ export default async function waitlistRoutes(app: FastifyInstance): Promise<void
       });
       return;
     }
+    const data = parse.data;
+    const clientId = user?.role === "CLIENT" ? user.userId : data.clientId;
     const id = nextId("w");
-    const entry: WaitingListEntry = { ...parse.data, id, createdAt: new Date().toISOString() };
+    const entry: WaitingListEntry = { ...data, clientId, id, createdAt: new Date().toISOString() };
     persistWaitlistEntry(store, entry);
     reply.status(201).send(entry);
   });
@@ -34,10 +48,28 @@ export default async function waitlistRoutes(app: FastifyInstance): Promise<void
       reply.status(404).send({ code: "NOT_FOUND", message: "Waitlist entry not found" });
       return;
     }
+    if (!canManageEntry(request, w)) {
+      reply.status(403).send({ code: "FORBIDDEN", message: "Cannot edit this entry" });
+      return;
+    }
     const body = request.body as Partial<WaitingListEntry>;
     const updated = { ...w, ...body };
     persistWaitlistEntry(store, updated);
     reply.send(updated);
+  });
+
+  app.delete("/waitlist/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    const w = store.waitlist.get(request.params.id);
+    if (!w) {
+      reply.status(404).send({ code: "NOT_FOUND", message: "Waitlist entry not found" });
+      return;
+    }
+    if (!canManageEntry(request, w)) {
+      reply.status(403).send({ code: "FORBIDDEN", message: "Cannot delete this entry" });
+      return;
+    }
+    deleteWaitlistEntry(store, w.id);
+    reply.status(204).send();
   });
 
   app.get(

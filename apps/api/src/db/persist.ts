@@ -295,6 +295,12 @@ export function persistTherapyReportBlob(store: Store, id: string, blob: Buffer)
     .run();
 }
 
+export function deleteWaitlistEntry(store: Store, id: string): void {
+  store.waitlist.delete(id);
+  const db = getDb();
+  db.delete(waitlistTable).where(eq(waitlistTable.id, id)).run();
+}
+
 export function persistWaitlistEntry(store: Store, entry: WaitingListEntry): void {
   store.waitlist.set(entry.id, entry);
   const db = getDb();
@@ -306,6 +312,8 @@ export function persistWaitlistEntry(store: Store, entry: WaitingListEntry): voi
       preferredDaysJson: json(entry.preferredDays),
       preferredTimeStart: entry.preferredTimeStart ?? null,
       preferredTimeEnd: entry.preferredTimeEnd ?? null,
+      preferredMonthFrom: entry.preferredMonthFrom ?? null,
+      preferredMonthTo: entry.preferredMonthTo ?? null,
       priority: entry.priority ?? null,
       notes: entry.notes ?? null,
       createdAt: entry.createdAt,
@@ -318,6 +326,8 @@ export function persistWaitlistEntry(store: Store, entry: WaitingListEntry): voi
         preferredDaysJson: json(entry.preferredDays),
         preferredTimeStart: entry.preferredTimeStart ?? null,
         preferredTimeEnd: entry.preferredTimeEnd ?? null,
+        preferredMonthFrom: entry.preferredMonthFrom ?? null,
+        preferredMonthTo: entry.preferredMonthTo ?? null,
         priority: entry.priority ?? null,
         notes: entry.notes ?? null,
         createdAt: entry.createdAt,
@@ -343,6 +353,8 @@ export function persistSettings(store: Store, settings: Settings): void {
     pushNotificationConfigJson: json(settings.pushNotificationConfig),
     behaviorSlotOfferMode: settings.behaviorSlotOfferMode ?? null,
     approvalNotifyEmailsJson: json(settings.approvalNotifyEmails),
+    slotOfferGreeting: settings.slotOfferGreeting ?? null,
+    slotOfferClosing: settings.slotOfferClosing ?? null,
   };
   const existing = db.select().from(settingsTable).limit(1).all();
   if (existing.length === 0) {
@@ -441,6 +453,7 @@ export function persistSlotOfferApproval(store: Store, approval: SlotOfferApprov
       appointmentIdsJson: JSON.stringify(approval.appointmentIds),
       clientIdsJson: JSON.stringify(approval.clientIds),
       messageTemplate: approval.messageTemplate,
+      pushTitle: approval.pushTitle ?? null,
       status: approval.status,
       createdAt: approval.createdAt,
       decidedBy: approval.decidedBy ?? null,
@@ -452,6 +465,7 @@ export function persistSlotOfferApproval(store: Store, approval: SlotOfferApprov
         appointmentIdsJson: JSON.stringify(approval.appointmentIds),
         clientIdsJson: JSON.stringify(approval.clientIds),
         messageTemplate: approval.messageTemplate,
+        pushTitle: approval.pushTitle ?? null,
         status: approval.status,
         createdAt: approval.createdAt,
         decidedBy: approval.decidedBy ?? null,

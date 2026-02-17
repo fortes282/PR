@@ -211,4 +211,19 @@ CREATE TABLE IF NOT EXISTS slot_offer_approvals (
   try {
     sqlite.exec("ALTER TABLE settings ADD COLUMN approval_notify_emails_json TEXT");
   } catch {}
+  try {
+    sqlite.exec("ALTER TABLE waitlist ADD COLUMN preferred_month_from INTEGER");
+  } catch {}
+  try {
+    sqlite.exec("ALTER TABLE waitlist ADD COLUMN preferred_month_to INTEGER");
+  } catch {}
+  try {
+    sqlite.exec("ALTER TABLE settings ADD COLUMN slot_offer_greeting TEXT");
+  } catch {}
+  try {
+    sqlite.exec("ALTER TABLE settings ADD COLUMN slot_offer_closing TEXT");
+  } catch {}
+  try {
+    sqlite.exec("ALTER TABLE slot_offer_approvals ADD COLUMN push_title TEXT");
+  } catch {}
 }

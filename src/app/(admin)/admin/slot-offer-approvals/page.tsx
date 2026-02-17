@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/layout/Toaster";
-import { format } from "@/lib/utils/date";
+import { format, addDays } from "@/lib/utils/date";
 import type { SlotOfferApproval } from "@/lib/contracts/slot-offer-approval";
 import type { User } from "@/lib/contracts/users";
 import type { Appointment } from "@/lib/contracts/appointments";
+
+const PUSH_TITLE_7_DAYS = "Poslední termíny na příštích 7 dní!";
 
 export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
   const toast = useToast();
@@ -21,7 +23,19 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
   const [selectedAppointmentIds, setSelectedAppointmentIds] = useState<Set<string>>(new Set());
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set());
   const [messageTemplate, setMessageTemplate] = useState("");
+  const [pushTitle, setPushTitle] = useState("");
+  const [filterSevenDays, setFilterSevenDays] = useState(false);
   const [creating, setCreating] = useState(false);
+
+  const now = useMemo(() => new Date(), [createOpen]);
+  const sevenDaysLater = useMemo(() => addDays(now, 7), [now]);
+  const displayedAppointments = useMemo(() => {
+    if (!filterSevenDays) return appointments;
+    return appointments.filter((a) => {
+      const start = new Date(a.startAt).getTime();
+      return start >= now.getTime() && start <= sevenDaysLater.getTime();
+    });
+  }, [appointments, filterSevenDays, now, sevenDaysLater]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -81,6 +95,33 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
     });
   };
 
+  const handleSelectAllClients = (): void => {
+    setSelectedClientIds(new Set(clients.map((c) => c.id)));
+    toast(`Vybráno ${clients.length} klientů.`, "success");
+  };
+
+  const handleUseTemplate7Days = async (): void => {
+    const selectedAppointments = appointments
+      .filter((a) => selectedAppointmentIds.has(a.id))
+      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+    if (selectedAppointments.length === 0) {
+      toast("Nejprve vyberte sloty (termíny).", "error");
+      return;
+    }
+    try {
+      const s = await api.settings.get();
+      const greeting = (s as { slotOfferGreeting?: string }).slotOfferGreeting?.trim() ?? "Dobrý den,";
+      const closing = (s as { slotOfferClosing?: string }).slotOfferClosing?.trim() ?? "Rezervujte si termín v aplikaci.";
+      const lines = selectedAppointments.map((a) => `• ${format(new Date(a.startAt), "datetime")}`);
+      const message = `${greeting}\n\n${lines.join("\n")}\n\n${closing}`;
+      setMessageTemplate(message);
+      setPushTitle(PUSH_TITLE_7_DAYS);
+      toast("Šablona doplněna (oslovení + seznam + závěr). Push bude s titulkem „Poslední termíny na příštích 7 dní!“.", "success");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Chyba načtení nastavení", "error");
+    }
+  };
+
   const handleCreateDraft = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     const appointmentIds = Array.from(selectedAppointmentIds);
@@ -95,12 +136,14 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
         appointmentIds,
         clientIds,
         messageTemplate: messageTemplate.trim(),
+        pushTitle: pushTitle.trim() || undefined,
       });
-      toast("Nabídka byla vytvořena. Admin a recepce dostali upozornění; po schválení dostanou klienti notifikaci.", "success");
+      toast("Nabídka byla vytvořena. Admin a recepce dostali upozornění; po schválení dostanou klienti notifikaci a e-mail.", "success");
       setCreateOpen(false);
       setSelectedAppointmentIds(new Set());
       setSelectedClientIds(new Set());
       setMessageTemplate("");
+      setPushTitle("");
       load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Chyba", "error");
@@ -131,16 +174,44 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
         {createOpen && (
           <form id="create-draft-form" onSubmit={handleCreateDraft} className="mt-4 space-y-4 border-t border-gray-200 pt-4">
             <p className="text-sm text-gray-600">
-              Vyberte sloty (rezervace) a klienty, kterým chcete nabídku poslat. Po odeslání bude draft čekat na schválení; admin a recepce dostanou in-app a volitelně e-mail.
+              Vyberte sloty (rezervace) a klienty, kterým chcete nabídku poslat. Po schválení dostanou klienti in-app notifikaci a e-mail.
             </p>
+            <div className="flex flex-wrap gap-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={filterSevenDays}
+                  onChange={(e) => setFilterSevenDays(e.target.checked)}
+                  className="rounded border-gray-300"
+                  aria-label="Pouze termíny na příštích 7 dní"
+                />
+                <span className="text-sm">Pouze termíny na příštích 7 dní</span>
+              </label>
+              <button
+                type="button"
+                className="btn-secondary text-sm"
+                onClick={handleSelectAllClients}
+                aria-label="Vybrat všechny klienty"
+              >
+                Vybrat všechny klienty
+              </button>
+              <button
+                type="button"
+                className="btn-secondary text-sm"
+                onClick={handleUseTemplate7Days}
+                aria-label="Použít šablonu 7 dní (oslovení + seznam + závěr)"
+              >
+                Použít šablonu 7 dní
+              </button>
+            </div>
             <div>
-              <span className="block text-sm font-medium text-gray-700">Sloty (rezervace)</span>
+              <span className="block text-sm font-medium text-gray-700">Sloty (rezervace){filterSevenDays ? " — příštích 7 dní" : ""}</span>
               <div className="mt-1 max-h-40 overflow-y-auto rounded border border-gray-200 bg-white p-2">
-                {appointments.length === 0 ? (
-                  <p className="text-sm text-gray-500">Načítám…</p>
+                {displayedAppointments.length === 0 ? (
+                  <p className="text-sm text-gray-500">{appointments.length === 0 ? "Načítám…" : filterSevenDays ? "Žádné termíny v příštích 7 dnech." : "Žádné sloty."}</p>
                 ) : (
                   <ul className="space-y-1">
-                    {appointments.slice(0, 80).map((a) => (
+                    {displayedAppointments.slice(0, 80).map((a) => (
                       <li key={a.id} className="flex items-center gap-2">
                         <input
                           type="checkbox"
@@ -186,12 +257,15 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
               </div>
             </div>
             <label>
-              <span className="block text-sm font-medium text-gray-700">Text zprávy pro klienty</span>
+              <span className="block text-sm font-medium text-gray-700">Text zprávy pro klienty (push + e-mail)</span>
+              {pushTitle && (
+                <p className="text-xs text-gray-500 mt-0.5">Titulek push: {pushTitle}</p>
+              )}
               <textarea
                 className="input mt-1 w-full min-h-[100px]"
                 value={messageTemplate}
                 onChange={(e) => setMessageTemplate(e.target.value)}
-                placeholder="Např. Uvolnil se termín 15. 2. 2025 v 10:00. Rezervujte si ho v aplikaci."
+                placeholder="Např. Dobrý den, níže termíny na příštích 7 dní. Rezervujte si v aplikaci."
                 rows={4}
                 required
                 aria-label="Text zprávy"

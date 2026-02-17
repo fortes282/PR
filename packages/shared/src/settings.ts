@@ -77,6 +77,10 @@ export const SettingsSchema = z.object({
   behaviorSlotOfferMode: z.enum(["auto", "manual"]).optional(),
   /** Optional: extra emails to notify when a slot offer is pending approval (in addition to in-app for admin/reception). */
   approvalNotifyEmails: z.array(z.string().email()).optional(),
+  /** Oslovení v nabídce termínů (např. „Dobrý den,“). Používá se u nabídek „poslední termíny na 7 dní“. */
+  slotOfferGreeting: z.string().optional(),
+  /** Závěrečný text zprávy v nabídce termínů (např. „Rezervujte si v aplikaci.“). */
+  slotOfferClosing: z.string().optional(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 

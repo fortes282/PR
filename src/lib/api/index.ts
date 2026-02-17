@@ -163,6 +163,7 @@ export type ApiClient = {
     list: () => Promise<WaitingListEntry[]>;
     create: (data: Omit<WaitingListEntry, "id" | "createdAt">) => Promise<WaitingListEntry>;
     update: (id: string, data: Partial<WaitingListEntry>) => Promise<WaitingListEntry>;
+    delete: (id: string) => Promise<void>;
     suggestions: (params: { slotStart: string; slotEnd: string; serviceId?: string }) => Promise<WaitlistSuggestion[]>;
     notify: (entryId: string) => Promise<void>;
   };

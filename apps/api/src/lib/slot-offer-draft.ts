@@ -27,12 +27,15 @@ export function getWaitlistCandidateClientIds(store: Store, serviceId: string, l
   return result;
 }
 
+const DEFAULT_SLOT_OFFER_TITLE = "Nabídka volného termínu";
+
 /** Send slot offer to clients immediately (Auto mode): in-app notification + optional email to each. */
 export async function sendSlotOfferToClients(
   store: Store,
   clientIds: string[],
   messageTemplate: string,
-  log?: FastifyBaseLogger
+  log?: FastifyBaseLogger,
+  options?: { pushTitle?: string }
 ): Promise<void> {
   const transport = getSmtpTransport();
   const fromEnv = process.env.SMTP_USER?.trim();
@@ -40,13 +43,14 @@ export async function sendSlotOfferToClients(
   const effectiveEmail = fromEnv || fromSettings?.email?.trim();
   const effectiveName = fromSettings?.name?.trim();
   const canSendEmail = Boolean(transport && effectiveEmail);
+  const title = options?.pushTitle?.trim() || DEFAULT_SLOT_OFFER_TITLE;
 
   for (const clientId of clientIds) {
     const n = {
       id: nextId("n"),
       userId: clientId,
       channel: "IN_APP" as const,
-      title: "Nabídka volného termínu",
+      title,
       message: messageTemplate,
       read: false,
       createdAt: new Date().toISOString(),
@@ -77,10 +81,10 @@ export async function sendSlotOfferToClients(
 
 export async function createSlotOfferDraft(
   store: Store,
-  params: { appointmentIds: string[]; clientIds: string[]; messageTemplate: string },
+  params: { appointmentIds: string[]; clientIds: string[]; messageTemplate: string; pushTitle?: string },
   log?: FastifyBaseLogger
 ): Promise<SlotOfferApproval> {
-  const { appointmentIds, clientIds, messageTemplate } = params;
+  const { appointmentIds, clientIds, messageTemplate, pushTitle } = params;
   const id = nextId("soa");
   const createdAt = new Date().toISOString();
   const approval: SlotOfferApproval = {
@@ -88,6 +92,7 @@ export async function createSlotOfferDraft(
     appointmentIds,
     clientIds,
     messageTemplate,
+    pushTitle: pushTitle?.trim() || undefined,
     status: "PENDING",
     createdAt,
   };

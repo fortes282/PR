@@ -8,8 +8,8 @@ import {
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
-import { persistBehaviorResetLog, persistNotification, persistSlotOfferApproval } from "../db/persist.js";
-import { createSlotOfferDraft } from "../lib/slot-offer-draft.js";
+import { persistBehaviorResetLog, persistSlotOfferApproval } from "../db/persist.js";
+import { createSlotOfferDraft, sendSlotOfferToClients } from "../lib/slot-offer-draft.js";
 
 const BehaviorResetBodySchema = z.object({
   reason: z.string().optional(),
@@ -105,6 +105,7 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
           appointmentIds: body.appointmentIds,
           clientIds: body.clientIds,
           messageTemplate: body.messageTemplate,
+          pushTitle: body.pushTitle,
         },
         request.log
       );
@@ -142,20 +143,13 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
       persistSlotOfferApproval(store, updated);
 
       if (parse.data.status === "APPROVED") {
-        for (const clientId of approval.clientIds) {
-          const n = {
-            id: nextId("n"),
-            userId: clientId,
-            channel: "IN_APP" as const,
-            title: "Nabídka volného termínu",
-            message: approval.messageTemplate,
-            read: false,
-            createdAt: new Date().toISOString(),
-            purpose: "SLOT_OFFER" as const,
-          };
-          store.notifications.set(n.id, n);
-          persistNotification(store, n);
-        }
+        await sendSlotOfferToClients(
+          store,
+          approval.clientIds,
+          approval.messageTemplate,
+          request.log,
+          { pushTitle: approval.pushTitle }
+        );
       }
 
       reply.send(updated);

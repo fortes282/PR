@@ -228,6 +228,8 @@ export function loadFromDbIntoStore(store: Store): void {
       preferredDays: parseJson(r.preferredDaysJson),
       preferredTimeStart: r.preferredTimeStart ?? undefined,
       preferredTimeEnd: r.preferredTimeEnd ?? undefined,
+      preferredMonthFrom: r.preferredMonthFrom ?? undefined,
+      preferredMonthTo: r.preferredMonthTo ?? undefined,
       priority: r.priority ?? undefined,
       notes: r.notes ?? undefined,
       createdAt: r.createdAt,
@@ -251,6 +253,8 @@ export function loadFromDbIntoStore(store: Store): void {
       pushNotificationConfig: parseJson(firstSettings.pushNotificationConfigJson),
       behaviorSlotOfferMode: firstSettings.behaviorSlotOfferMode ?? undefined,
       approvalNotifyEmails: parseJson(firstSettings.approvalNotifyEmailsJson),
+      slotOfferGreeting: firstSettings.slotOfferGreeting ?? undefined,
+      slotOfferClosing: firstSettings.slotOfferClosing ?? undefined,
     } as Settings);
   }
 
@@ -283,6 +287,7 @@ export function loadFromDbIntoStore(store: Store): void {
       appointmentIds: parseJson<string[]>(r.appointmentIdsJson) ?? [],
       clientIds: parseJson<string[]>(r.clientIdsJson) ?? [],
       messageTemplate: r.messageTemplate,
+      pushTitle: r.pushTitle ?? undefined,
       status: r.status as SlotOfferApproval["status"],
       createdAt: r.createdAt,
       decidedBy: r.decidedBy ?? undefined,

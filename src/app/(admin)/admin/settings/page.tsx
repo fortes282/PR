@@ -110,6 +110,8 @@ export default function AdminSettingsPage(): React.ReactElement {
   const [testPushUserId, setTestPushUserId] = useState<string>("");
   const [behaviorSlotOfferMode, setBehaviorSlotOfferMode] = useState<"auto" | "manual">("manual");
   const [approvalNotifyEmails, setApprovalNotifyEmails] = useState("");
+  const [slotOfferGreeting, setSlotOfferGreeting] = useState("");
+  const [slotOfferClosing, setSlotOfferClosing] = useState("");
   const smsSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const smsConfigRef = useRef<SmsSmsapiConfig>(smsSmsapiConfig);
   smsConfigRef.current = smsSmsapiConfig;
@@ -160,6 +162,8 @@ export default function AdminSettingsPage(): React.ReactElement {
       setBehaviorSlotOfferMode((s as { behaviorSlotOfferMode?: "auto" | "manual" }).behaviorSlotOfferMode ?? "manual");
       const emails = (s as { approvalNotifyEmails?: string[] }).approvalNotifyEmails;
       setApprovalNotifyEmails(emails?.length ? emails.join("\n") : "");
+      setSlotOfferGreeting((s as { slotOfferGreeting?: string }).slotOfferGreeting ?? "");
+      setSlotOfferClosing((s as { slotOfferClosing?: string }).slotOfferClosing ?? "");
     });
   }, []);
 
@@ -198,6 +202,8 @@ export default function AdminSettingsPage(): React.ReactElement {
               .map((e) => e.trim())
               .filter(Boolean)
           : undefined,
+        slotOfferGreeting: slotOfferGreeting.trim() || undefined,
+        slotOfferClosing: slotOfferClosing.trim() || undefined,
       });
       const s = await api.settings.get();
       setSettings(s);
@@ -382,6 +388,31 @@ export default function AdminSettingsPage(): React.ReactElement {
               placeholder="jeden e-mail na řádek nebo oddělené čárkou"
               rows={3}
               aria-label="E-maily pro upozornění na schválení"
+            />
+          </label>
+          <p className="text-sm text-gray-600 mt-2">
+            Pro nabídku „Poslední termíny na příštích 7 dní“ (push + e-mail) lze upravit pouze oslovení a závěrečný text; seznam termínů se doplní automaticky.
+          </p>
+          <label>
+            <span className="block text-sm font-medium text-gray-700">Oslovení (např. Dobrý den,)</span>
+            <input
+              type="text"
+              className="input mt-1 w-full max-w-md"
+              value={slotOfferGreeting}
+              onChange={(e) => setSlotOfferGreeting(e.target.value)}
+              placeholder="Dobrý den,"
+              aria-label="Oslovení v nabídce termínů"
+            />
+          </label>
+          <label>
+            <span className="block text-sm font-medium text-gray-700">Závěrečný text zprávy (např. Rezervujte si v aplikaci.)</span>
+            <input
+              type="text"
+              className="input mt-1 w-full max-w-md"
+              value={slotOfferClosing}
+              onChange={(e) => setSlotOfferClosing(e.target.value)}
+              placeholder="Rezervujte si termín v aplikaci."
+              aria-label="Závěrečný text v nabídce termínů"
             />
           </label>
         </section>

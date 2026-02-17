@@ -10,6 +10,8 @@ export const SlotOfferApprovalSchema = z.object({
   /** Client IDs to notify (candidates). */
   clientIds: z.array(z.string()),
   messageTemplate: z.string(),
+  /** Optional push/in-app title (e.g. „Poslední termíny na příštích 7 dní!“). */
+  pushTitle: z.string().optional(),
   status: SlotOfferApprovalStatus,
   createdAt: z.string().datetime(),
   decidedBy: z.string().optional(),
@@ -21,6 +23,7 @@ export const SlotOfferApprovalCreateSchema = z.object({
   appointmentIds: z.array(z.string()).min(1),
   clientIds: z.array(z.string()).min(1),
   messageTemplate: z.string(),
+  pushTitle: z.string().optional(),
 });
 export type SlotOfferApprovalCreate = z.infer<typeof SlotOfferApprovalCreateSchema>;
 
