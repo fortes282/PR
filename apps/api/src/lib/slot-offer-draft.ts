@@ -6,8 +6,17 @@ import type { Store } from "../store.js";
 import { nextId } from "./id.js";
 import { persistNotification, persistSlotOfferApproval } from "../db/persist.js";
 import { getSmtpTransport } from "./email.js";
+import { sendPush } from "./push.js";
 import type { SlotOfferApproval } from "@pristav/shared/slot-offer-approval";
 import type { FastifyBaseLogger } from "fastify";
+
+export type SlotOfferDeliveryResult = {
+  inApp: number;
+  emailSent: number;
+  emailFailed: number;
+  pushSent: number;
+  pushFailed: number;
+};
 
 const SLOT_OFFER_CANDIDATES_LIMIT = 20;
 
@@ -29,14 +38,14 @@ export function getWaitlistCandidateClientIds(store: Store, serviceId: string, l
 
 const DEFAULT_SLOT_OFFER_TITLE = "Nabídka volného termínu";
 
-/** Send slot offer to clients immediately (Auto mode): in-app notification + optional email to each. */
+/** Send slot offer to clients: in-app notification + email + Web Push. Returns delivery stats. */
 export async function sendSlotOfferToClients(
   store: Store,
   clientIds: string[],
   messageTemplate: string,
   log?: FastifyBaseLogger,
   options?: { pushTitle?: string }
-): Promise<void> {
+): Promise<SlotOfferDeliveryResult> {
   const transport = getSmtpTransport();
   const fromEnv = process.env.SMTP_USER?.trim();
   const fromSettings = store.settings.notificationEmailSender;
@@ -44,6 +53,8 @@ export async function sendSlotOfferToClients(
   const effectiveName = fromSettings?.name?.trim();
   const canSendEmail = Boolean(transport && effectiveEmail);
   const title = options?.pushTitle?.trim() || DEFAULT_SLOT_OFFER_TITLE;
+
+  const result: SlotOfferDeliveryResult = { inApp: 0, emailSent: 0, emailFailed: 0, pushSent: 0, pushFailed: 0 };
 
   for (const clientId of clientIds) {
     const n = {
@@ -58,6 +69,7 @@ export async function sendSlotOfferToClients(
     };
     store.notifications.set(n.id, n);
     persistNotification(store, n);
+    result.inApp += 1;
 
     if (canSendEmail) {
       const user = store.users.get(clientId);
@@ -67,16 +79,36 @@ export async function sendSlotOfferToClients(
           await transport!.sendMail({
             from: effectiveName ? { name: effectiveName, address: effectiveEmail! } : effectiveEmail,
             to,
-            subject: "Přístav radosti – nabídka volného termínu",
+            subject: title || "Přístav radosti – nabídka volného termínu",
             text: messageTemplate,
           });
+          result.emailSent += 1;
           log?.info({ to, clientId }, "Slot offer email sent");
         } catch (err) {
+          result.emailFailed += 1;
           log?.warn({ err, to, clientId }, "Slot offer email failed");
         }
       }
     }
+
+    const subs = Array.from(store.pushSubscriptions.values()).filter((s) => s.userId === clientId);
+    for (const sub of subs) {
+      const pushResult = await sendPush(sub, {
+        title,
+        body: messageTemplate.slice(0, 200) + (messageTemplate.length > 200 ? "…" : ""),
+        url: "/client/dashboard",
+      });
+      if (pushResult.ok) {
+        result.pushSent += 1;
+        log?.info({ clientId, endpoint: sub.endpoint?.slice(0, 30) }, "Slot offer push sent");
+      } else {
+        result.pushFailed += 1;
+        log?.warn({ clientId, error: pushResult.error }, "Slot offer push failed");
+      }
+    }
   }
+
+  return result;
 }
 
 export async function createSlotOfferDraft(

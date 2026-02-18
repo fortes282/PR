@@ -26,9 +26,20 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
   const [pushTitle, setPushTitle] = useState("");
   const [filterSevenDays, setFilterSevenDays] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [appointments7d, setAppointments7d] = useState<Appointment[]>([]);
 
   const now = useMemo(() => new Date(), [createOpen]);
   const sevenDaysLater = useMemo(() => addDays(now, 7), [now]);
+  const stats7d = useMemo(() => {
+    const inRange = appointments7d.filter((a) => {
+      const start = new Date(a.startAt).getTime();
+      return start >= now.getTime() && start <= sevenDaysLater.getTime();
+    });
+    const total = inRange.length;
+    const free = inRange.filter((a) => a.status === "CANCELLED").length;
+    const pct = total > 0 ? Math.round((free / total) * 100) : 0;
+    return { total, free, pct };
+  }, [appointments7d, now, sevenDaysLater]);
   const displayedAppointments = useMemo(() => {
     if (!filterSevenDays) return appointments;
     return appointments.filter((a) => {
@@ -39,9 +50,12 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
 
   const load = useCallback(() => {
     setLoading(true);
+    const from = now.toISOString();
+    const to = sevenDaysLater.toISOString();
     Promise.all([
       api.admin.slotOfferApprovals.list({ status: "PENDING", limit: 50 }),
       api.users.list({}).then((r) => r.users),
+      api.appointments.list({ from, to }).then(setAppointments7d),
     ])
       .then(([res, userList]) => {
         setApprovals(res.approvals);
@@ -52,7 +66,7 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
       })
       .catch((e) => toast(e instanceof Error ? e.message : "Chyba načtení", "error"))
       .finally(() => setLoading(false));
-  }, [toast]);
+  }, [toast, now, sevenDaysLater]);
 
   useEffect(() => {
     load();
@@ -67,8 +81,20 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
   const handleDecide = async (id: string, status: "APPROVED" | "REJECTED"): Promise<void> => {
     setDecidingId(id);
     try {
-      await api.admin.slotOfferApprovals.decide(id, { status });
-      toast(status === "APPROVED" ? "Nabídka byla schválena; klienti dostali notifikace." : "Nabídka byla odmítnuta.", "success");
+      const res = await api.admin.slotOfferApprovals.decide(id, { status }) as { deliveryResult?: { inApp: number; emailSent: number; emailFailed: number; pushSent: number; pushFailed: number } };
+      if (status === "APPROVED") {
+        const d = res.deliveryResult;
+        if (d) {
+          const parts = [`In-app: ${d.inApp}`];
+          if (d.emailSent || d.emailFailed) parts.push(`E-mail: ${d.emailSent} odesláno${d.emailFailed ? `, ${d.emailFailed} chyb` : ""}`);
+          if (d.pushSent || d.pushFailed) parts.push(`Push: ${d.pushSent} odesláno${d.pushFailed ? `, ${d.pushFailed} chyb` : ""}`);
+          toast(`Nabídka schválena. ${parts.join("; ")}.`, d.emailFailed || d.pushFailed ? "info" : "success");
+        } else {
+          toast("Nabídka byla schválena; notifikace odeslány.", "success");
+        }
+      } else {
+        toast("Nabídka byla odmítnuta.", "success");
+      }
       load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Chyba", "error");
@@ -98,6 +124,18 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
   const handleSelectAllClients = (): void => {
     setSelectedClientIds(new Set(clients.map((c) => c.id)));
     toast(`Vybráno ${clients.length} klientů.`, "success");
+  };
+
+  const handleAddByScore = async (topN: number): Promise<void> => {
+    try {
+      const recs = await api.admin.getRecommendations();
+      const byPriority = [...recs].sort((a, b) => a.priority - b.priority);
+      const ids = byPriority.slice(0, topN).map((r) => r.clientId).filter((id, i, arr) => arr.indexOf(id) === i);
+      setSelectedClientIds((prev) => new Set([...prev, ...ids]));
+      toast(`Přidáno ${ids.length} klientů ze seznamu dle skóre (top ${topN}).`, "success");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Chyba načtení doporučení", "error");
+    }
   };
 
   const handleUseTemplate7Days = async (): Promise<void> => {
@@ -154,12 +192,61 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
 
   if (loading) return <p className="text-gray-600">Načítám…</p>;
 
+  const { total: total7, free: free7, pct: pct7 } = stats7d;
+  const circumference = 2 * Math.PI * 16;
+  const greenLen = total7 > 0 ? (pct7 / 100) * circumference : 0;
+  const redLen = circumference - greenLen;
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Schválení nabídek slotů</h1>
       <p className="text-sm text-gray-600">
         Návrhy nabídek uvolněných termínů (režim Manual). Schválením se odešlou notifikace vybraným klientům.
       </p>
+
+      <section className="card flex flex-wrap items-center gap-6 p-4" aria-label="Statistika volných termínů na příštích 7 dní">
+        <h2 className="w-full text-sm font-medium text-gray-700">Volné termíny na příštích 7 dní</h2>
+        <div className="flex items-center gap-4">
+          <div className="text-2xl font-semibold text-gray-900">
+            {free7} z {total7} volných
+            {total7 > 0 ? ` (${pct7} %)` : ""}
+          </div>
+          <div className="relative h-20 w-20 flex-shrink-0" aria-hidden>
+            <svg viewBox="0 0 36 36" className="h-20 w-20 -rotate-90">
+              <circle cx="18" cy="18" r="16" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+              {greenLen > 0 && (
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="16"
+                  fill="none"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={`${greenLen} ${circumference}`}
+                  className="text-green-500"
+                  style={{ stroke: "rgb(34, 197, 94)" }}
+                />
+              )}
+              {redLen > 0 && (
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="16"
+                  fill="none"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={`${redLen} ${circumference}`}
+                  strokeDashoffset={-greenLen}
+                  style={{ stroke: "rgb(239, 68, 68)" }}
+                />
+              )}
+            </svg>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 w-full">
+          100 % volných = zelená, 0 % = červená (gradient). Volné = zrušené termíny (CANCELLED) v příštích 7 dnech.
+        </p>
+      </section>
 
       <section className="card p-4">
         <button
@@ -203,6 +290,22 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
               >
                 Použít šablonu 7 dní
               </button>
+              <button
+                type="button"
+                className="btn-secondary text-sm"
+                onClick={() => handleAddByScore(20)}
+                aria-label="Přidat klienty dle skóre (top 20)"
+              >
+                Přidat dle skóre (top 20)
+              </button>
+              <button
+                type="button"
+                className="btn-secondary text-sm"
+                onClick={() => handleAddByScore(50)}
+                aria-label="Přidat klienty dle skóre (top 50)"
+              >
+                Přidat dle skóre (top 50)
+              </button>
             </div>
             <div>
               <span className="block text-sm font-medium text-gray-700">Sloty (rezervace){filterSevenDays ? " — příštích 7 dní" : ""}</span>
@@ -222,7 +325,7 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
                           aria-label={`Slot ${format(new Date(a.startAt), "datetime")}`}
                         />
                         <label htmlFor={`app-${a.id}`} className="text-sm">
-                          {format(new Date(a.startAt), "datetime")} — {a.status}
+                          {format(new Date(a.startAt), "datetime")}
                         </label>
                       </li>
                     ))}

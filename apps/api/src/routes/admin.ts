@@ -142,8 +142,9 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
       store.slotOfferApprovals.set(approval.id, updated);
       persistSlotOfferApproval(store, updated);
 
+      let deliveryResult: import("../lib/slot-offer-draft.js").SlotOfferDeliveryResult | undefined;
       if (parse.data.status === "APPROVED") {
-        await sendSlotOfferToClients(
+        deliveryResult = await sendSlotOfferToClients(
           store,
           approval.clientIds,
           approval.messageTemplate,
@@ -152,7 +153,7 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
         );
       }
 
-      reply.send(updated);
+      reply.send({ ...updated, deliveryResult });
     }
   );
 }
