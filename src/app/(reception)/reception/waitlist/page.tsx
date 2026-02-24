@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Lightbulb, Pencil, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/layout/Toaster";
@@ -37,8 +37,8 @@ export default function ReceptionWaitlistPage(): React.ReactElement {
   const [editEntry, setEditEntry] = useState<WaitingListEntry | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const slotStart = new Date();
-  const slotEnd = new Date(Date.now() + 60 * 60 * 1000);
+  const slotStart = useMemo(() => new Date(), []);
+  const slotEnd = useMemo(() => new Date(Date.now() + 60 * 60 * 1000), []);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -54,8 +54,13 @@ export default function ReceptionWaitlistPage(): React.ReactElement {
         setUsers(map);
       }),
       api.services.list().then(setServices),
-    ]).finally(() => setLoading(false));
-  }, []);
+    ])
+      .catch((err: unknown) => {
+        console.error("Failed to load waitlist data:", err);
+        toast(err instanceof Error ? err.message : "Nepodařilo se načíst data", "error");
+      })
+      .finally(() => setLoading(false));
+  }, [slotStart, slotEnd]);
 
   useEffect(() => {
     load();
@@ -68,7 +73,7 @@ export default function ReceptionWaitlistPage(): React.ReactElement {
     try {
       await api.waitlist.notify(entryId);
       toast("Oznámení odesláno.", "success");
-    } catch (e) {
+    } catch (e: unknown) {
       toast(e instanceof Error ? e.message : "Chyba", "error");
     }
   };
@@ -88,7 +93,7 @@ export default function ReceptionWaitlistPage(): React.ReactElement {
       toast("Záznam upraven.", "success");
       setEditEntry(null);
       load();
-    } catch (err) {
+    } catch (err: unknown) {
       toast(err instanceof Error ? err.message : "Chyba", "error");
     } finally {
       setSaving(false);
@@ -102,7 +107,7 @@ export default function ReceptionWaitlistPage(): React.ReactElement {
       toast("Záznam z čekacího listu odstraněn.", "success");
       setDeleteId(null);
       load();
-    } catch (err) {
+    } catch (err: unknown) {
       toast(err instanceof Error ? err.message : "Chyba", "error");
     }
   };

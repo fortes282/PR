@@ -28,7 +28,7 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
   const [creating, setCreating] = useState(false);
   const [appointments7d, setAppointments7d] = useState<Appointment[]>([]);
 
-  const now = useMemo(() => new Date(), [createOpen]);
+  const now = useMemo(() => new Date(), []);
   const sevenDaysLater = useMemo(() => addDays(now, 7), [now]);
   const stats7d = useMemo(() => {
     const inRange = appointments7d.filter((a) => {
@@ -96,7 +96,7 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
         toast("Nabídka byla odmítnuta.", "success");
       }
       load();
-    } catch (e) {
+    } catch (e: unknown) {
       toast(e instanceof Error ? e.message : "Chyba", "error");
     } finally {
       setDecidingId(null);
@@ -131,9 +131,9 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
       const recs = await api.admin.getRecommendations();
       const byPriority = [...recs].sort((a, b) => a.priority - b.priority);
       const ids = byPriority.slice(0, topN).map((r) => r.clientId).filter((id, i, arr) => arr.indexOf(id) === i);
-      setSelectedClientIds((prev) => new Set([...prev, ...ids]));
+      setSelectedClientIds((prev) => new Set([...Array.from(prev), ...ids]));
       toast(`Přidáno ${ids.length} klientů ze seznamu dle skóre (top ${topN}).`, "success");
-    } catch (e) {
+    } catch (e: unknown) {
       toast(e instanceof Error ? e.message : "Chyba načtení doporučení", "error");
     }
   };
@@ -155,7 +155,7 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
       setMessageTemplate(message);
       setPushTitle(PUSH_TITLE_7_DAYS);
       toast("Šablona doplněna (oslovení + seznam + závěr). Push bude s titulkem „Poslední termíny na příštích 7 dní!“.", "success");
-    } catch (e) {
+    } catch (e: unknown) {
       toast(e instanceof Error ? e.message : "Chyba načtení nastavení", "error");
     }
   };
@@ -183,7 +183,7 @@ export default function AdminSlotOfferApprovalsPage(): React.ReactElement {
       setMessageTemplate("");
       setPushTitle("");
       load();
-    } catch (e) {
+    } catch (e: unknown) {
       toast(e instanceof Error ? e.message : "Chyba", "error");
     } finally {
       setCreating(false);
