@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import type { WorkingHoursSlot, LunchBreak } from "@pristav/shared/users";
+import type { Store } from "../store.js";
 import { store } from "../store.js";
 import { authMiddleware } from "../middleware/auth.js";
 import {
@@ -19,6 +20,13 @@ const DEFAULT_HOURS: WorkingHoursSlot[] = [
   { dayOfWeek: 5, start: "08:00", end: "17:00" },
 ];
 
+/** Only active employees are included in bookable days/slots. Used by routes and by business-rules tests. */
+export function getActiveEmployeesForAvailability(storeInstance: Store) {
+  return Array.from(storeInstance.users.values()).filter(
+    (u) => u.role === "EMPLOYEE" && u.active !== false
+  );
+}
+
 export default async function availabilityRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/availability",
@@ -27,6 +35,10 @@ export default async function availabilityRoutes(app: FastifyInstance): Promise<
       const { employeeId, from, to } = request.query;
       const user = store.users.get(employeeId);
       if (!user) {
+        reply.send([]);
+        return;
+      }
+      if (user.role !== "EMPLOYEE" || user.active === false) {
         reply.send([]);
         return;
       }
@@ -83,7 +95,7 @@ export default async function availabilityRoutes(app: FastifyInstance): Promise<
       const { from, to } = request.query;
       const fromDate = startOfDay(new Date(from));
       const toDate = new Date(to);
-      const employees = Array.from(store.users.values()).filter((u) => u.role === "EMPLOYEE");
+      const employees = getActiveEmployeesForAvailability(store);
       const result: { date: string; availableCount: number }[] = [];
       const day = new Date(fromDate);
       while (day <= toDate) {

@@ -20,6 +20,7 @@
     "lint": "next lint",
     "test": "jest",
     "test:api": "node scripts/test-api.mjs",
+    "validate:business-rules": "pnpm --filter api build && node scripts/validate-business-rules.mjs",
     "test:e2e": "node scripts/ensure-env-e2e.mjs && playwright test",
     "test:e2e:full": "node scripts/ensure-env-e2e.mjs && concurrently -k -s first \"pnpm dev:all\" \"wait-on -t 180000 http://localhost:3000 && pnpm exec playwright test\"",
     "test:e2e:ui": "playwright test --ui"
