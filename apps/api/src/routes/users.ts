@@ -3,14 +3,14 @@ import { randomBytes } from "node:crypto";
 import { UserListParamsSchema, UserUpdateSchema } from "@pristav/shared/users";
 import { InviteUserBodySchema } from "@pristav/shared/auth";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { persistUser, persistPassword } from "../db/persist.js";
 import { hashPassword } from "../lib/password.js";
 import { nextId } from "../lib/id.js";
 import { getSmtpTransport } from "../lib/email.js";
 
 export default async function usersRoutes(app: FastifyInstance): Promise<void> {
-  app.get("/users", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get("/users", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const parse = UserListParamsSchema.safeParse(request.query);
     const params = parse.success ? parse.data : {};
     let list = Array.from(store.users.values());
@@ -31,7 +31,7 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
     reply.send({ users, total });
   });
 
-  app.get("/users/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  app.get("/users/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const user = store.users.get(request.params.id);
     if (!user) {
       reply.status(404).send({ code: "NOT_FOUND", message: "User not found" });
@@ -40,7 +40,7 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
     reply.send(user);
   });
 
-  app.put("/users/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
+  app.put("/users/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
     const user = store.users.get(request.params.id);
     if (!user) {
       reply.status(404).send({ code: "NOT_FOUND", message: "User not found" });
@@ -60,7 +60,7 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
     reply.send(updated);
   });
 
-  app.post("/users/invite", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
+  app.post("/users/invite", { preHandler: [authMiddleware, requireRole("ADMIN")] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
     if (request.user?.role !== "ADMIN") {
       reply.status(403).send({ code: "FORBIDDEN", message: "Pouze administrátor může pozvat uživatele." });
       return;
@@ -114,7 +114,7 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
           subject: "Přístav radosti – přihlašovací údaje",
           text: `Dobrý den,\n\nbyl vám vytvořen účet s rolí ${roleLabel}.\n\nE-mail: ${normalizedEmail}\nJednorázové heslo: ${oneTimePassword}\n\nPo prvním přihlášení budete vyzváni ke změně hesla.\n\nPřihlášení: použijte e-mail a výše uvedené heslo na přihlašovací stránce.\n\nS pozdravem,\nPřístav radosti`,
         });
-      } catch (err) {
+      } catch (err: unknown) {
         request.log.error(err, "Invite email send failed");
         reply.status(502).send({
           code: "EMAIL_SEND_FAILED",

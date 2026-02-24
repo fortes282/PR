@@ -1,12 +1,12 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { BillingPeriodSchema } from "@pristav/shared/billing";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
 import { persistBillingReport, persistAppointment } from "../db/persist.js";
 
 export default async function billingRoutes(app: FastifyInstance): Promise<void> {
-  app.post("/billing/reports", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: { period?: { year: number; month: number } } }>, reply: FastifyReply) => {
+  app.post("/billing/reports", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Body: { period?: { year: number; month: number } } }>, reply: FastifyReply) => {
     const parse = BillingPeriodSchema.safeParse(request.body?.period ?? request.body);
     if (!parse.success) {
       reply.status(400).send({
@@ -47,7 +47,7 @@ export default async function billingRoutes(app: FastifyInstance): Promise<void>
     reply.status(201).send(report);
   });
 
-  app.get("/billing/reports/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  app.get("/billing/reports/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const report = store.billingReports.get(request.params.id);
     if (!report) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Report not found" });
@@ -56,7 +56,7 @@ export default async function billingRoutes(app: FastifyInstance): Promise<void>
     reply.send(report);
   });
 
-  app.get("/billing/reports/:id/export", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  app.get("/billing/reports/:id/export", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const report = store.billingReports.get(request.params.id);
     if (!report) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Report not found" });
@@ -72,7 +72,7 @@ export default async function billingRoutes(app: FastifyInstance): Promise<void>
 
   app.post(
     "/billing/reports/mark-invoiced",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Body: { appointmentIds?: string[] } }>, reply: FastifyReply) => {
       const ids = request.body?.appointmentIds ?? [];
       for (const id of ids) {

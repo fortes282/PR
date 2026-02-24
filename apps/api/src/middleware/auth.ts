@@ -44,8 +44,18 @@ export async function authMiddleware(request: FastifyRequest, reply: FastifyRepl
       throw new UnauthorizedError("User not found or inactive");
     }
     request.user = { userId: payload.userId, role: payload.role };
-  } catch (err) {
+  } catch (err: unknown) {
     if (err instanceof UnauthorizedError) throw err;
     throw new UnauthorizedError("Invalid or expired token");
   }
+}
+
+export type Role = "ADMIN" | "RECEPTION" | "EMPLOYEE" | "CLIENT";
+
+export function requireRole(...roles: Role[]) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    if (!request.user || !roles.includes(request.user.role as Role)) {
+      reply.status(403).send({ code: "FORBIDDEN", message: "Insufficient permissions" });
+    }
+  };
 }

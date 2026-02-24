@@ -1,13 +1,13 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { BankTransactionListParamsSchema } from "@pristav/shared/bank-transactions";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { persistInvoice } from "../db/persist.js";
 
 export default async function bankTransactionsRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/bank-transactions",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Querystring: { from: string; to: string } }>, reply: FastifyReply) => {
       const parse = BankTransactionListParamsSchema.safeParse(request.query);
       if (!parse.success) {
@@ -24,7 +24,7 @@ export default async function bankTransactionsRoutes(app: FastifyInstance): Prom
 
   app.post(
     "/bank-transactions/sync",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Body: { from?: string; to?: string } }>, reply: FastifyReply) => {
       request.body;
       reply.send({ imported: 0 });
@@ -33,7 +33,7 @@ export default async function bankTransactionsRoutes(app: FastifyInstance): Prom
 
   app.post(
     "/bank-transactions/match",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Body: { invoiceId: string; transactionId: string } }>, reply: FastifyReply) => {
       const { invoiceId } = request.body ?? {};
       const inv = invoiceId ? store.invoices.get(invoiceId) : null;

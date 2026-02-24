@@ -1,11 +1,11 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 
 export default async function statsRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/stats/occupancy",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Querystring: { from: string; to: string } }>, reply: FastifyReply) => {
       const { from, to } = request.query;
       const list = Array.from(store.appointments.values()).filter(
@@ -30,7 +30,7 @@ export default async function statsRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     "/stats/cancellations",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Querystring: { from: string; to: string } }>, reply: FastifyReply) => {
       const { from, to } = request.query;
       const cancelled = Array.from(store.appointments.values()).filter(
@@ -45,7 +45,7 @@ export default async function statsRoutes(app: FastifyInstance): Promise<void> {
     }
   );
 
-  app.get("/stats/client-tags", { preHandler: [authMiddleware] }, async (_request: FastifyRequest, reply: FastifyReply) => {
+  app.get("/stats/client-tags", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (_request: FastifyRequest, reply: FastifyReply) => {
     reply.send([
       { tag: "aktivní", count: store.users.size },
       { tag: "čekací list", count: store.waitlist.size },

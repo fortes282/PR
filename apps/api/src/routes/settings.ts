@@ -1,13 +1,13 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { SettingsUpdateSchema, TestEmailBodySchema } from "@pristav/shared/settings";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { persistSettings } from "../db/persist.js";
 import { getSmtpTransport, isSmtpConfigured, verifySmtpConnection } from "../lib/email.js";
 import { getVapidPublicKey } from "../lib/push.js";
 
 export default async function settingsRoutes(app: FastifyInstance): Promise<void> {
-  app.get("/settings", { preHandler: [authMiddleware] }, async (_request: FastifyRequest, reply: FastifyReply) => {
+  app.get("/settings", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (_request: FastifyRequest, reply: FastifyReply) => {
     const fromEnv = process.env.SMTP_USER?.trim();
     const fromSettings = store.settings.notificationEmailSender;
     const effectiveEmail = fromEnv || fromSettings?.email?.trim();
@@ -43,7 +43,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
 
   app.get(
     "/settings/email-status",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const fromEnv = process.env.SMTP_USER?.trim();
       const fromSettings = store.settings.notificationEmailSender;
@@ -86,7 +86,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
     }
   );
 
-  app.put("/settings", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
+  app.put("/settings", { preHandler: [authMiddleware, requireRole("ADMIN")] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
     const parse = SettingsUpdateSchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({
@@ -109,7 +109,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
 
   app.post(
     "/settings/test-email",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN")] },
     async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
       const user = request.user;
       if (user?.role !== "ADMIN") {

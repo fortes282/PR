@@ -5,7 +5,7 @@ import {
   NotificationBulkSendBodySchema,
 } from "@pristav/shared/notifications";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
 import { persistNotification } from "../db/persist.js";
 import { sendSms } from "../lib/sms.js";
@@ -123,6 +123,7 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
     }
     const n = {
       id: nextId("n"),
+      userId: (request.body as { userId?: string }).userId ?? request.user!.userId,
       channel: parse.data.channel,
       message: parse.data.message,
       title: parse.data.title,
@@ -137,10 +138,14 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
 
   app.patch("/notifications/:id/read", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const n = store.notifications.get(request.params.id);
-    if (n) {
-      const updated = { ...n, read: true };
-      persistNotification(store, updated);
+    if (!n) { reply.status(204).send(); return; }
+    const role = request.user!.role; const currentUserId = request.user!.userId;
+    if (role === "CLIENT" && n.userId !== currentUserId) {
+      reply.status(403).send({ code: "FORBIDDEN", message: "Cannot mark another user's notification as read" });
+      return;
     }
+    const updated = { ...n, read: true };
+    persistNotification(store, updated);
     reply.status(204).send();
   });
 }

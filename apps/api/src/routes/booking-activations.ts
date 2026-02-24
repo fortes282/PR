@@ -1,13 +1,13 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { BookingActivationListParamsSchema, BookingActivationSetSchema } from "@pristav/shared/booking-activation";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { persistBookingActivation } from "../db/persist.js";
 
 export default async function bookingActivationsRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/booking-activations",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Querystring: { fromMonth: string; toMonth: string } }>, reply: FastifyReply) => {
       const parse = BookingActivationListParamsSchema.safeParse(request.query);
       if (!parse.success) {
@@ -45,7 +45,7 @@ export default async function bookingActivationsRoutes(app: FastifyInstance): Pr
     }
   );
 
-  app.put("/booking-activations", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
+  app.put("/booking-activations", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
     const parse = BookingActivationSetSchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({

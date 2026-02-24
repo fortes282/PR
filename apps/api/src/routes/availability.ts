@@ -44,6 +44,15 @@ export default async function availabilityRoutes(app: FastifyInstance): Promise<
       }
       const fromDate = new Date(from);
       const toDate = new Date(to);
+      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Invalid date format for from/to" });
+        return;
+      }
+      const maxRangeMs = 180 * 24 * 60 * 60 * 1000;
+      if (toDate.getTime() - fromDate.getTime() > maxRangeMs) {
+        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Date range too large (max 180 days)" });
+        return;
+      }
       const slots: { startAt: string; endAt: string }[] = [];
       const workingHours = user.workingHours?.length ? user.workingHours : DEFAULT_HOURS;
       const lunchBreaks = user.lunchBreaks ?? [];
@@ -95,6 +104,15 @@ export default async function availabilityRoutes(app: FastifyInstance): Promise<
       const { from, to } = request.query;
       const fromDate = startOfDay(new Date(from));
       const toDate = new Date(to);
+      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Invalid date format for from/to" });
+        return;
+      }
+      const maxRangeMs = 180 * 24 * 60 * 60 * 1000;
+      if (toDate.getTime() - fromDate.getTime() > maxRangeMs) {
+        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Date range too large (max 180 days)" });
+        return;
+      }
       const employees = getActiveEmployeesForAvailability(store);
       const result: { date: string; availableCount: number }[] = [];
       const day = new Date(fromDate);

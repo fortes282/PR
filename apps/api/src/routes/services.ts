@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { ServiceCreateSchema, ServiceUpdateSchema } from "@pristav/shared/services";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { persistService } from "../db/persist.js";
 
 function nextId(): string {
@@ -26,7 +26,7 @@ export default async function servicesRoutes(app: FastifyInstance): Promise<void
     reply.send(service);
   });
 
-  app.post("/services", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
+  app.post("/services", { preHandler: [authMiddleware, requireRole("ADMIN")] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
     const parse = ServiceCreateSchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({
@@ -42,7 +42,7 @@ export default async function servicesRoutes(app: FastifyInstance): Promise<void
     reply.status(201).send(service);
   });
 
-  app.put("/services/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
+  app.put("/services/:id", { preHandler: [authMiddleware, requireRole("ADMIN")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
     const service = store.services.get(request.params.id);
     if (!service) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Service not found" });

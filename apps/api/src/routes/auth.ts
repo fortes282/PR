@@ -10,6 +10,7 @@ import { store } from "../store.js";
 import { signToken, authMiddleware } from "../middleware/auth.js";
 import { hashPassword, verifyPassword } from "../lib/password.js";
 import { sendSms } from "../lib/sms.js";
+import crypto from "node:crypto";
 import { nextId } from "../lib/id.js";
 import { persistUser, persistPassword, persistCreditAccount } from "../db/persist.js";
 
@@ -19,7 +20,7 @@ const SMS_CODE_LENGTH = 6;
 function generateSmsCode(): string {
   let code = "";
   for (let i = 0; i < SMS_CODE_LENGTH; i++) {
-    code += Math.floor(Math.random() * 10).toString();
+    code += crypto.randomInt(0, 10).toString();
   }
   return code;
 }
@@ -38,6 +39,10 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     const credentials = parse.data;
     let user: (typeof store.users extends Map<string, infer U> ? U : never) | undefined;
     if (credentials.role) {
+      if (process.env.NODE_ENV === "production" && !process.env.ENABLE_DEV_LOGIN) {
+        reply.status(403).send({ code: "FORBIDDEN", message: "Dev login is disabled in production" });
+        return;
+      }
       user = Array.from(store.users.values()).find((u) => u.role === credentials.role);
       if (!user) user = Array.from(store.users.values())[0];
     } else if (credentials.email) {

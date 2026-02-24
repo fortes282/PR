@@ -3,7 +3,7 @@ import type { Invoice, InvoiceRecipient } from "@pristav/shared/invoices";
 import type { Appointment } from "@pristav/shared/appointments";
 import { InvoiceCreateSchema, InvoiceUpdateSchema, InvoiceListParamsSchema } from "@pristav/shared/invoices";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
 import { addDays } from "../lib/date.js";
 import { persistInvoice, persistSettings, persistNotification } from "../db/persist.js";
@@ -11,7 +11,7 @@ import { persistInvoice, persistSettings, persistNotification } from "../db/pers
 export default async function invoicesRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/invoices",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Querystring: { clientId?: string; status?: string; from?: string; to?: string } }>, reply: FastifyReply) => {
       const parse = InvoiceListParamsSchema.safeParse(request.query);
       const params = parse.success ? parse.data : {};
@@ -25,7 +25,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
     }
   );
 
-  app.get("/invoices/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  app.get("/invoices/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const invoice = store.invoices.get(request.params.id);
     if (!invoice) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Invoice not found" });
@@ -34,7 +34,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
     reply.send(invoice);
   });
 
-  app.post("/invoices", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
+  app.post("/invoices", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
     const parse = InvoiceCreateSchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({
@@ -79,8 +79,13 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
     const appointments = data.appointmentIds
       .map((id) => store.appointments.get(id))
       .filter(Boolean) as Appointment[];
+    const validAppointments = appointments.filter((a) => a.status !== "CANCELLED" && a.paymentStatus !== "PAID");
+    if (validAppointments.length === 0) {
+      reply.status(400).send({ code: "VALIDATION_ERROR", message: "No valid unpaid appointments to invoice" });
+      return;
+    }
     let amountCzk = 0;
-    for (const a of appointments) {
+    for (const a of validAppointments) {
       const s = store.services.get(a.serviceId);
       amountCzk += s?.priceCzk ?? 0;
     }
@@ -102,7 +107,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
     reply.status(201).send(invoice);
   });
 
-  app.put("/invoices/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
+  app.put("/invoices/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
     const inv = store.invoices.get(request.params.id);
     if (!inv) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Invoice not found" });
@@ -123,7 +128,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
     reply.send(updated);
   });
 
-  app.post("/invoices/:id/send", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  app.post("/invoices/:id/send", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const inv = store.invoices.get(request.params.id);
     if (!inv) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Invoice not found" });
@@ -136,7 +141,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
 
   app.post(
     "/invoices/send-bulk",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Body: { invoiceIds?: string[] } }>, reply: FastifyReply) => {
       const ids = request.body?.invoiceIds ?? [];
       for (const invoiceId of ids) {
@@ -150,7 +155,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
     }
   );
 
-  app.post("/invoices/send-overdue-reminders", { preHandler: [authMiddleware] }, async (_request: FastifyRequest, reply: FastifyReply) => {
+  app.post("/invoices/send-overdue-reminders", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (_request: FastifyRequest, reply: FastifyReply) => {
     const today = new Date().toISOString().slice(0, 10);
     let sent = 0;
     for (const inv of Array.from(store.invoices.values())) {

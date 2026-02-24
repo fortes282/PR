@@ -34,6 +34,17 @@ import adminRoutes from "./routes/admin.js";
 const PORT = Number(process.env.PORT ?? 3001);
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    const secret = process.env.JWT_SECRET;
+    if (!secret || secret === "dev-secret-change-in-production") {
+      console.error("FATAL: JWT_SECRET must be set to a secure value in production");
+      process.exit(1);
+    }
+    if (!process.env.CORS_ORIGIN) {
+      console.error("FATAL: CORS_ORIGIN must be set in production");
+      process.exit(1);
+    }
+  }
   initDb();
   runMigrations();
 
@@ -52,7 +63,7 @@ async function main() {
   const corsOrigin = process.env.CORS_ORIGIN;
   const corsOrigins = corsOrigin ? corsOrigin.split(",").map((o) => o.trim()) : undefined;
   await app.register(cors, {
-    origin: corsOrigins ?? true,
+    origin: corsOrigins ?? (process.env.NODE_ENV === "production" ? false : true),
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   });

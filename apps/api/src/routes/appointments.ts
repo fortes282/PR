@@ -10,7 +10,7 @@ import type { Appointment } from "@pristav/shared/appointments";
 import type { CreditTransaction } from "@pristav/shared/credits";
 import type { Notification } from "@pristav/shared/notifications";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
 import { persistAppointment, persistCreditAccount, persistCreditTransaction, persistNotification } from "../db/persist.js";
 import { createSlotOfferDraft, getWaitlistCandidateClientIds, sendSlotOfferToClients } from "../lib/slot-offer-draft.js";
@@ -18,7 +18,7 @@ import { createSlotOfferDraft, getWaitlistCandidateClientIds, sendSlotOfferToCli
 export default async function appointmentsRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/appointments",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE", "CLIENT")] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const { clientId, employeeId, from, to, status } = request.query as { clientId?: string; employeeId?: string; from?: string; to?: string; status?: string };
       let list = Array.from(store.appointments.values());
@@ -26,22 +26,27 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
       if (employeeId) list = list.filter((a) => a.employeeId === employeeId);
       if (from) list = list.filter((a) => a.startAt >= from);
       if (to) list = list.filter((a) => a.endAt <= to);
+      if (request.user?.role === "CLIENT") list = list.filter((a) => a.clientId === request.user!.userId);
       if (status) list = list.filter((a) => a.status === status);
       list.sort((a, b) => a.startAt.localeCompare(b.startAt));
       reply.send(list);
     }
   );
 
-  app.get("/appointments/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get("/appointments/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE", "CLIENT")] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const appointment = store.appointments.get((request.params as { id: string }).id);
     if (!appointment) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Appointment not found" });
       return;
     }
+    if (request.user?.role === "CLIENT" && appointment.clientId !== request.user.userId) {
+      reply.status(403).send({ code: "FORBIDDEN", message: "Insufficient permissions" });
+      return;
+    }
     reply.send(appointment);
   });
 
-  app.post("/appointments", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post("/appointments", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "CLIENT")] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const parse = AppointmentCreateSchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({ code: "VALIDATION_ERROR", message: "Invalid body", details: parse.error.flatten() });
@@ -52,6 +57,49 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
     if (!service) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Service not found" });
       return;
+    }
+    if (service.active === false) {
+      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Service is inactive" });
+      return;
+    }
+    const room = data.roomId ? store.rooms.get(data.roomId) : null;
+    if (data.roomId && !room) {
+      reply.status(404).send({ code: "NOT_FOUND", message: "Room not found" });
+      return;
+    }
+    if (room && (room as { active?: boolean }).active === false) {
+      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Room is inactive" });
+      return;
+    }
+    if (data.employeeId) {
+      const emp = store.users.get(data.employeeId);
+      if (!emp) {
+        reply.status(404).send({ code: "NOT_FOUND", message: "Employee not found" });
+        return;
+      }
+      if (emp.role !== "EMPLOYEE" || emp.active === false) {
+        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Employee is inactive or invalid" });
+        return;
+      }
+    }
+    const startTime = new Date(data.startAt).getTime();
+    const endTime = new Date(data.endAt).getTime();
+    if (endTime <= startTime) {
+      reply.status(400).send({ code: "VALIDATION_ERROR", message: "endAt must be after startAt" });
+      return;
+    }
+    const existing = Array.from(store.appointments.values()).filter((a) => a.status !== "CANCELLED");
+    const roomConflict = existing.find((a) => a.roomId === data.roomId && new Date(a.startAt).getTime() < endTime && new Date(a.endAt).getTime() > startTime);
+    if (roomConflict) {
+      reply.status(409).send({ code: "CONFLICT", message: "Room is already booked for this time slot" });
+      return;
+    }
+    if (data.employeeId) {
+      const empConflict = existing.find((a) => a.employeeId === data.employeeId && new Date(a.startAt).getTime() < endTime && new Date(a.endAt).getTime() > startTime);
+      if (empConflict) {
+        reply.status(409).send({ code: "CONFLICT", message: "Therapist already has an appointment at this time" });
+        return;
+      }
     }
     const account = store.creditAccounts.get(data.clientId);
     const balance = account?.balanceCzk ?? 0;
@@ -83,7 +131,7 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
     reply.status(201).send(appointment);
   });
 
-  app.post("/appointments/blocks", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post("/appointments/blocks", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "CLIENT")] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const parse = TherapyBlockCreateSchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({ code: "VALIDATION_ERROR", message: "Invalid body", details: parse.error.flatten() });
@@ -149,7 +197,7 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
     reply.status(201).send({ blockId, appointments });
   });
 
-  app.put("/appointments/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.put("/appointments/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const appointment = store.appointments.get((request.params as { id: string }).id);
     if (!appointment) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Appointment not found" });
@@ -167,12 +215,16 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
 
   app.post(
     "/appointments/:id/cancel",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE", "CLIENT")] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const id = (request.params as { id: string }).id;
       const appointment = store.appointments.get(id);
       if (!appointment) {
         reply.status(404).send({ code: "NOT_FOUND", message: "Appointment not found" });
+        return;
+      }
+      if (request.user?.role === "CLIENT" && appointment.clientId !== request.user.userId) {
+        reply.status(403).send({ code: "FORBIDDEN", message: "Cannot cancel another user's appointment" });
         return;
       }
       if (appointment.status === "CANCELLED") {
@@ -234,7 +286,7 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
             } else {
               await sendSlotOfferToClients(store, candidateClientIds, messageTemplate, request.log);
             }
-          } catch (err) {
+          } catch (err: unknown) {
             request.log.warn({ err, appointmentId: id }, "Slot offer failed");
           }
         }
@@ -257,7 +309,7 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
     }
   );
 
-  app.post("/appointments/:id/complete", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post("/appointments/:id/complete", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const appointment = store.appointments.get((request.params as { id: string }).id);
     if (!appointment) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Appointment not found" });

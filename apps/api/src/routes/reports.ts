@@ -1,12 +1,12 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { ReportVisibilityUpdateSchema } from "@pristav/shared/reports";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
 import { persistTherapyReport, persistTherapyReportBlob } from "../db/persist.js";
 
 export default async function reportsRoutes(app: FastifyInstance): Promise<void> {
-  app.post("/reports/upload", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post("/reports/upload", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest, reply: FastifyReply) => {
     let clientId: string | null = null;
     let fileData: { buffer: Buffer; filename: string; mimetype: string } | null = null;
     const parts = request.parts();
@@ -39,14 +39,15 @@ export default async function reportsRoutes(app: FastifyInstance): Promise<void>
     reply.status(201).send({ id, fileName: rec.fileName, createdAt: rec.createdAt });
   });
 
-  app.get("/reports", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Querystring: { clientId: string } }>, reply: FastifyReply) => {
-    const list = Array.from(store.therapyReports.values())
+  app.get("/reports", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE", "CLIENT")] }, async (request: FastifyRequest<{ Querystring: { clientId: string } }>, reply: FastifyReply) => {
+    let list = Array.from(store.therapyReports.values())
       .filter((r) => r.clientId === request.query.clientId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    if (request.user?.role === "CLIENT") list = list.filter((r) => r.visibleToClient === true);
     reply.send(list);
   });
 
-  app.get("/reports/:id/download", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  app.get("/reports/:id/download", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const buffer = store.therapyReportBlobs.get(request.params.id);
     const rec = store.therapyReports.get(request.params.id);
     if (!rec) {
@@ -60,7 +61,7 @@ export default async function reportsRoutes(app: FastifyInstance): Promise<void>
     reply.type("application/pdf").send(Buffer.from(`Placeholder PDF for ${rec.fileName}`));
   });
 
-  app.patch("/reports/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
+  app.patch("/reports/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
     const r = store.therapyReports.get(request.params.id);
     if (!r) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Report not found" });

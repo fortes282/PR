@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { RoomCreateSchema, RoomUpdateSchema } from "@pristav/shared/rooms";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { persistRoom } from "../db/persist.js";
 
 function nextId(): string {
@@ -26,7 +26,7 @@ export default async function roomsRoutes(app: FastifyInstance): Promise<void> {
     reply.send(room);
   });
 
-  app.post("/rooms", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
+  app.post("/rooms", { preHandler: [authMiddleware, requireRole("ADMIN")] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
     const parse = RoomCreateSchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({
@@ -42,7 +42,7 @@ export default async function roomsRoutes(app: FastifyInstance): Promise<void> {
     reply.status(201).send(room);
   });
 
-  app.put("/rooms/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
+  app.put("/rooms/:id", { preHandler: [authMiddleware, requireRole("ADMIN")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
     const room = store.rooms.get(request.params.id);
     if (!room) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Room not found" });
