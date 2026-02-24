@@ -2,7 +2,9 @@ import type { FastifyRequest, FastifyReply } from "fastify";
 import jwt from "jsonwebtoken";
 import { store } from "../store.js";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
+function getJwtSecret(): string {
+  return process.env.JWT_SECRET ?? "dev-secret-change-in-production";
+}
 
 export interface JwtPayload {
   userId: string;
@@ -10,11 +12,11 @@ export interface JwtPayload {
 }
 
 export function signToken(payload: JwtPayload, expiresInSeconds = 3600): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: expiresInSeconds });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: expiresInSeconds });
 }
 
 export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  return jwt.verify(token, getJwtSecret()) as JwtPayload;
 }
 
 declare module "fastify" {

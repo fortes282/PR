@@ -34,15 +34,26 @@ import adminRoutes from "./routes/admin.js";
 const PORT = Number(process.env.PORT ?? 3001);
 
 async function main() {
+  // Validate JWT_SECRET
+  const secret = process.env.JWT_SECRET;
   if (process.env.NODE_ENV === "production") {
-    const secret = process.env.JWT_SECRET;
-    if (!secret || secret === "dev-secret-change-in-production") {
+    if (!secret || secret === "dev-secret-change-in-production" || secret.length < 32) {
       console.error("FATAL: JWT_SECRET must be set to a secure value in production");
+      console.error("  - Must be at least 32 characters long");
+      console.error("  - Must not be the default 'dev-secret-change-in-production'");
+      console.error("  - Set it in your environment variables (e.g., Render.com dashboard)");
       process.exit(1);
     }
     if (!process.env.CORS_ORIGIN) {
       console.error("FATAL: CORS_ORIGIN must be set in production");
       process.exit(1);
+    }
+  } else {
+    // In development, use a default if not set, but warn if insecure
+    if (!secret || secret === "dev-secret-change-in-production" || secret.length < 32) {
+      const defaultSecret = "dev-secret-change-in-production";
+      process.env.JWT_SECRET = defaultSecret;
+      console.warn("WARNING: Using default JWT_SECRET for development. Set JWT_SECRET in production!");
     }
   }
   initDb();
