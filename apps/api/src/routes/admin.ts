@@ -6,7 +6,7 @@ import {
   SlotOfferApprovalListParamsSchema,
 } from "@pristav/shared/slot-offer-approval";
 import { store } from "../store.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
 import { persistBehaviorResetLog, persistSlotOfferApproval } from "../db/persist.js";
 import { createSlotOfferDraft, sendSlotOfferToClients } from "../lib/slot-offer-draft.js";
@@ -23,12 +23,8 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
    */
   app.post(
     "/clients/:clientId/behavior-reset",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN")] },
     async (request: FastifyRequest<{ Params: { clientId: string }; Body: unknown }>, reply: FastifyReply) => {
-      if (request.user?.role !== "ADMIN") {
-        reply.status(403).send({ code: "FORBIDDEN", message: "Pouze administrátor může resetovat behaviorální skóre." });
-        return;
-      }
       const clientId = request.params.clientId;
       const client = store.users.get(clientId);
       if (!client) {
@@ -57,17 +53,11 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
     }
   );
 
-  const allowedSlotOfferRoles = ["ADMIN", "RECEPTION"];
-
   /** GET /admin/slot-offer-approvals — list approvals (filter by status), ADMIN or RECEPTION */
   app.get(
     "/slot-offer-approvals",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Querystring: { status?: string; limit?: string; offset?: string } }>, reply: FastifyReply) => {
-      if (!allowedSlotOfferRoles.includes(request.user!.role as string)) {
-        reply.status(403).send({ code: "FORBIDDEN", message: "Pouze admin nebo recepce." });
-        return;
-      }
       const parse = SlotOfferApprovalListParamsSchema.safeParse({
         status: request.query.status as "PENDING" | "APPROVED" | "REJECTED" | undefined,
         limit: request.query.limit ? Number(request.query.limit) : undefined,
@@ -87,12 +77,8 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
   /** POST /admin/slot-offer-approvals — create draft; notify ADMIN and RECEPTION (in-app APPROVAL_REQUEST) */
   app.post(
     "/slot-offer-approvals",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
-      if (!allowedSlotOfferRoles.includes(request.user!.role as string)) {
-        reply.status(403).send({ code: "FORBIDDEN", message: "Pouze admin nebo recepce." });
-        return;
-      }
       const parse = SlotOfferApprovalCreateSchema.safeParse(request.body);
       if (!parse.success) {
         reply.status(400).send({ code: "VALIDATION_ERROR", message: "Neplatná data", details: parse.error.flatten() });
@@ -116,12 +102,8 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
   /** PATCH /admin/slot-offer-approvals/:id — approve or reject; if APPROVED, send SLOT_OFFER to clients */
   app.patch(
     "/slot-offer-approvals/:id",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] },
     async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
-      if (!allowedSlotOfferRoles.includes(request.user!.role as string)) {
-        reply.status(403).send({ code: "FORBIDDEN", message: "Pouze admin nebo recepce." });
-        return;
-      }
       const approval = store.slotOfferApprovals.get(request.params.id);
       if (!approval) {
         reply.status(404).send({ code: "NOT_FOUND", message: "Schválení nenalezeno." });

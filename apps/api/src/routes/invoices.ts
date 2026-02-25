@@ -39,7 +39,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
     if (!parse.success) {
       reply.status(400).send({
         code: "VALIDATION_ERROR",
-        message: "Invalid body",
+        message: "Neplatná data.",
         details: parse.error.flatten(),
       });
       return;
@@ -117,7 +117,7 @@ export default async function invoicesRoutes(app: FastifyInstance): Promise<void
     if (!parse.success) {
       reply.status(400).send({
         code: "VALIDATION_ERROR",
-        message: "Invalid body",
+        message: "Neplatná data.",
         details: parse.error.flatten(),
       });
       return;

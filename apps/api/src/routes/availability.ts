@@ -12,6 +12,9 @@ import {
   monthKey,
 } from "../lib/date.js";
 
+const MAX_RANGE_DAYS = 180;
+const MAX_RANGE_MS = MAX_RANGE_DAYS * 24 * 60 * 60 * 1000;
+
 const DEFAULT_HOURS: WorkingHoursSlot[] = [
   { dayOfWeek: 1, start: "08:00", end: "17:00" },
   { dayOfWeek: 2, start: "08:00", end: "17:00" },
@@ -45,12 +48,11 @@ export default async function availabilityRoutes(app: FastifyInstance): Promise<
       const fromDate = new Date(from);
       const toDate = new Date(to);
       if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Invalid date format for from/to" });
+        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Neplatný formát data." });
         return;
       }
-      const maxRangeMs = 180 * 24 * 60 * 60 * 1000;
-      if (toDate.getTime() - fromDate.getTime() > maxRangeMs) {
-        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Date range too large (max 180 days)" });
+      if (toDate.getTime() - fromDate.getTime() > MAX_RANGE_MS) {
+        reply.status(400).send({ code: "VALIDATION_ERROR", message: `Rozsah dat je příliš velký (max ${MAX_RANGE_DAYS} dní).` });
         return;
       }
       const slots: { startAt: string; endAt: string }[] = [];
@@ -105,12 +107,11 @@ export default async function availabilityRoutes(app: FastifyInstance): Promise<
       const fromDate = startOfDay(new Date(from));
       const toDate = new Date(to);
       if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Invalid date format for from/to" });
+        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Neplatný formát data." });
         return;
       }
-      const maxRangeMs = 180 * 24 * 60 * 60 * 1000;
-      if (toDate.getTime() - fromDate.getTime() > maxRangeMs) {
-        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Date range too large (max 180 days)" });
+      if (toDate.getTime() - fromDate.getTime() > MAX_RANGE_MS) {
+        reply.status(400).send({ code: "VALIDATION_ERROR", message: `Rozsah dat je příliš velký (max ${MAX_RANGE_DAYS} dní).` });
         return;
       }
       const employees = getActiveEmployeesForAvailability(store);

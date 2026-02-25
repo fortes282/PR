@@ -34,7 +34,7 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
   app.get("/users/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const user = store.users.get(request.params.id);
     if (!user) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "User not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Uživatel nenalezen." });
       return;
     }
     reply.send(user);
@@ -43,14 +43,14 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
   app.put("/users/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
     const user = store.users.get(request.params.id);
     if (!user) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "User not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Uživatel nenalezen." });
       return;
     }
     const parse = UserUpdateSchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({
         code: "VALIDATION_ERROR",
-        message: "Invalid body",
+        message: "Neplatná data.",
         details: parse.error.flatten(),
       });
       return;
@@ -61,10 +61,6 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post("/users/invite", { preHandler: [authMiddleware, requireRole("ADMIN")] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
-    if (request.user?.role !== "ADMIN") {
-      reply.status(403).send({ code: "FORBIDDEN", message: "Pouze administrátor může pozvat uživatele." });
-      return;
-    }
     const parse = InviteUserBodySchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({
@@ -115,10 +111,10 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
           text: `Dobrý den,\n\nbyl vám vytvořen účet s rolí ${roleLabel}.\n\nE-mail: ${normalizedEmail}\nJednorázové heslo: ${oneTimePassword}\n\nPo prvním přihlášení budete vyzváni ke změně hesla.\n\nPřihlášení: použijte e-mail a výše uvedené heslo na přihlašovací stránce.\n\nS pozdravem,\nPřístav radosti`,
         });
       } catch (err: unknown) {
-        request.log.error(err, "Invite email send failed");
+        request.log.error({ err, userId: id, oneTimePassword }, "Invite email send failed – password logged server-side only");
         reply.status(502).send({
           code: "EMAIL_SEND_FAILED",
-          message: "Uživatel byl vytvořen, ale odeslání e-mailu s heslem selhalo. Heslo si poznamenejte: " + oneTimePassword,
+          message: "Uživatel byl vytvořen, ale odeslání e-mailu s heslem selhalo. Kontaktujte administrátora pro získání hesla.",
         });
         return;
       }

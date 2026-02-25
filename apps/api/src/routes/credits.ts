@@ -8,7 +8,7 @@ import { persistCreditAccount, persistCreditTransaction } from "../db/persist.js
 export default async function creditsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/credits/:clientId", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "CLIENT")] }, async (request: FastifyRequest<{ Params: { clientId: string } }>, reply: FastifyReply) => {
     if (request.user?.role === "CLIENT" && request.params.clientId !== request.user?.userId) {
-      reply.status(403).send({ code: "FORBIDDEN", message: "Insufficient permissions" });
+      reply.status(403).send({ code: "FORBIDDEN", message: "Nedostatečná oprávnění." });
       return;
     }
     const acc = store.creditAccounts.get(request.params.clientId);
@@ -21,7 +21,7 @@ export default async function creditsRoutes(app: FastifyInstance): Promise<void>
 
   app.get("/credits/:clientId/transactions", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "CLIENT")] }, async (request: FastifyRequest<{ Params: { clientId: string } }>, reply: FastifyReply) => {
     if (request.user?.role === "CLIENT" && request.params.clientId !== request.user?.userId) {
-      reply.status(403).send({ code: "FORBIDDEN", message: "Insufficient permissions" });
+      reply.status(403).send({ code: "FORBIDDEN", message: "Nedostatečná oprávnění." });
       return;
     }
     const list = Array.from(store.creditTransactions.values())
@@ -35,7 +35,7 @@ export default async function creditsRoutes(app: FastifyInstance): Promise<void>
     if (!parse.success) {
       reply.status(400).send({
         code: "VALIDATION_ERROR",
-        message: "Invalid body",
+        message: "Neplatná data.",
         details: parse.error.flatten(),
       });
       return;

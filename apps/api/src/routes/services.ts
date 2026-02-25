@@ -3,14 +3,7 @@ import { ServiceCreateSchema, ServiceUpdateSchema } from "@pristav/shared/servic
 import { store } from "../store.js";
 import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { persistService } from "../db/persist.js";
-
-function nextId(): string {
-  const ids = Array.from(store.services.keys())
-    .filter((id) => id.startsWith("s-"))
-    .map((id) => parseInt(id.replace("s-", ""), 10));
-  const max = ids.length ? Math.max(...ids) : 0;
-  return `s-${max + 1}`;
-}
+import { nextId } from "../lib/id.js";
 
 export default async function servicesRoutes(app: FastifyInstance): Promise<void> {
   app.get("/services", { preHandler: [authMiddleware] }, async (_request: FastifyRequest, reply: FastifyReply) => {
@@ -20,7 +13,7 @@ export default async function servicesRoutes(app: FastifyInstance): Promise<void
   app.get("/services/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const service = store.services.get(request.params.id);
     if (!service) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Service not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Služba nenalezena." });
       return;
     }
     reply.send(service);
@@ -31,12 +24,12 @@ export default async function servicesRoutes(app: FastifyInstance): Promise<void
     if (!parse.success) {
       reply.status(400).send({
         code: "VALIDATION_ERROR",
-        message: "Invalid body",
+        message: "Neplatná data.",
         details: parse.error.flatten(),
       });
       return;
     }
-    const id = nextId();
+    const id = nextId("s");
     const service = { ...parse.data, id };
     persistService(store, service);
     reply.status(201).send(service);
@@ -45,14 +38,14 @@ export default async function servicesRoutes(app: FastifyInstance): Promise<void
   app.put("/services/:id", { preHandler: [authMiddleware, requireRole("ADMIN")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
     const service = store.services.get(request.params.id);
     if (!service) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Service not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Služba nenalezena." });
       return;
     }
     const parse = ServiceUpdateSchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({
         code: "VALIDATION_ERROR",
-        message: "Invalid body",
+        message: "Neplatná data.",
         details: parse.error.flatten(),
       });
       return;

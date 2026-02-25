@@ -19,8 +19,8 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
   app.get(
     "/appointments",
     { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE", "CLIENT")] },
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const { clientId, employeeId, from, to, status } = request.query as { clientId?: string; employeeId?: string; from?: string; to?: string; status?: string };
+    async (request: FastifyRequest<{ Querystring: { clientId?: string; employeeId?: string; from?: string; to?: string; status?: string } }>, reply: FastifyReply) => {
+      const { clientId, employeeId, from, to, status } = request.query;
       let list = Array.from(store.appointments.values());
       if (clientId) list = list.filter((a) => a.clientId === clientId);
       if (employeeId) list = list.filter((a) => a.employeeId === employeeId);
@@ -33,71 +33,71 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
     }
   );
 
-  app.get("/appointments/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE", "CLIENT")] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const appointment = store.appointments.get((request.params as { id: string }).id);
+  app.get("/appointments/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE", "CLIENT")] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    const appointment = store.appointments.get(request.params.id);
     if (!appointment) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Appointment not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Termín nenalezen." });
       return;
     }
     if (request.user?.role === "CLIENT" && appointment.clientId !== request.user.userId) {
-      reply.status(403).send({ code: "FORBIDDEN", message: "Insufficient permissions" });
+      reply.status(403).send({ code: "FORBIDDEN", message: "Nedostatečná oprávnění." });
       return;
     }
     reply.send(appointment);
   });
 
-  app.post("/appointments", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "CLIENT")] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post("/appointments", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "CLIENT")] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
     const parse = AppointmentCreateSchema.safeParse(request.body);
     if (!parse.success) {
-      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Invalid body", details: parse.error.flatten() });
+      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Neplatná data.", details: parse.error.flatten() });
       return;
     }
     const data = parse.data;
     const service = store.services.get(data.serviceId);
     if (!service) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Service not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Služba nenalezena." });
       return;
     }
     if (service.active === false) {
-      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Service is inactive" });
+      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Služba je neaktivní." });
       return;
     }
     const room = data.roomId ? store.rooms.get(data.roomId) : null;
     if (data.roomId && !room) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Room not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Místnost nenalezena." });
       return;
     }
     if (room && (room as { active?: boolean }).active === false) {
-      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Room is inactive" });
+      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Místnost je neaktivní." });
       return;
     }
     if (data.employeeId) {
       const emp = store.users.get(data.employeeId);
       if (!emp) {
-        reply.status(404).send({ code: "NOT_FOUND", message: "Employee not found" });
+        reply.status(404).send({ code: "NOT_FOUND", message: "Terapeut nenalezen." });
         return;
       }
       if (emp.role !== "EMPLOYEE" || emp.active === false) {
-        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Employee is inactive or invalid" });
+        reply.status(400).send({ code: "VALIDATION_ERROR", message: "Terapeut je neaktivní nebo neplatný." });
         return;
       }
     }
     const startTime = new Date(data.startAt).getTime();
     const endTime = new Date(data.endAt).getTime();
     if (endTime <= startTime) {
-      reply.status(400).send({ code: "VALIDATION_ERROR", message: "endAt must be after startAt" });
+      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Konec termínu musí být po začátku." });
       return;
     }
     const existing = Array.from(store.appointments.values()).filter((a) => a.status !== "CANCELLED");
     const roomConflict = existing.find((a) => a.roomId === data.roomId && new Date(a.startAt).getTime() < endTime && new Date(a.endAt).getTime() > startTime);
     if (roomConflict) {
-      reply.status(409).send({ code: "CONFLICT", message: "Room is already booked for this time slot" });
+      reply.status(409).send({ code: "CONFLICT", message: "Místnost je v tomto čase již obsazena." });
       return;
     }
     if (data.employeeId) {
       const empConflict = existing.find((a) => a.employeeId === data.employeeId && new Date(a.startAt).getTime() < endTime && new Date(a.endAt).getTime() > startTime);
       if (empConflict) {
-        reply.status(409).send({ code: "CONFLICT", message: "Therapist already has an appointment at this time" });
+        reply.status(409).send({ code: "CONFLICT", message: "Terapeut má v tomto čase jiný termín." });
         return;
       }
     }
@@ -131,21 +131,21 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
     reply.status(201).send(appointment);
   });
 
-  app.post("/appointments/blocks", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "CLIENT")] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post("/appointments/blocks", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "CLIENT")] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
     const parse = TherapyBlockCreateSchema.safeParse(request.body);
     if (!parse.success) {
-      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Invalid body", details: parse.error.flatten() });
+      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Neplatná data.", details: parse.error.flatten() });
       return;
     }
     const data = parse.data;
     const blockId = nextId("block");
     const service = store.services.get(data.serviceId);
     if (!service) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Service not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Služba nenalezena." });
       return;
     }
     if (!store.rooms.get(data.roomId)) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Room not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Místnost nenalezena." });
       return;
     }
     const appointments: Appointment[] = [];
@@ -154,7 +154,7 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
       const balance = account?.balanceCzk ?? 0;
       const paymentStatus: PaymentStatus = balance >= service.priceCzk ? "PAID" : "UNPAID";
       const appId = nextId("app");
-      const app: Appointment = {
+      const appt: Appointment = {
         id: appId,
         clientId: data.clientId,
         employeeId: data.employeeId,
@@ -166,8 +166,8 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
         paymentStatus,
         blockId,
       };
-      persistAppointment(store, app);
-      appointments.push(app);
+      persistAppointment(store, appt);
+      appointments.push(appt);
       if (paymentStatus === "PAID" && account) {
         account.balanceCzk -= service.priceCzk;
         account.updatedAt = new Date().toISOString();
@@ -197,15 +197,15 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
     reply.status(201).send({ blockId, appointments });
   });
 
-  app.put("/appointments/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const appointment = store.appointments.get((request.params as { id: string }).id);
+  app.put("/appointments/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
+    const appointment = store.appointments.get(request.params.id);
     if (!appointment) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Appointment not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Termín nenalezen." });
       return;
     }
     const parse = AppointmentUpdateSchema.safeParse(request.body);
     if (!parse.success) {
-      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Invalid body", details: parse.error.flatten() });
+      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Neplatná data.", details: parse.error.flatten() });
       return;
     }
     const updated = { ...appointment, ...parse.data };
@@ -216,19 +216,19 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
   app.post(
     "/appointments/:id/cancel",
     { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE", "CLIENT")] },
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const id = (request.params as { id: string }).id;
+    async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
+      const id = request.params.id;
       const appointment = store.appointments.get(id);
       if (!appointment) {
-        reply.status(404).send({ code: "NOT_FOUND", message: "Appointment not found" });
+        reply.status(404).send({ code: "NOT_FOUND", message: "Termín nenalezen." });
         return;
       }
       if (request.user?.role === "CLIENT" && appointment.clientId !== request.user.userId) {
-        reply.status(403).send({ code: "FORBIDDEN", message: "Cannot cancel another user's appointment" });
+        reply.status(403).send({ code: "FORBIDDEN", message: "Nelze zrušit termín jiného uživatele." });
         return;
       }
       if (appointment.status === "CANCELLED") {
-        reply.status(409).send({ code: "CONFLICT", message: "Already cancelled" });
+        reply.status(409).send({ code: "CONFLICT", message: "Termín je již zrušen." });
         return;
       }
       const parse = AppointmentCancelBodySchema.safeParse(request.body ?? {});
@@ -309,18 +309,18 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
     }
   );
 
-  app.post("/appointments/:id/complete", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const appointment = store.appointments.get((request.params as { id: string }).id);
+  app.post("/appointments/:id/complete", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    const appointment = store.appointments.get(request.params.id);
     if (!appointment) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Appointment not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Termín nenalezen." });
       return;
     }
     if (appointment.status === "CANCELLED") {
-      reply.status(409).send({ code: "CONFLICT", message: "Cannot complete a cancelled appointment" });
+      reply.status(409).send({ code: "CONFLICT", message: "Nelze dokončit zrušený termín." });
       return;
     }
     if (appointment.status === "COMPLETED") {
-      reply.status(409).send({ code: "CONFLICT", message: "Appointment already completed" });
+      reply.status(409).send({ code: "CONFLICT", message: "Termín je již dokončen." });
       return;
     }
     const updated = { ...appointment, status: "COMPLETED" as const };
