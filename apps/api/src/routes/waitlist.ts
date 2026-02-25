@@ -7,35 +7,32 @@ import { nextId } from "../lib/id.js";
 import { persistWaitlistEntry, persistNotification, deleteWaitlistEntry } from "../db/persist.js";
 
 function canManageEntry(request: FastifyRequest, entry: WaitingListEntry): boolean {
-  const user = (request as FastifyRequest & { user?: { userId: string; role: string } }).user;
-  if (!user) return false;
-  if (user.role === "ADMIN" || user.role === "RECEPTION") return true;
-  return entry.clientId === user.userId;
+  if (!request.user) return false;
+  if (request.user.role === "ADMIN" || request.user.role === "RECEPTION") return true;
+  return entry.clientId === request.user.userId;
 }
 
 export default async function waitlistRoutes(app: FastifyInstance): Promise<void> {
   app.get("/waitlist", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const user = (request as FastifyRequest & { user?: { userId: string; role: string } }).user;
     let list = Array.from(store.waitlist.values()).sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
-    if (user?.role === "CLIENT") {
-      list = list.filter((e) => e.clientId === user.userId);
+    if (request.user?.role === "CLIENT") {
+      list = list.filter((e) => e.clientId === request.user!.userId);
     }
     reply.send(list);
   });
 
   app.post("/waitlist", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
-    const user = (request as FastifyRequest & { user?: { userId: string; role: string } }).user;
     const parse = WaitingListEntrySchema.omit({ id: true, createdAt: true }).safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({
         code: "VALIDATION_ERROR",
-        message: "Invalid body",
+        message: "Neplatná data.",
         details: parse.error.flatten(),
       });
       return;
     }
     const data = parse.data;
-    const clientId = user?.role === "CLIENT" ? user.userId : data.clientId;
+    const clientId = request.user?.role === "CLIENT" ? request.user.userId : data.clientId;
     const id = nextId("w");
     const entry: WaitingListEntry = { ...data, clientId, id, createdAt: new Date().toISOString() };
     persistWaitlistEntry(store, entry);
@@ -45,15 +42,23 @@ export default async function waitlistRoutes(app: FastifyInstance): Promise<void
   app.put("/waitlist/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
     const w = store.waitlist.get(request.params.id);
     if (!w) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Waitlist entry not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Záznam na čekacím listu nenalezen." });
       return;
     }
     if (!canManageEntry(request, w)) {
-      reply.status(403).send({ code: "FORBIDDEN", message: "Cannot edit this entry" });
+      reply.status(403).send({ code: "FORBIDDEN", message: "Nemáte oprávnění upravovat tento záznam." });
       return;
     }
-    const body = request.body as Partial<WaitingListEntry>;
-    const updated = { ...w, ...body };
+    const parse = WaitingListEntrySchema.omit({ id: true, createdAt: true }).partial().safeParse(request.body);
+    if (!parse.success) {
+      reply.status(400).send({
+        code: "VALIDATION_ERROR",
+        message: "Neplatná data.",
+        details: parse.error.flatten(),
+      });
+      return;
+    }
+    const updated = { ...w, ...parse.data };
     persistWaitlistEntry(store, updated);
     reply.send(updated);
   });
@@ -61,11 +66,11 @@ export default async function waitlistRoutes(app: FastifyInstance): Promise<void
   app.delete("/waitlist/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const w = store.waitlist.get(request.params.id);
     if (!w) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Waitlist entry not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Záznam na čekacím listu nenalezen." });
       return;
     }
     if (!canManageEntry(request, w)) {
-      reply.status(403).send({ code: "FORBIDDEN", message: "Cannot delete this entry" });
+      reply.status(403).send({ code: "FORBIDDEN", message: "Nemáte oprávnění smazat tento záznam." });
       return;
     }
     deleteWaitlistEntry(store, w.id);
@@ -91,7 +96,7 @@ export default async function waitlistRoutes(app: FastifyInstance): Promise<void
   app.post("/waitlist/:id/notify", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const entry = store.waitlist.get(request.params.id);
     if (!entry) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Waitlist entry not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Záznam na čekacím listu nenalezen." });
       return;
     }
     const n = {

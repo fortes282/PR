@@ -55,7 +55,8 @@ export type Role = "ADMIN" | "RECEPTION" | "EMPLOYEE" | "CLIENT";
 export function requireRole(...roles: Role[]) {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
     if (!request.user || !roles.includes(request.user.role as Role)) {
-      reply.status(403).send({ code: "FORBIDDEN", message: "Insufficient permissions" });
+      reply.status(403).send({ code: "FORBIDDEN", message: "Nedostatečná oprávnění." });
+      return;
     }
   };
 }

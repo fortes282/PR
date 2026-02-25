@@ -25,7 +25,7 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
       });
       const params = parse.success ? parse.data : {};
       const currentUserId = request.user!.userId;
-      const role = request.user!.role as string;
+      const role = request.user!.role;
 
       let list = Array.from(store.notifications.values());
 
@@ -62,7 +62,7 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
       if (!parse.success) {
         reply.status(400).send({
           code: "VALIDATION_ERROR",
-          message: "Invalid body",
+          message: "Neplatná data.",
           details: parse.error.flatten(),
         });
         return;
@@ -116,14 +116,14 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
     if (!parse.success) {
       reply.status(400).send({
         code: "VALIDATION_ERROR",
-        message: "Invalid body",
+        message: "Neplatná data.",
         details: parse.error.flatten(),
       });
       return;
     }
     const n = {
       id: nextId("n"),
-      userId: (request.body as { userId?: string }).userId ?? request.user!.userId,
+      userId: request.user!.userId,
       channel: parse.data.channel,
       message: parse.data.message,
       title: parse.data.title,
@@ -141,7 +141,7 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
     if (!n) { reply.status(204).send(); return; }
     const role = request.user!.role; const currentUserId = request.user!.userId;
     if (role === "CLIENT" && n.userId !== currentUserId) {
-      reply.status(403).send({ code: "FORBIDDEN", message: "Cannot mark another user's notification as read" });
+      reply.status(403).send({ code: "FORBIDDEN", message: "Nelze označit oznámení jiného uživatele jako přečtené." });
       return;
     }
     const updated = { ...n, read: true };

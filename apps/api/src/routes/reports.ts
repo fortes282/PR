@@ -12,7 +12,7 @@ export default async function reportsRoutes(app: FastifyInstance): Promise<void>
     const parts = request.parts();
     for await (const part of parts) {
       if (part.type === "field" && part.fieldname === "clientId") {
-        clientId = (part as { value: string }).value;
+        clientId = String(part.value);
       }
       if (part.type === "file" && part.fieldname === "file") {
         const buffer = await part.toBuffer();
@@ -20,11 +20,11 @@ export default async function reportsRoutes(app: FastifyInstance): Promise<void>
       }
     }
     if (!clientId || !fileData) {
-      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Missing clientId or file" });
+      reply.status(400).send({ code: "VALIDATION_ERROR", message: "Chybí clientId nebo soubor." });
       return;
     }
     const id = nextId("rep");
-    const userId = (request as FastifyRequest & { user?: { userId: string } }).user?.userId ?? "unknown";
+    const userId = request.user?.userId ?? "unknown";
     const rec = {
       id,
       clientId,
@@ -51,7 +51,7 @@ export default async function reportsRoutes(app: FastifyInstance): Promise<void>
     const buffer = store.therapyReportBlobs.get(request.params.id);
     const rec = store.therapyReports.get(request.params.id);
     if (!rec) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Report not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Zpráva nenalezena." });
       return;
     }
     if (buffer) {
@@ -64,14 +64,14 @@ export default async function reportsRoutes(app: FastifyInstance): Promise<void>
   app.patch("/reports/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
     const r = store.therapyReports.get(request.params.id);
     if (!r) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Report not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Zpráva nenalezena." });
       return;
     }
     const parse = ReportVisibilityUpdateSchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({
         code: "VALIDATION_ERROR",
-        message: "Invalid body",
+        message: "Neplatná data.",
         details: parse.error.flatten(),
       });
       return;

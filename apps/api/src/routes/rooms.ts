@@ -3,14 +3,7 @@ import { RoomCreateSchema, RoomUpdateSchema } from "@pristav/shared/rooms";
 import { store } from "../store.js";
 import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { persistRoom } from "../db/persist.js";
-
-function nextId(): string {
-  const ids = Array.from(store.rooms.keys())
-    .filter((id) => id.startsWith("r-"))
-    .map((id) => parseInt(id.replace("r-", ""), 10));
-  const max = ids.length ? Math.max(...ids) : 0;
-  return `r-${max + 1}`;
-}
+import { nextId } from "../lib/id.js";
 
 export default async function roomsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/rooms", { preHandler: [authMiddleware] }, async (_request: FastifyRequest, reply: FastifyReply) => {
@@ -20,7 +13,7 @@ export default async function roomsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/rooms/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const room = store.rooms.get(request.params.id);
     if (!room) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Room not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Místnost nenalezena." });
       return;
     }
     reply.send(room);
@@ -31,12 +24,12 @@ export default async function roomsRoutes(app: FastifyInstance): Promise<void> {
     if (!parse.success) {
       reply.status(400).send({
         code: "VALIDATION_ERROR",
-        message: "Invalid body",
+        message: "Neplatná data.",
         details: parse.error.flatten(),
       });
       return;
     }
-    const id = nextId();
+    const id = nextId("r");
     const room = { ...parse.data, id };
     persistRoom(store, room);
     reply.status(201).send(room);
@@ -45,14 +38,14 @@ export default async function roomsRoutes(app: FastifyInstance): Promise<void> {
   app.put("/rooms/:id", { preHandler: [authMiddleware, requireRole("ADMIN")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
     const room = store.rooms.get(request.params.id);
     if (!room) {
-      reply.status(404).send({ code: "NOT_FOUND", message: "Room not found" });
+      reply.status(404).send({ code: "NOT_FOUND", message: "Místnost nenalezena." });
       return;
     }
     const parse = RoomUpdateSchema.safeParse(request.body);
     if (!parse.success) {
       reply.status(400).send({
         code: "VALIDATION_ERROR",
-        message: "Invalid body",
+        message: "Neplatná data.",
         details: parse.error.flatten(),
       });
       return;

@@ -32,6 +32,7 @@ import pushRoutes from "./routes/push.js";
 import adminRoutes from "./routes/admin.js";
 
 const PORT = Number(process.env.PORT ?? 3001);
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 async function main() {
   if (process.env.NODE_ENV === "production") {
@@ -53,17 +54,17 @@ async function main() {
   initDb();
   runMigrations();
 
+  const app = Fastify({ logger: true });
+
   const existingUsers = getDb().select().from(users).all();
   if (existingUsers.length === 0) {
     seed();
     persistAll(store);
-    console.log("Database empty: seeded initial data.");
+    app.log.info("Database empty: seeded initial data.");
   } else {
     loadFromDbIntoStore(store);
-    console.log("Database loaded into memory.");
+    app.log.info("Database loaded into memory.");
   }
-
-  const app = Fastify({ logger: true });
 
   const corsOrigin = process.env.CORS_ORIGIN;
   const corsOrigins = corsOrigin ? corsOrigin.split(",").map((o) => o.trim()) : undefined;
@@ -72,7 +73,7 @@ async function main() {
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   });
-  await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
+  await app.register(multipart, { limits: { fileSize: MAX_FILE_SIZE_BYTES } });
 
   app.setErrorHandler((err: Error & { statusCode?: number; code?: string }, _request, reply) => {
     const status = err.statusCode ?? (err.code === "FST_ERR_VALIDATION" ? 400 : 500);
@@ -120,7 +121,7 @@ async function main() {
   await app.register(adminRoutes, { prefix: "/admin" });
 
   await app.listen({ port: PORT, host: "0.0.0.0" });
-  console.log(`API listening on http://localhost:${PORT}`);
+  app.log.info(`API listening on http://localhost:${PORT}`);
 }
 
 main().catch((err) => {

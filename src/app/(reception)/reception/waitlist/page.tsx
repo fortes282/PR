@@ -60,7 +60,7 @@ export default function ReceptionWaitlistPage(): React.ReactElement {
         toast(err instanceof Error ? err.message : "Nepodařilo se načíst data", "error");
       })
       .finally(() => setLoading(false));
-  }, [slotStart, slotEnd]);
+  }, [slotStart, slotEnd, toast]);
 
   useEffect(() => {
     load();
