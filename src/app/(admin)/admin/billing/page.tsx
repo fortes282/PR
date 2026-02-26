@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { useToast } from "@/components/layout/Toaster";
 import { formatCzk } from "@/lib/utils/money";
 import { downloadCsv } from "@/lib/utils/csv";
+import { invoiceStatusLabel, invoiceStatusColor } from "@/lib/utils/status";
 import type { BillingReport } from "@/lib/contracts/billing";
 import type { Invoice } from "@/lib/contracts/invoices";
 import type { User } from "@/lib/contracts/users";
@@ -229,7 +230,7 @@ export default function AdminBillingPage(): React.ReactElement {
                 <span>{inv.recipient.lastName} {inv.recipient.firstName}</span>
                 <span>{formatCzk(inv.amountCzk)}</span>
                 <span>splatnost {inv.dueDate}</span>
-                <span>{inv.status}</span>
+                <span className={`rounded px-2 py-0.5 text-xs font-medium ${invoiceStatusColor(inv.status)}`}>{invoiceStatusLabel(inv.status)}</span>
                 <div className="flex gap-2">
                   <Link href={`/reception/invoices/${inv.id}`} className="btn-ghost text-xs">Upravit</Link>
                   <button type="button" className="btn-primary text-xs" disabled={!!sending} onClick={() => handleSendInvoice(inv.id)}>

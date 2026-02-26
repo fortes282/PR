@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { useToast } from "@/components/layout/Toaster";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { formatCzk } from "@/lib/utils/money";
+import { invoiceStatusLabel, invoiceStatusColor } from "@/lib/utils/status";
 import type { Invoice } from "@/lib/contracts/invoices";
 
 export default function ReceptionInvoiceEditPage(): React.ReactElement {
@@ -193,7 +194,7 @@ export default function ReceptionInvoiceEditPage(): React.ReactElement {
       </form>
 
       <div className="card max-w-lg space-y-2 p-4 text-sm text-gray-600">
-        <p>Stav: {invoice.status}</p>
+        <p>Stav: <span className={`rounded px-2 py-0.5 text-xs font-medium ${invoiceStatusColor(invoice.status)}`}>{invoiceStatusLabel(invoice.status)}</span></p>
         <p>Vystaveno: {invoice.issueDate}</p>
         <p>Termíny na faktuře: {invoice.appointmentIds.length}</p>
       </div>

@@ -6,6 +6,7 @@ import { useToast } from "@/components/layout/Toaster";
 import { formatCzk } from "@/lib/utils/money";
 import { downloadCsv } from "@/lib/utils/csv";
 import { format } from "@/lib/utils/date";
+import { invoiceStatusLabel, invoiceStatusColor } from "@/lib/utils/status";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import type { BillingReport } from "@/lib/contracts/billing";
 import type { Invoice } from "@/lib/contracts/invoices";
@@ -292,7 +293,7 @@ export default function ReceptionBillingPage(): React.ReactElement {
                 <span>{inv.recipient.lastName} {inv.recipient.firstName}</span>
                 <span>{formatCzk(inv.amountCzk)}</span>
                 <span>splatnost {inv.dueDate}</span>
-                <span>{inv.status}</span>
+                <span className={`rounded px-2 py-0.5 text-xs font-medium ${invoiceStatusColor(inv.status)}`}>{invoiceStatusLabel(inv.status)}</span>
                 <div className="flex gap-2">
                   <a href={`/reception/invoices/${inv.id}`} className="btn-ghost text-xs">
                     Upravit

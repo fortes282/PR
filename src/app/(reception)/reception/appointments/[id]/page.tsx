@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { canRefund } from "@/lib/cancellation";
 import { format } from "@/lib/utils/date";
+import { appointmentStatusLabel, appointmentStatusColor, paymentStatusLabel, paymentStatusColor } from "@/lib/utils/status";
 import { useToast } from "@/components/layout/Toaster";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
@@ -90,8 +91,8 @@ export default function ReceptionAppointmentDetailPage(): React.ReactElement {
       </h1>
       <div className="card max-w-lg space-y-2 p-4">
         <p><strong>Začátek:</strong> {format(start, "datetime")}</p>
-        <p><strong>Stav:</strong> {appointment.status}</p>
-        <p><strong>Platba:</strong> {appointment.paymentStatus}</p>
+        <p><strong>Stav:</strong> <span className={`rounded px-2 py-0.5 text-xs font-medium ${appointmentStatusColor(appointment.status)}`}>{appointmentStatusLabel(appointment.status)}</span></p>
+        <p><strong>Platba:</strong> <span className={`rounded px-2 py-0.5 text-xs font-medium ${paymentStatusColor(appointment.paymentStatus)}`}>{paymentStatusLabel(appointment.paymentStatus)}</span></p>
         {appointment.internalNotes && <p><strong>Poznámky:</strong> {appointment.internalNotes}</p>}
       </div>
       {appointment.paymentStatus === "UNPAID" && appointment.status !== "CANCELLED" && (

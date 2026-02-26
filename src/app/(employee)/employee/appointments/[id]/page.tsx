@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
 import { useToast } from "@/components/layout/Toaster";
 import { format } from "@/lib/utils/date";
+import { appointmentStatusLabel, appointmentStatusColor } from "@/lib/utils/status";
 import type { Appointment } from "@/lib/contracts/appointments";
 import type { User } from "@/lib/contracts/users";
 import type { MedicalReport } from "@/lib/contracts";
@@ -142,7 +143,7 @@ export default function EmployeeAppointmentDetailPage(): React.ReactElement {
       <div className="card max-w-lg space-y-2 p-4">
         <p><strong>Začátek:</strong> {format(new Date(appointment.startAt), "datetime")}</p>
         <p><strong>Konec:</strong> {format(new Date(appointment.endAt ?? appointment.startAt), "datetime")}</p>
-        <p><strong>Stav:</strong> {appointment.status}</p>
+        <p><strong>Stav:</strong> <span className={`rounded px-2 py-0.5 text-xs font-medium ${appointmentStatusColor(appointment.status)}`}>{appointmentStatusLabel(appointment.status)}</span></p>
       </div>
 
       {/* Client card: Health Record, Medical Reports, last visit */}

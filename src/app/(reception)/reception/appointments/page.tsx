@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { format } from "@/lib/utils/date";
+import { appointmentStatusLabel, appointmentStatusColor } from "@/lib/utils/status";
 import { DataTable } from "@/components/tables/DataTable";
 import type { Appointment } from "@/lib/contracts/appointments";
 import type { User } from "@/lib/contracts/users";
@@ -162,7 +163,11 @@ export default function ReceptionAppointmentsPage(): React.ReactElement {
             render: (r) =>
               r.employeeId ? (userMap.get(r.employeeId) ?? r.employeeId) : "— (volný)",
           },
-          { key: "status", header: "Stav", render: (r) => (r.blockId ? `Blok · ${r.status}` : r.status) },
+          { key: "status", header: "Stav", render: (r) => (
+            <span className={`rounded px-2 py-0.5 text-xs font-medium ${appointmentStatusColor(r.status)}`}>
+              {r.blockId ? "Blok · " : ""}{appointmentStatusLabel(r.status)}
+            </span>
+          ) },
           {
             key: "id",
             header: "Akce",

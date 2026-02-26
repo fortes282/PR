@@ -8,6 +8,7 @@ import { useToast } from "@/components/layout/Toaster";
 import { Modal } from "@/components/modals/Modal";
 import { formatCzk } from "@/lib/utils/money";
 import { format } from "@/lib/utils/date";
+import { appointmentStatusLabel, appointmentStatusColor } from "@/lib/utils/status";
 import type { User, NotificationPreferences } from "@/lib/contracts/users";
 import type { ClientProfileLogEntry } from "@/lib/contracts";
 import type { MedicalReport } from "@/lib/contracts";
@@ -376,7 +377,7 @@ export default function AdminClientDetailPage(): React.ReactElement {
           {appointments.slice(0, 10).map((a) => (
             <li key={a.id} className="flex justify-between px-4 py-2">
               <span>{format(new Date(a.startAt), "datetime")}</span>
-              <span>{a.status}</span>
+              <span className={`rounded px-2 py-0.5 text-xs font-medium ${appointmentStatusColor(a.status)}`}>{appointmentStatusLabel(a.status)}</span>
               <Link href={`/reception/appointments/${a.id}`} className="text-primary-600 hover:underline">Detail</Link>
             </li>
           ))}
