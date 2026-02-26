@@ -37,11 +37,8 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 async function main() {
   if (process.env.NODE_ENV === "production") {
     const secret = process.env.JWT_SECRET;
-    if (!secret || secret === "dev-secret-change-in-production" || secret.length < 32) {
-      console.error("FATAL: JWT_SECRET must be set to a secure value in production");
-      console.error("  - JWT_SECRET must be at least 32 characters long");
-      console.error("  - Set it in your environment variables (e.g., Render dashboard)");
-      console.error("  - Generate a secure secret with: openssl rand -base64 32");
+    if (!secret || typeof secret !== "string" || secret.trim() === "") {
+      console.error("FATAL: JWT_SECRET must be set in production (environment variables).");
       process.exit(1);
     }
     if (!process.env.CORS_ORIGIN) {
