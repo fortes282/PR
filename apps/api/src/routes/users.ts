@@ -10,11 +10,19 @@ import { nextId } from "../lib/id.js";
 import { getSmtpTransport } from "../lib/email.js";
 
 export default async function usersRoutes(app: FastifyInstance): Promise<void> {
-  app.get("/users", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get("/users", { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const parse = UserListParamsSchema.safeParse(request.query);
     const params = parse.success ? parse.data : {};
+    const isClient = request.user?.role === "CLIENT";
+    if (isClient && params.role !== "EMPLOYEE") {
+      reply.status(403).send({ code: "FORBIDDEN", message: "Nedostatečná oprávnění." });
+      return;
+    }
     let list = Array.from(store.users.values());
     if (params.role) list = list.filter((u) => u.role === params.role);
+    if (isClient) {
+      list = list.map((u) => ({ id: u.id, name: u.name, role: u.role, active: u.active, email: u.email, defaultPricePerSessionCzk: u.defaultPricePerSessionCzk }));
+    }
     if (params.search) {
       const s = params.search.toLowerCase();
       list = list.filter(
@@ -31,7 +39,12 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
     reply.send({ users, total });
   });
 
-  app.get("/users/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  app.get("/users/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    const isClient = request.user?.role === "CLIENT";
+    if (isClient && request.params.id !== request.user?.userId) {
+      reply.status(403).send({ code: "FORBIDDEN", message: "Nedostatečná oprávnění." });
+      return;
+    }
     const user = store.users.get(request.params.id);
     if (!user) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Uživatel nenalezen." });
@@ -40,7 +53,17 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
     reply.send(user);
   });
 
-  app.put("/users/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
+  app.put("/users/:id", { preHandler: [authMiddleware] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
+    const isClient = request.user?.role === "CLIENT";
+    const isStaff = request.user?.role === "ADMIN" || request.user?.role === "RECEPTION";
+    if (isClient && request.params.id !== request.user?.userId) {
+      reply.status(403).send({ code: "FORBIDDEN", message: "Nedostatečná oprávnění." });
+      return;
+    }
+    if (!isClient && !isStaff) {
+      reply.status(403).send({ code: "FORBIDDEN", message: "Nedostatečná oprávnění." });
+      return;
+    }
     const user = store.users.get(request.params.id);
     if (!user) {
       reply.status(404).send({ code: "NOT_FOUND", message: "Uživatel nenalezen." });
@@ -54,6 +77,15 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
         details: parse.error.flatten(),
       });
       return;
+    }
+    if (isClient) {
+      const allowedClientFields = new Set(["notificationPreferences", "phone", "firstName", "lastName", "childName", "billingAddress"]);
+      const bodyKeys = Object.keys(parse.data);
+      const forbidden = bodyKeys.filter((k) => !allowedClientFields.has(k));
+      if (forbidden.length > 0) {
+        reply.status(403).send({ code: "FORBIDDEN", message: "Klient nemůže měnit tato pole." });
+        return;
+      }
     }
     const updated = { ...user, ...parse.data };
     persistUser(store, updated);
