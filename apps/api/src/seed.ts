@@ -2,7 +2,7 @@
  * Deterministic seed data for in-memory store (mirror of frontend mock seed).
  */
 import { store } from "./store.js";
-import type { User } from "@pristav/shared/users";
+import type { User, WorkingHoursSlot, LunchBreak } from "@pristav/shared/users";
 import type { Service } from "@pristav/shared/services";
 import type { Room } from "@pristav/shared/rooms";
 import type { Appointment } from "@pristav/shared/appointments";
@@ -15,21 +15,66 @@ function iso(date: Date): string {
   return date.toISOString();
 }
 
+const defaultWorkingHours: WorkingHoursSlot[] = [
+  { dayOfWeek: 1, start: "08:00", end: "17:00" },
+  { dayOfWeek: 2, start: "08:00", end: "17:00" },
+  { dayOfWeek: 3, start: "08:00", end: "17:00" },
+  { dayOfWeek: 4, start: "08:00", end: "17:00" },
+  { dayOfWeek: 5, start: "08:00", end: "17:00" },
+];
+
+const defaultLunchBreaks: LunchBreak[] = [
+  { dayOfWeek: 1, start: "12:00", end: "12:30" },
+  { dayOfWeek: 2, start: "12:00", end: "12:30" },
+  { dayOfWeek: 3, start: "12:00", end: "12:30" },
+  { dayOfWeek: 4, start: "12:00", end: "12:30" },
+  { dayOfWeek: 5, start: "12:00", end: "12:30" },
+];
+
 export function seed(): void {
   const now = new Date();
 
+  const clientNames = [
+    { firstName: "Jana", lastName: "Nováková", childName: "Eliška" },
+    { firstName: "Petr", lastName: "Svoboda", childName: "Matyáš" },
+    { firstName: "Lucie", lastName: "Dvořáková", childName: "Sofie" },
+    { firstName: "Martin", lastName: "Černý", childName: "Jakub" },
+    { firstName: "Eva", lastName: "Procházková", childName: "Anna" },
+    { firstName: "Tomáš", lastName: "Kučera", childName: "Ondřej" },
+    { firstName: "Kateřina", lastName: "Veselá", childName: "Tereza" },
+    { firstName: "David", lastName: "Horák", childName: "Filip" },
+    { firstName: "Markéta", lastName: "Němcová", childName: "Adéla" },
+    { firstName: "Jiří", lastName: "Pospíšil", childName: "Vojtěch" },
+  ];
+
   const users: User[] = [
-    { id: "u-admin", email: "admin@pristav.cz", name: "Admin Admin", role: "ADMIN", active: true },
-    { id: "u-rec", email: "reception@pristav.cz", name: "Recepce Nová", role: "RECEPTION", active: true },
-    { id: "u-emp1", email: "terapeut1@pristav.cz", name: "Terapeut Jedna", role: "EMPLOYEE", active: true },
-    { id: "u-emp2", email: "terapeut2@pristav.cz", name: "Terapeut Dva", role: "EMPLOYEE", active: true },
-    { id: "u-emp3", email: "terapeut3@pristav.cz", name: "Terapeut Tři", role: "EMPLOYEE", active: true },
-    ...Array.from({ length: 10 }, (_, i) => ({
+    { id: "u-admin", email: "admin@pristav.cz", name: "Mgr. Ivana Králová", role: "ADMIN", active: true, firstName: "Ivana", lastName: "Králová" },
+    { id: "u-rec", email: "reception@pristav.cz", name: "Lenka Dvořáčková", role: "RECEPTION", active: true, firstName: "Lenka", lastName: "Dvořáčková" },
+    {
+      id: "u-emp1", email: "terapeut1@pristav.cz", name: "Mgr. Barbora Šťastná", role: "EMPLOYEE", active: true,
+      firstName: "Barbora", lastName: "Šťastná", defaultPricePerSessionCzk: 800,
+      workingHours: defaultWorkingHours, lunchBreaks: defaultLunchBreaks,
+    },
+    {
+      id: "u-emp2", email: "terapeut2@pristav.cz", name: "PhDr. Jan Malý", role: "EMPLOYEE", active: true,
+      firstName: "Jan", lastName: "Malý", defaultPricePerSessionCzk: 900,
+      workingHours: defaultWorkingHours, lunchBreaks: defaultLunchBreaks,
+    },
+    {
+      id: "u-emp3", email: "terapeut3@pristav.cz", name: "Bc. Tereza Holá", role: "EMPLOYEE", active: true,
+      firstName: "Tereza", lastName: "Holá", defaultPricePerSessionCzk: 750,
+      workingHours: defaultWorkingHours, lunchBreaks: defaultLunchBreaks,
+    },
+    ...clientNames.map((c, i) => ({
       id: `u-client-${i + 1}`,
-      email: `klient${i + 1}@example.cz`,
-      name: `Klient ${i + 1}`,
+      email: `${c.firstName.toLowerCase()}.${c.lastName.toLowerCase().replace(/á/g,"a").replace(/é/g,"e").replace(/í/g,"i").replace(/ó/g,"o").replace(/ú/g,"u").replace(/ů/g,"u").replace(/ý/g,"y").replace(/č/g,"c").replace(/ř/g,"r").replace(/š/g,"s").replace(/ž/g,"z").replace(/ň/g,"n").replace(/ť/g,"t").replace(/ď/g,"d")}@email.cz`,
+      name: `${c.firstName} ${c.lastName}`,
       role: "CLIENT" as const,
       active: true,
+      firstName: c.firstName,
+      lastName: c.lastName,
+      childName: c.childName,
+      phone: `+420 ${600 + i} ${100 + i * 11} ${200 + i * 7}`,
     })),
   ];
   users.forEach((u) => store.users.set(u.id, u));
@@ -42,9 +87,9 @@ export function seed(): void {
   services.forEach((s) => store.services.set(s.id, s));
 
   const rooms: Room[] = [
-    { id: "r-1", name: "Místnost 1", type: "THERAPY", active: true },
-    { id: "r-2", name: "Místnost 2", type: "THERAPY", active: true },
-    { id: "r-3", name: "Skupinová", type: "GROUP", active: true },
+    { id: "r-1", name: "Místnost 1 – Terapie", type: "THERAPY", active: true },
+    { id: "r-2", name: "Místnost 2 – Terapie", type: "THERAPY", active: true },
+    { id: "r-3", name: "Velký sál – Skupinová", type: "GROUP", active: true },
   ];
   rooms.forEach((r) => store.rooms.set(r.id, r));
 
@@ -116,20 +161,20 @@ export function seed(): void {
     endAt: iso(setMinutes(setHours(addDays(now, 3), 14), 50)),
     status: "CANCELLED",
     paymentStatus: "REFUNDED",
-    cancelReason: "Klient zrušil",
+    cancelReason: "Klient zrušil z rodinných důvodů",
     cancelledAt: iso(now),
   });
   appointments.forEach((a) => store.appointments.set(a.id, a));
 
   const waitlistEntries: WaitingListEntry[] = [
-    { id: "w-1", clientId: clientIds[2], serviceId: s1, priority: 1, notes: "Ráno", createdAt: iso(now) },
-    { id: "w-2", clientId: clientIds[5], serviceId: s1, priority: 2, createdAt: iso(subDays(now, 2)) },
+    { id: "w-1", clientId: clientIds[2], serviceId: s1, priority: 1, notes: "Preferuji ráno", createdAt: iso(now), preferredMonthFrom: 2, preferredMonthTo: 4 },
+    { id: "w-2", clientId: clientIds[5], serviceId: s1, priority: 2, createdAt: iso(subDays(now, 2)), preferredMonthFrom: 3, preferredMonthTo: 6 },
   ];
   waitlistEntries.forEach((w) => store.waitlist.set(w.id, w));
 
   const notifs: Notification[] = [
-    { id: "n-1", channel: "IN_APP", message: "Nabídka volného termínu", read: false, createdAt: iso(now) },
-    { id: "n-2", channel: "IN_APP", message: "Připomínka zítřejší návštěvy", read: true, createdAt: iso(subDays(now, 1)) },
+    { id: "n-1", channel: "IN_APP", title: "Nabídka volného termínu", message: "Uvolnil se termín u Mgr. Šťastné na příští týden. Máte zájem?", read: false, createdAt: iso(now) },
+    { id: "n-2", channel: "IN_APP", title: "Připomínka zítřejší návštěvy", message: "Zítra máte rezervovaný termín v 9:00. Nezapomeňte!", read: true, createdAt: iso(subDays(now, 1)) },
   ];
   notifs.forEach((n) => store.notifications.set(n.id, n));
 
