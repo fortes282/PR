@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
-import { format } from "@/lib/utils/date";
+import { displayDate } from "@/lib/utils/date";
 import { DataTable } from "@/components/tables/DataTable";
 import type { Appointment } from "@/lib/contracts/appointments";
 import type { User } from "@/lib/contracts/users";
@@ -39,7 +39,7 @@ export default function EmployeeAppointmentsPage(): React.ReactElement {
       .finally(() => setLoading(false));
   }, [employeeId]);
 
-  if (loading) return <p className="text-gray-600">Načítám…</p>;
+  if (loading) return <div className="space-y-4"><div className="skeleton h-8 w-48 rounded-lg" /><div className="skeleton h-64 w-full rounded-xl" /></div>;
 
   return (
     <div className="space-y-6">
@@ -57,7 +57,7 @@ export default function EmployeeAppointmentsPage(): React.ReactElement {
             {
               key: "startAt",
               header: "Datum a čas",
-              render: (r) => format(new Date(r.startAt), "datetime"),
+              render: (r) => displayDate(new Date(r.startAt), "datetime"),
             },
             {
               key: "clientId",

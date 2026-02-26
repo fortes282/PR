@@ -128,6 +128,20 @@ export default async function appointmentsRoutes(app: FastifyInstance): Promise<
       };
       persistCreditTransaction(store, tx);
     }
+    const startDate = new Date(data.startAt);
+    const dateStr = startDate.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const confirmNotif: Notification = {
+      id: nextId("n"),
+      userId: data.clientId,
+      channel: "IN_APP",
+      title: "Rezervace potvrzena",
+      message: `Váš termín ${dateStr} (${service.name}) byl úspěšně zarezervován.`,
+      read: false,
+      createdAt: new Date().toISOString(),
+      appointmentId: id,
+    };
+    store.notifications.set(confirmNotif.id, confirmNotif);
+    persistNotification(store, confirmNotif);
     reply.status(201).send(appointment);
   });
 

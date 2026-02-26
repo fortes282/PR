@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { useToast } from "@/components/layout/Toaster";
 import { formatCzk } from "@/lib/utils/money";
 import { downloadCsv } from "@/lib/utils/csv";
-import { format } from "@/lib/utils/date";
+import { displayDate } from "@/lib/utils/date";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import type { BillingReport } from "@/lib/contracts/billing";
 import type { Invoice } from "@/lib/contracts/invoices";
@@ -312,15 +312,26 @@ export default function ReceptionBillingPage(): React.ReactElement {
         </ul>
       </section>
 
-      <section className="card max-w-2xl space-y-2 p-4">
+      <section className="card space-y-4 p-4">
         <h2 className="font-medium text-gray-700">Párování plateb (FIO banka)</h2>
         <p className="text-sm text-gray-600">
-          Propojení s FIO Bank API umožní stáhnout bankovní transakce a ručně nebo automaticky je přiřadit k fakturam.
-          Backend: implementovat sync z FIO API a automatické párování podle variabilního symbolu.
+          Synchronizace bankovních transakcí z FIO Bank API. Pro automatický import nastavte FIO_API_TOKEN na serveru.
         </p>
-        <p className="text-sm text-gray-500">
-          V mock režimu jsou transakce prázdné. Po implementaci backendu zde bude synchronizace a seznam transakcí k párování.
-        </p>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={async () => {
+            try {
+              const result = await api.bankTransactions.sync({ from: new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) });
+              const msg = (result as { message?: string }).message;
+              toast(msg ?? `Import: ${result.imported} transakcí.`, result.imported > 0 ? "success" : "info");
+            } catch (e) {
+              toast(e instanceof Error ? e.message : "Sync selhala", "error");
+            }
+          }}
+        >
+          Synchronizovat z banky
+        </button>
       </section>
     </div>
   );

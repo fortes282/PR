@@ -242,11 +242,28 @@ export default function AdminBillingPage(): React.ReactElement {
         </ul>
       </section>
 
-      <section className="card max-w-2xl space-y-2 p-4">
+      <section className="card space-y-4 p-4">
         <h2 className="font-medium text-gray-700">Párování plateb (FIO banka)</h2>
         <p className="text-sm text-gray-600">
-          Propojení s FIO Bank API umožní stáhnout bankovní transakce a přiřadit je k fakturam. Backend: implementovat sync a automatické párování.
+          Synchronizace s FIO Bank API a párování transakcí k fakturám. Pro automatický import nastavte FIO_API_TOKEN na serveru. Párování porovnává variabilní symbol s číslem faktury.
         </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={async () => {
+              try {
+                const result = await api.bankTransactions.sync({ from: new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) });
+                const msg = (result as { message?: string }).message;
+                toast(msg ?? `Import: ${result.imported} transakcí.`, result.imported > 0 ? "success" : "info");
+              } catch (e) {
+                toast(e instanceof Error ? e.message : "Sync selhala", "error");
+              }
+            }}
+          >
+            Synchronizovat z banky
+          </button>
+        </div>
       </section>
     </div>
   );

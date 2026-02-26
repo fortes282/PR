@@ -9,6 +9,7 @@ import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { nextId } from "../lib/id.js";
 import { persistNotification } from "../db/persist.js";
 import { sendSms } from "../lib/sms.js";
+import { getSmtpTransport } from "../lib/email.js";
 
 export default async function notificationsRoutes(app: FastifyInstance): Promise<void> {
   app.get(
@@ -87,6 +88,29 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
             if (!errors.includes(msg)) errors.push(msg);
             request.log.warn({ err, clientId, phone }, "Bulk SMS skip (send failed)");
             continue;
+          }
+        }
+        if (body.channel === "EMAIL") {
+          const email = user.email?.trim();
+          if (!email) continue;
+          const transport = getSmtpTransport();
+          if (transport) {
+            const senderEmail = store.settings.notificationEmailSender?.email
+              ?? process.env.SMTP_USER ?? "noreply@pristav.cz";
+            const senderName = store.settings.notificationEmailSender?.name ?? "Přístav radosti";
+            try {
+              await transport.sendMail({
+                from: `"${senderName}" <${senderEmail}>`,
+                to: email,
+                subject: body.subject ?? body.title ?? "Oznámení",
+                text: body.message,
+              });
+              request.log.info({ clientId, email }, "Bulk email sent");
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              if (!errors.includes(msg)) errors.push(msg);
+              request.log.warn({ err, clientId, email }, "Bulk email send failed");
+            }
           }
         }
         const n = {

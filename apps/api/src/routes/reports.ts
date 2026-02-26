@@ -58,7 +58,7 @@ export default async function reportsRoutes(app: FastifyInstance): Promise<void>
       reply.type(rec.mimeType ?? "application/octet-stream").send(buffer);
       return;
     }
-    reply.type("application/pdf").send(Buffer.from(`Placeholder PDF for ${rec.fileName}`));
+    reply.status(404).send({ code: "NOT_FOUND", message: "Soubor nebyl nalezen na serveru. Mohl být smazán nebo se nepodařilo uložit při nahrávání." });
   });
 
   app.patch("/reports/:id", { preHandler: [authMiddleware, requireRole("ADMIN", "RECEPTION", "EMPLOYEE")] }, async (request: FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: FastifyReply) => {
