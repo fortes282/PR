@@ -7,7 +7,7 @@ import { CalendarClock, Wallet, ChevronRight, CalendarPlus, Anchor } from "lucid
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
 import { formatCzk } from "@/lib/utils/money";
-import { format } from "@/lib/utils/date";
+import { displayDate } from "@/lib/utils/date";
 
 const container = {
   hidden: { opacity: 0 },
@@ -27,6 +27,8 @@ export default function ClientDashboardPage(): React.ReactElement {
     id: string;
     startAt: string;
     serviceId: string;
+    serviceName?: string;
+    employeeName?: string;
   } | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,13 +43,25 @@ export default function ClientDashboardPage(): React.ReactElement {
     Promise.all([
       api.appointments.list({ clientId, from: new Date().toISOString(), to: "" }),
       api.credits.get(clientId),
+      api.services.list(),
+      api.users.list({ role: "EMPLOYEE" }),
     ])
-      .then(([appointments, account]) => {
+      .then(([appointments, account, services, employeesRes]) => {
         if (!mounted) return;
+        const serviceMap = new Map(services.map((s) => [s.id, s.name]));
+        const employeeMap = new Map(employeesRes.users.map((u) => [u.id, u.name]));
         const next = appointments
           .filter((a) => a.status !== "CANCELLED" && new Date(a.startAt) > new Date())
           .sort((a, b) => a.startAt.localeCompare(b.startAt))[0];
-        setNextAppointment(next ?? null);
+        if (next) {
+          setNextAppointment({
+            ...next,
+            serviceName: serviceMap.get(next.serviceId),
+            employeeName: next.employeeId ? employeeMap.get(next.employeeId) : undefined,
+          });
+        } else {
+          setNextAppointment(null);
+        }
         setCredits(account.balanceCzk);
       })
       .catch((e) => {
@@ -104,8 +118,15 @@ export default function ClientDashboardPage(): React.ReactElement {
           {nextAppointment ? (
             <>
               <p className="mt-2 text-lg font-semibold text-gray-900">
-                {format(new Date(nextAppointment.startAt), "datetime")}
+                {displayDate(new Date(nextAppointment.startAt), "datetime")}
               </p>
+              {(nextAppointment.serviceName || nextAppointment.employeeName) && (
+                <p className="mt-1 text-sm text-gray-600">
+                  {nextAppointment.serviceName}
+                  {nextAppointment.serviceName && nextAppointment.employeeName && " · "}
+                  {nextAppointment.employeeName}
+                </p>
+              )}
               <Link
                 href="/client/appointments"
                 className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-sky-600 transition-colors hover:text-sky-700"

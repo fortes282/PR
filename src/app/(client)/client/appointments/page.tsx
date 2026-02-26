@@ -6,7 +6,7 @@ import { CalendarClock } from "lucide-react";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
 import { canRefund } from "@/lib/cancellation";
-import { format } from "@/lib/utils/date";
+import { format, displayDate } from "@/lib/utils/date";
 import { useToast } from "@/components/layout/Toaster";
 import { EmptyState } from "@/components/EmptyState";
 import { PageSkeleton } from "@/components/PageSkeleton";
@@ -106,7 +106,7 @@ export default function ClientAppointmentsPage(): React.ReactElement {
             {
               key: "startAt",
               header: "Datum a čas",
-              render: (r) => format(new Date(r.startAt), "datetime"),
+              render: (r) => displayDate(new Date(r.startAt), "datetime"),
             },
             {
               key: "status",
@@ -163,7 +163,7 @@ export default function ClientAppointmentsPage(): React.ReactElement {
         confirmDisabled={cancelling}
         message={
           app
-            ? `Zrušit termín ${format(new Date(app.startAt), "datetime")}? ${
+            ? `Zrušit termín ${displayDate(new Date(app.startAt), "datetime")}? ${
                 eligibleRefund ? "Vrátíme platbu na kredity (zrušení včas)." : "Platba se nevrací (po lhůtě)."
               }`
             : ""

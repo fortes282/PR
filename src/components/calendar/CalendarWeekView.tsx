@@ -1,6 +1,6 @@
 "use client";
 
-import { startOfWeek, addDays, setHours, setMinutes, format } from "@/lib/utils/date";
+import { startOfWeek, addDays, setHours, setMinutes, format, displayDate } from "@/lib/utils/date";
 
 export type Slot = {
   id: string;
@@ -118,7 +118,7 @@ export function CalendarWeekView({
                 key={d.toISOString()}
                 className="min-w-[120px] border-r border-gray-200 px-2 py-2 text-center font-medium text-gray-700 last:border-r-0"
               >
-                {format(d, "date")}
+                {displayDate(d, "date")}
               </th>
             ))}
           </tr>

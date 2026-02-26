@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { canRefund } from "@/lib/cancellation";
-import { format } from "@/lib/utils/date";
+import { format, displayDate } from "@/lib/utils/date";
 import { useToast } from "@/components/layout/Toaster";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
@@ -89,7 +89,7 @@ export default function ReceptionAppointmentDetailPage(): React.ReactElement {
         Rezervace {appointment.blockId ? "(blok)" : ""}
       </h1>
       <div className="card max-w-lg space-y-2 p-4">
-        <p><strong>Začátek:</strong> {format(start, "datetime")}</p>
+        <p><strong>Začátek:</strong> {displayDate(start, "datetime")}</p>
         <p><strong>Stav:</strong> {appointment.status}</p>
         <p><strong>Platba:</strong> {appointment.paymentStatus}</p>
         {appointment.internalNotes && <p><strong>Poznámky:</strong> {appointment.internalNotes}</p>}

@@ -30,6 +30,13 @@ export function format(date: Date, fmt: "date" | "datetime" | "time" = "date"): 
   return date.toISOString().slice(0, 16).replace("T", " ");
 }
 
+/** Czech locale display format. */
+export function displayDate(date: Date, fmt: "date" | "datetime" | "time" = "date"): string {
+  if (fmt === "time") return date.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+  if (fmt === "date") return date.toLocaleDateString("cs-CZ", { day: "numeric", month: "long", year: "numeric" });
+  return date.toLocaleString("cs-CZ", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 /** Returns YYYY-MM for the given date (for booking activation month key). */
 export function monthKey(d: Date): string {
   return d.toISOString().slice(0, 7);

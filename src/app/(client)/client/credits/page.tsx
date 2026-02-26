@@ -5,7 +5,7 @@ import { Wallet } from "lucide-react";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
 import { formatCzk } from "@/lib/utils/money";
-import { format } from "@/lib/utils/date";
+import { displayDate } from "@/lib/utils/date";
 import { EmptyState } from "@/components/EmptyState";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { DataTable } from "@/components/tables/DataTable";
@@ -67,7 +67,7 @@ export default function ClientCreditsPage(): React.ReactElement {
               {
                 key: "createdAt",
                 header: "Datum",
-                render: (r) => format(new Date(r.createdAt), "datetime"),
+                render: (r) => displayDate(new Date(r.createdAt), "datetime"),
               },
               {
                 key: "amountCzk",

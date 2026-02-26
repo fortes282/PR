@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/auth/useSession";
-import { format } from "@/lib/utils/date";
+import { displayDate } from "@/lib/utils/date";
 import type { Notification } from "@/lib/contracts/notifications";
 
 export default function NotificationsPage(): React.ReactElement {
@@ -42,7 +42,7 @@ export default function NotificationsPage(): React.ReactElement {
               <div>
                 {n.title && <p className="font-medium text-gray-900">{n.title}</p>}
                 <p className="text-gray-700">{n.message}</p>
-                <p className="text-xs text-gray-500">{format(new Date(n.createdAt), "datetime")}</p>
+                <p className="text-xs text-gray-500">{displayDate(new Date(n.createdAt), "datetime")}</p>
               </div>
               {!n.read && (
                 <button

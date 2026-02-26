@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { format } from "@/lib/utils/date";
+import { format, displayDate } from "@/lib/utils/date";
 import { DataTable } from "@/components/tables/DataTable";
 import type { Appointment } from "@/lib/contracts/appointments";
 import type { User } from "@/lib/contracts/users";
@@ -154,7 +154,7 @@ export default function ReceptionAppointmentsPage(): React.ReactElement {
       </div>
       <DataTable<Appointment>
         columns={[
-          { key: "startAt", header: "Datum a čas", render: (r) => format(new Date(r.startAt), "datetime") },
+          { key: "startAt", header: "Datum a čas", render: (r) => displayDate(new Date(r.startAt), "datetime") },
           { key: "clientId", header: "Klient", render: (r) => userMap.get(r.clientId) ?? r.clientId },
           {
             key: "employeeId",

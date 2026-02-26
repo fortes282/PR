@@ -6,7 +6,7 @@ import { CalendarDays } from "lucide-react";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
 import { useToast } from "@/components/layout/Toaster";
-import { format, startOfDay, addMonths } from "@/lib/utils/date";
+import { format, displayDate, startOfDay, addMonths } from "@/lib/utils/date";
 import { formatCzk } from "@/lib/utils/money";
 import type { User } from "@/lib/contracts/users";
 import type { AvailabilitySlot } from "@/lib/contracts/availability";
@@ -76,10 +76,10 @@ export default function ClientBookPage(): React.ReactElement {
   const [availabilityByTherapist, setAvailabilityByTherapist] = useState<
     Record<string, AvailabilitySlot[]>
   >({});
+  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [booking, setBooking] = useState<string | null>(null);
-  /** Pending confirmation: slot chosen but not yet confirmed by client. */
   const [pendingBooking, setPendingBooking] = useState<{
     therapistId: string;
     therapistName: string;
@@ -90,7 +90,7 @@ export default function ClientBookPage(): React.ReactElement {
 
   useEffect(() => {
     const from = startOfDay(new Date());
-    const to = addMonths(from, 6);
+    const to = addMonths(from, 3);
     Promise.all([
       api.availability.bookableDays({ from: from.toISOString(), to: to.toISOString() }),
       api.users.list({ role: "EMPLOYEE" }),
@@ -100,8 +100,10 @@ export default function ClientBookPage(): React.ReactElement {
       .then(([daysRes, t, svc, r]) => {
         setBookableDays(daysRes);
         setTherapists(t.users);
-        setServices(svc);
+        const activeSvc = svc.filter((s) => s.active);
+        setServices(activeSvc);
         setRooms(r);
+        if (activeSvc[0]) setSelectedServiceId(activeSvc[0].id);
         const first = daysRes[0];
         setSelectedDay(first ? new Date(first.date + "T12:00:00") : startOfDay(new Date()));
       })
@@ -138,7 +140,7 @@ export default function ClientBookPage(): React.ReactElement {
   }, [selectedDay, therapists]);
 
   const handleConfirmReserve = async (): Promise<void> => {
-    if (!pendingBooking || !session?.userId || services.length === 0 || rooms.length === 0) return;
+    if (!pendingBooking || !session?.userId || !selectedServiceId || rooms.length === 0) return;
     const { therapistId, startAt, endAt } = pendingBooking;
     setConfirmFeedback(null);
     setBooking(therapistId);
@@ -146,7 +148,7 @@ export default function ClientBookPage(): React.ReactElement {
       await api.appointments.create({
         clientId: session.userId,
         employeeId: therapistId,
-        serviceId: services[0].id,
+        serviceId: selectedServiceId,
         roomId: rooms[0].id,
         startAt,
         endAt,
@@ -198,8 +200,33 @@ export default function ClientBookPage(): React.ReactElement {
         Rezervace termínu
       </h1>
       <p className="text-sm text-gray-600">
-        Vyberte den a čas. Zelené dny mají volné termíny, červené jsou plně obsazené.
+        Vyberte službu, den a čas. Zelené dny mají volné termíny, červené jsou plně obsazené.
       </p>
+
+      {services.length > 1 && (
+        <div>
+          <h2 className="mb-2 text-sm font-medium text-gray-700">Vyberte službu</h2>
+          <div className="flex flex-wrap gap-2">
+            {services.map((svc) => (
+              <button
+                key={svc.id}
+                type="button"
+                onClick={() => setSelectedServiceId(svc.id)}
+                className={`rounded-lg border px-4 py-2.5 text-sm font-medium shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+                  selectedServiceId === svc.id
+                    ? "border-sky-500 bg-sky-50 text-sky-700 ring-2 ring-sky-300"
+                    : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:shadow-md"
+                }`}
+              >
+                {svc.name}
+                <span className="ml-1.5 text-xs text-gray-500">
+                  ({svc.durationMinutes} min · {formatCzk(svc.priceCzk)})
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <h2 className="mb-2 text-sm font-medium text-gray-700">Vyberte den</h2>
@@ -246,7 +273,7 @@ export default function ClientBookPage(): React.ReactElement {
       {selectedDay && (
         <div>
           <h2 className="mb-3 text-sm font-medium text-gray-700">
-            Dostupní terapeuti – {format(selectedDay, "date")}
+            Dostupní terapeuti – {displayDate(selectedDay, "date")}
           </h2>
           {slotsLoading ? (
             <div className="space-y-4">
@@ -360,16 +387,6 @@ export default function ClientBookPage(): React.ReactElement {
         </div>
       )}
 
-      <div className="card card-hover card-hover-lift rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <a
-          href="/client/book"
-          className="btn btn-primary flex w-full items-center justify-center gap-2 rounded-lg py-3 text-base font-medium md:max-w-xs"
-        >
-          <CalendarDays className="h-5 w-5" aria-hidden />
-          Rezervovat termín
-        </a>
-      </div>
-
       <AnimatePresence>
         {pendingBooking && (
           <motion.div
@@ -412,9 +429,14 @@ export default function ClientBookPage(): React.ReactElement {
               </h2>
               <p className="mt-2 text-gray-600">
                 Rezervovat termín u <strong>{pendingBooking.therapistName}</strong> dne{" "}
-                {selectedDay && format(selectedDay, "date")} v{" "}
-                {format(new Date(pendingBooking.startAt), "time")}?
+                {selectedDay && displayDate(selectedDay, "date")} v{" "}
+                {displayDate(new Date(pendingBooking.startAt), "time")}?
               </p>
+              {selectedServiceId && (
+                <p className="mt-1 text-sm text-gray-500">
+                  Služba: {services.find((s) => s.id === selectedServiceId)?.name ?? "—"}
+                </p>
+              )}
               {confirmFeedback === "error" && (
                 <p className="mt-2 text-sm text-red-600" role="alert">
                   Rezervace selhala. Zkuste to znovu.

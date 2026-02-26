@@ -6,7 +6,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/auth/session";
 import { useToast } from "@/components/layout/Toaster";
-import { format } from "@/lib/utils/date";
+import { format, displayDate } from "@/lib/utils/date";
 import type { Appointment } from "@/lib/contracts/appointments";
 import type { User } from "@/lib/contracts/users";
 import type { MedicalReport } from "@/lib/contracts";
@@ -118,7 +118,7 @@ export default function EmployeeAppointmentDetailPage(): React.ReactElement {
         ← Kalendář
       </Link>
       <h1 className="text-2xl font-bold text-gray-900">
-        Termín – {format(new Date(appointment.startAt), "datetime")}
+        Termín – {displayDate(new Date(appointment.startAt), "datetime")}
       </h1>
 
       {isUnassigned && (
@@ -140,8 +140,8 @@ export default function EmployeeAppointmentDetailPage(): React.ReactElement {
 
       {/* Appointment basics */}
       <div className="card max-w-lg space-y-2 p-4">
-        <p><strong>Začátek:</strong> {format(new Date(appointment.startAt), "datetime")}</p>
-        <p><strong>Konec:</strong> {format(new Date(appointment.endAt ?? appointment.startAt), "datetime")}</p>
+        <p><strong>Začátek:</strong> {displayDate(new Date(appointment.startAt), "datetime")}</p>
+        <p><strong>Konec:</strong> {displayDate(new Date(appointment.endAt ?? appointment.startAt), "datetime")}</p>
         <p><strong>Stav:</strong> {appointment.status}</p>
       </div>
 
