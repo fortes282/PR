@@ -41,12 +41,6 @@ async function main() {
       console.error("FATAL: JWT_SECRET must be set in production (environment variables).");
       process.exit(1);
     }
-    if (!process.env.CORS_ORIGIN) {
-      console.error("FATAL: CORS_ORIGIN must be set in production");
-      console.error("  - Set CORS_ORIGIN in your environment variables");
-      console.error("  - Example: https://yourdomain.com or https://app1.com,https://app2.com");
-      process.exit(1);
-    }
   }
   initDb();
   runMigrations();
@@ -63,10 +57,10 @@ async function main() {
     app.log.info("Database loaded into memory.");
   }
 
-  const corsOrigin = process.env.CORS_ORIGIN;
+  const corsOrigin = process.env.CORS_ORIGIN?.trim();
   const corsOrigins = corsOrigin ? corsOrigin.split(",").map((o) => o.trim()) : undefined;
   await app.register(cors, {
-    origin: corsOrigins ?? (process.env.NODE_ENV === "production" ? false : true),
+    origin: corsOrigins ?? true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   });
